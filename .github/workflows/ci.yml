@@ -50,12 +50,12 @@ jobs:
         run: |
           set -x -o nounset -o errexit -o pipefail
           cd ./build/dokka/html
-          mv ./styles ./images ./scripts navigation.html ./poweb/
-          find ./poweb/ -name '*.html' -print0 | xargs -0 sed -i 's;../styles/;styles/;g'
-          find ./poweb/ -name '*.html' -print0 | xargs -0 sed -i 's;../images/;images/;g'
-          find ./poweb/ -name '*.html' -print0 | xargs -0 sed -i 's;../scripts/;scripts/;g'
-          find ./poweb/ -name '*.html' -print0 | xargs -0 sed -i 's;pathToRoot = "../;pathToRoot = ";g'
-          sed -i 's;href="poweb/;href=";g' ./poweb/navigation.html
+          mv ./styles ./images ./scripts navigation.html ./relaydroid/
+          find ./relaydroid/ -name '*.html' -print0 | xargs -0 sed -i 's;../styles/;styles/;g'
+          find ./relaydroid/ -name '*.html' -print0 | xargs -0 sed -i 's;../images/;images/;g'
+          find ./relaydroid/ -name '*.html' -print0 | xargs -0 sed -i 's;../scripts/;scripts/;g'
+          find ./relaydroid/ -name '*.html' -print0 | xargs -0 sed -i 's;pathToRoot = "../;pathToRoot = ";g'
+          sed -i 's;href="relaydroid/;href=";g' ./relaydroid/navigation.html
 
       - name: Release
         run: npx semantic-release
@@ -68,6 +68,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3.6.1
         with:
           publish_branch: gh-pages
-          publish_dir: ./build/dokka/html/poweb
+          publish_dir: ./build/dokka/html/relaydroid
           allow_empty_commit: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
