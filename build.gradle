@@ -31,7 +31,7 @@ dependencies {
     testImplementation('tech.relaycorp:relaynet-testing:1.2.1')
 
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.6.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
