@@ -58,6 +58,7 @@ jobs:
           sed -i 's;href="relaydroid/;href=";g' ./relaydroid/navigation.html
 
       - name: Release
+        if: ${{ false }}
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
