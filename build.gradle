@@ -1,0 +1,129 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+buildscript {
+    ext.kotlinVersion = '1.4.21-2'
+}
+
+plugins {
+    id("org.jetbrains.kotlin.jvm") version "$kotlinVersion"
+    id('java-library')
+    id("org.jetbrains.dokka") version "1.4.20"
+    id('maven-publish')
+    id("com.diffplug.spotless") version "5.9.0"
+    id('jacoco')
+    id('idea')
+}
+
+apply from: 'jacoco.gradle'
+
+group = "tech.relaycorp"
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
+
+    api('tech.relaycorp:relaynet:[1.42.1,2.0.0)')
+    testImplementation('tech.relaycorp:relaynet-testing:1.2.1')
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.6.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.6.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+kotlin {
+    explicitApi = 'strict'
+}
+
+tasks.withType(KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+        freeCompilerArgs += [
+            "-Xopt-in=kotlin.RequiresOptIn"
+        ]
+    }
+}
+
+dokkaHtml.configure {
+    dokkaSourceSets {
+        configureEach {
+            reportUndocumented.set(true)
+            includes.from("api-docs.md")
+        }
+    }
+}
+
+publishing {
+    publications {
+        create("default", MavenPublication) {
+            from(components["java"])
+
+            pom {
+                name.set(rootProject.name)
+                description.set("High-level library for Android apps implementing Relaynet endpoints")
+                url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+                developers {
+                    developer {
+                        id.set("relaycorp")
+                        name.set("Relaycorp, Inc.")
+                        email.set("no-reply@relaycorp.tech")
+                    }
+                }
+                licenses {
+                    license {
+                        name.set("Apache-2.0")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git")
+                    developerConnection.set(
+                            "scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git"
+                    )
+                    url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // publish=1 automatically publishes the version
+            url = uri(
+                    "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.relaydroid/;publish=1"
+            )
+            credentials {
+                username = System.getenv("BINTRAY_USERNAME")
+                password = System.getenv("BINTRAY_KEY")
+            }
+        }
+    }
+}
+
+spotless {
+    def ktlintUserData = [
+            "max_line_length": "100",
+            "disabled_rules" : "import-ordering"
+    ]
+    kotlin {
+        ktlint("0.36.0").userData(ktlintUserData)
+    }
+    kotlinGradle {
+        ktlint().userData(ktlintUserData)
+    }
+}
+
+gradleEnterprise {
+    buildScan {
+        termsOfServiceUrl = "https://gradle.com/terms-of-service"
+        termsOfServiceAgree = "yes"
+    }
+}
