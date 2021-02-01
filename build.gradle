@@ -1,7 +1,19 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    ext.kotlinVersion = '1.4.21-2'
+    ext {
+        kotlinVersion = '1.4.21'
+        kotlinCoroutinesVersion = '1.4.2-native-mt'
+        junitVersion = '5.7.0'
+    }
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
 }
 
 plugins {
@@ -14,13 +26,16 @@ plugins {
     id('idea')
 }
 
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
 apply from: 'jacoco.gradle'
 
 group = "tech.relaycorp"
-
-repositories {
-    jcenter()
-}
 
 dependencies {
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
@@ -118,12 +133,5 @@ spotless {
     }
     kotlinGradle {
         ktlint().userData(ktlintUserData)
-    }
-}
-
-gradleEnterprise {
-    buildScan {
-        termsOfServiceUrl = "https://gradle.com/terms-of-service"
-        termsOfServiceAgree = "yes"
     }
 }
