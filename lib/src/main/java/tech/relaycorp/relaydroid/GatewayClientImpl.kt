@@ -115,12 +115,12 @@ class GatewayClientImpl(
                     message.expirationDate
                 ).seconds.toInt(),
                 senderCertificateChain = setOf(
-                    Storage.getCertificate(message.receiverEndpoint.address)!!,
+                    Storage.getIdentityCertificate(message.receiverEndpoint.address)!!,
                     Storage.getGatewayCertificate()!!
                 )
             )
 
-            val senderPrivateKey = Storage.getKeyPair(message.senderEndpoint.address)!!.private
+            val senderPrivateKey = Storage.getIdentityKeyPair(message.senderEndpoint.address)!!.private
             return@withContext try {
                 PoWebClient.initLocal(Relaynet.POWEB_PORT)
                     .deliverParcel(
@@ -154,8 +154,8 @@ class GatewayClientImpl(
             .listEndpoints()
             .map { endpoint ->
                 Signer(
-                    Storage.getCertificate(endpoint)!!,
-                    Storage.getKeyPair(endpoint)!!.private
+                    Storage.getIdentityCertificate(endpoint)!!,
+                    Storage.getIdentityKeyPair(endpoint)!!.private
                 )
             }
             .toTypedArray()
@@ -190,9 +190,9 @@ class GatewayClientImpl(
         receiverEndpoint: FirstPartyEndpoint
     ): Certificate {
 
-        val senderKeyPair = Storage.getKeyPair(senderEndpoint.address)!!
-        val receiverKeyPair = Storage.getKeyPair(receiverEndpoint.address)!!
-        val receiverCertificate = Storage.getCertificate(receiverEndpoint.address)!!
+        val senderKeyPair = Storage.getIdentityKeyPair(senderEndpoint.address)!!
+        val receiverKeyPair = Storage.getIdentityKeyPair(receiverEndpoint.address)!!
+        val receiverCertificate = Storage.getIdentityCertificate(receiverEndpoint.address)!!
 
 
         return issueDeliveryAuthorization(

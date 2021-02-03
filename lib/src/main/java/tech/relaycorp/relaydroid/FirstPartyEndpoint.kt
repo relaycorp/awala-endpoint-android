@@ -15,13 +15,13 @@ private constructor(
     override val address get() = keyPair.public.privateAddress
 
     suspend fun remove() {
-        Storage.deleteKeyPair(address)
-        Storage.deleteCertificate(address)
+        Storage.deleteIdentityKeyPair(address)
+        Storage.deleteIdentityCertificate(address)
     }
 
     private suspend fun store() {
-        Storage.setKeyPair(address, keyPair)
-        Storage.setCertificate(address, certificate)
+        Storage.setIdentityKeyPair(address, keyPair)
+        Storage.setIdentityCertificate(address, certificate)
         Storage.setGatewayCertificate(gatewayCertificate)
     }
 
@@ -35,8 +35,8 @@ private constructor(
         }
 
         suspend fun load(address: String): FirstPartyEndpoint? {
-            return Storage.getKeyPair(address)?.let { keyPair ->
-                Storage.getCertificate(address)?.let { certificate ->
+            return Storage.getIdentityKeyPair(address)?.let { keyPair ->
+                Storage.getIdentityCertificate(address)?.let { certificate ->
                     Storage.getGatewayCertificate()?.let { gwCertificate ->
                         FirstPartyEndpoint(
                             keyPair,

@@ -15,53 +15,53 @@ constructor(
     private val persistence: Persistence
 ) {
 
-    private suspend fun getPrivateKey(endpoint: String) =
-        persistence.get("private_key_$endpoint")?.toPrivateKey()
+    private suspend fun getIdentityPrivateKey(endpoint: String) =
+        persistence.get("$KEY_IDENTITY_PRIVATE_KEY$endpoint")?.toPrivateKey()
 
-    private suspend fun setPrivateKey(endpoint: String, privateKey: PrivateKey) {
-        persistence.set("private_key_$endpoint", privateKey.encoded)
+    private suspend fun setIdentityPrivateKey(endpoint: String, privateKey: PrivateKey) {
+        persistence.set("$KEY_IDENTITY_PRIVATE_KEY$endpoint", privateKey.encoded)
     }
 
-    private suspend fun deletePrivateKey(endpoint: String) {
-        persistence.delete("private_key_$endpoint")
+    private suspend fun deleteIdentityPrivateKey(endpoint: String) {
+        persistence.delete("$KEY_IDENTITY_PRIVATE_KEY$endpoint")
     }
 
-    suspend fun getKeyPair(endpoint: String) =
-        getPrivateKey(endpoint)?.toKeyPair()
+    suspend fun getIdentityKeyPair(endpoint: String) =
+        getIdentityPrivateKey(endpoint)?.toKeyPair()
 
-    suspend fun setKeyPair(endpoint: String, keyPair: KeyPair) {
-        setPrivateKey(endpoint, keyPair.private)
+    suspend fun setIdentityKeyPair(endpoint: String, keyPair: KeyPair) {
+        setIdentityPrivateKey(endpoint, keyPair.private)
     }
 
-    suspend fun deleteKeyPair(endpoint: String) {
-        deletePrivateKey(endpoint)
+    suspend fun deleteIdentityKeyPair(endpoint: String) {
+        deleteIdentityPrivateKey(endpoint)
     }
 
-    suspend fun getCertificate(endpoint: String) =
-        persistence.get("certificate_$endpoint")?.let { Certificate.deserialize(it) }
+    suspend fun getIdentityCertificate(endpoint: String) =
+        persistence.get("$KEY_IDENTITY_CERTIFICATE$endpoint")?.let { Certificate.deserialize(it) }
 
-    suspend fun setCertificate(endpoint: String, certificate: Certificate) {
-        persistence.set("certificate_$endpoint", certificate.serialize())
+    suspend fun setIdentityCertificate(endpoint: String, certificate: Certificate) {
+        persistence.set("$KEY_IDENTITY_CERTIFICATE$endpoint", certificate.serialize())
     }
 
-    suspend fun deleteCertificate(endpoint: String) {
-        persistence.delete("certificate_$endpoint")
+    suspend fun deleteIdentityCertificate(endpoint: String) {
+        persistence.delete("$KEY_IDENTITY_CERTIFICATE$endpoint")
     }
 
     suspend fun getGatewayCertificate() =
-        persistence.get("gateway_certificate")?.let { Certificate.deserialize(it) }
+        persistence.get(KEY_GATEWAY_CERTIFICATE)?.let { Certificate.deserialize(it) }
 
     suspend fun setGatewayCertificate(certificate: Certificate) {
-        persistence.set("gateway_certificate", certificate.serialize())
+        persistence.set(KEY_GATEWAY_CERTIFICATE, certificate.serialize())
     }
 
     suspend fun deleteGatewayCertificate() {
-        persistence.delete("gateway_certificate")
+        persistence.delete(KEY_GATEWAY_CERTIFICATE)
     }
 
     suspend fun listEndpoints() =
-        persistence.list("certificate_")
-            .map { it.substring("certificate_".length) }
+        persistence.list(KEY_IDENTITY_CERTIFICATE)
+            .map { it.substring(KEY_IDENTITY_CERTIFICATE.length) }
 
     private fun ByteArray.toPrivateKey(): PrivateKey {
         val privateKeySpec = PKCS8EncodedKeySpec(this)
@@ -80,5 +80,10 @@ constructor(
     companion object {
         private const val KEY_ALGORITHM = "RSA"
         private val bouncyCastleProvider = BouncyCastleProvider()
+
+        private const val KEY_IDENTITY_PRIVATE_KEY = "id_private_key_"
+        private const val KEY_IDENTITY_CERTIFICATE = "id_certificate_"
+        private const val KEY_GATEWAY_CERTIFICATE = "gateway_certificate"
+
     }
 }
