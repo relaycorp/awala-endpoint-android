@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    name: "${{ matrix.os }}"  # Do not change; used by protected branches
+    name: "ci-${{ matrix.os }}"  # Do not change; used by protected branches
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
