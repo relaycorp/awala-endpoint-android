@@ -1,7 +1,7 @@
 package tech.relaycorp.relaydroid
 
 import android.content.Context
-import tech.relaycorp.relaydroid.persistence.SharedPreferencesPersistence
+import tech.relaycorp.relaydroid.persistence.EncryptedDiskPersistence
 
 object Relaynet {
     const val POWEB_PORT = 13276
@@ -10,7 +10,7 @@ object Relaynet {
     const val GATEWAY_SYNC_COMPONENT = "tech.relaycorp.gateway.background.endpoint.GatewaySyncService"
 
     suspend fun setup(context: Context) {
-        storage = StorageImpl(SharedPreferencesPersistence(context))
+        storage = StorageImpl(EncryptedDiskPersistence(context))
         gatewayClientImpl = GatewayClientImpl(context)
     }
 
