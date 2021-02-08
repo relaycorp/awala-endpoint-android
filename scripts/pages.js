@@ -1,1 +1,1 @@
-var pages = [{"name":"object Example","description":"tech.relaycorp.relaydroid.Example","location":"relaydroid/tech.relaycorp.relaydroid/-example/index.html","searchKeys":["Example","object Example"]},{"name":"val foo: String","description":"tech.relaycorp.relaydroid.Example.foo","location":"relaydroid/tech.relaycorp.relaydroid/-example/foo.html","searchKeys":["foo","val foo: String"]}]
+var pages = []
