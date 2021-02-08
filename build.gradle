@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    ext.kotlinVersion = '1.4.21-2'
+    ext.kotlinVersion = '1.4.30'
 }
 
 plugins {
