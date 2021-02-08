@@ -1,0 +1,75 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    // Need this specific version due to https://stackoverflow.com/questions/59378618/kotlin-jacoco-no-coverage-illegalclassformatexception-please-supply-orig
+    toolVersion = "0.7.9"
+}
+
+def jacocoConfig = {
+    sourceDirectories.from = files(["$project.projectDir/src/main/java"])
+    classDirectories.from = files([
+      fileTree(
+        dir: project.buildDir,
+        includes: [
+          "intermediates/javac/debug/**",
+          "tmp/kotlin-classes/debug/**"
+        ],
+        excludes: [
+          'android/**/*.*',
+          '**/R.class',
+          '**/R$*.class',
+          '**/BuildConfig.*',
+          '**/Manifest*.*',
+          '**/*Test*.*'
+        ]
+      )
+    ])
+
+    executionData.from = fileTree(dir: project.buildDir, includes: [
+      'jacoco/testDebugUnitTest.exec',
+      'outputs/code_coverage/debugAndroidTest/connected/**/*.ec'
+    ])
+
+    if (project.hasProperty('codeCoverageDataLocation')) {
+        executionData.from += fileTree(dir: codeCoverageDataLocation, includes: ['**/*.ec'])
+    }
+}
+
+task jacocoTestReport(type: JacocoReport) {
+    configure jacocoConfig
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        html.destination = file("$buildDir/reports/coverage")
+    }
+}
+
+task jacocoTestCoverageVerification(type: JacocoCoverageVerification) {
+    configure jacocoConfig
+
+    violationRules {
+        rule {
+            limit {
+                counter = "CLASS"
+                value = "MISSEDCOUNT"
+                // Workaround for https://github.com/jacoco/jacoco/issues/654
+                maximum = "1".toBigDecimal()
+            }
+
+            limit {
+                counter = "METHOD"
+                value = "MISSEDCOUNT"
+                // Workaround for https://github.com/jacoco/jacoco/issues/654
+                maximum = "1".toBigDecimal()
+            }
+
+            limit {
+                counter = "BRANCH"
+                value = "MISSEDCOUNT"
+                // Workaround for https://github.com/jacoco/jacoco/issues/1036
+                maximum = "13".toBigDecimal()
+            }
+        }
+    }
+}

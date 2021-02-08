@@ -1,7 +1,16 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 buildscript {
-    ext.kotlinVersion = '1.4.21-2'
+    ext {
+        kotlinVersion = '1.4.21'
+        kotlinCoroutinesVersion = '1.4.2'
+    }
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
 }
 
 plugins {
@@ -10,48 +19,21 @@ plugins {
     id("org.jetbrains.dokka") version "1.4.20"
     id('maven-publish')
     id("com.diffplug.spotless") version "5.9.0"
-    id('jacoco')
     id('idea')
 }
 
-apply from: 'jacoco.gradle'
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
 
 group = "tech.relaycorp"
-
-repositories {
-    jcenter()
-}
-
-dependencies {
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-
-    api('tech.relaycorp:relaynet:[1.42.1,2.0.0)')
-    testImplementation('tech.relaycorp:relaynet-testing:1.2.1')
-
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.7.0")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.7.0")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-}
 
 java {
     withJavadocJar()
     withSourcesJar()
-}
-
-kotlin {
-    explicitApi = 'strict'
-}
-
-tasks.withType(KotlinCompile).all {
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += [
-            "-Xopt-in=kotlin.RequiresOptIn"
-        ]
-    }
 }
 
 dokkaHtml.configure {
