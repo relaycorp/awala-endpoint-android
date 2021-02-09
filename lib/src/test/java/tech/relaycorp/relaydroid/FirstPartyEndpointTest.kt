@@ -8,15 +8,29 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
-import tech.relaycorp.relaydroid.test.ParcelDeliveryCertificates
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
+import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import java.security.KeyPair
+import java.util.UUID
 
 class FirstPartyEndpointTest {
+
+    private val gateway = mock<GatewayClientI>()
+    private val storage = mock<StorageImpl>()
+
+    @Before
+    fun setUp() {
+        runBlockingTest {
+            Relaynet.storage = storage
+            Relaynet.gatewayClientImpl = gateway
+        }
+    }
 
     @Test
     fun address() {
@@ -26,43 +40,45 @@ class FirstPartyEndpointTest {
 
     @Test
     fun register() = runBlockingTest {
-        val gateway = mock<GatewayClientI>()
-        val storage = mock<StorageImpl>()
-        Relaynet.storage = storage
-        Relaynet.gatewayClientImpl = gateway
-
         whenever(gateway.registerEndpoint(any())).thenReturn(Pair(
-            ParcelDeliveryCertificates.PRIVATE_ENDPOINT,
-            ParcelDeliveryCertificates.PRIVATE_GW
+            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_GW
         ))
 
         val endpoint = FirstPartyEndpoint.register()
 
         val keyPairCaptor = argumentCaptor<KeyPair>()
-        verify(gateway).registerEndpoint(keyPairCaptor.capture())
-        verify(storage).setIdentityKeyPair(eq(endpoint.address), eq(keyPairCaptor.firstValue))
-        verify(storage).setIdentityCertificate(eq(endpoint.address), eq(ParcelDeliveryCertificates.PRIVATE_ENDPOINT))
-        verify(storage).setGatewayCertificate(eq(ParcelDeliveryCertificates.PRIVATE_GW))
+        verify(gateway)
+            .registerEndpoint(keyPairCaptor.capture())
+        verify(storage)
+            .setIdentityKeyPair(eq(endpoint.address), eq(keyPairCaptor.firstValue))
+        verify(storage)
+            .setIdentityCertificate(eq(endpoint.address), eq(PDACertPath.PRIVATE_ENDPOINT))
+        verify(storage)
+            .setGatewayCertificate(eq(PDACertPath.PRIVATE_GW))
     }
 
     @Test
-    fun load() = runBlockingTest {
-        val gateway = mock<GatewayClientI>()
-        val storage = mock<StorageImpl>()
-        Relaynet.storage = storage
-        Relaynet.gatewayClientImpl = gateway
+    fun load_nonExistent() = runBlockingTest {
+        assertNull(FirstPartyEndpoint.load("non-existent"))
+    }
 
-        val address = "123456"
+    @Test
+    fun load_withResult() = runBlockingTest {
+        val address = UUID.randomUUID().toString()
 
-        assertNull(FirstPartyEndpoint.load(address))
+        whenever(storage.getIdentityKeyPair(eq(address)))
+            .thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
+        whenever(storage.getIdentityCertificate(eq(address)))
+            .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+        whenever(storage.getGatewayCertificate())
+            .thenReturn(PDACertPath.PRIVATE_GW)
 
-        whenever(storage.getIdentityKeyPair(address)).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
-        whenever(storage.getIdentityCertificate(address)).thenReturn(ParcelDeliveryCertificates.PRIVATE_ENDPOINT)
-        whenever(storage.getGatewayCertificate()).thenReturn(ParcelDeliveryCertificates.PRIVATE_GW)
-
-        val endpoint = FirstPartyEndpoint.load(address)!!
-        assertEquals(KeyPairSet.PRIVATE_ENDPOINT, endpoint.keyPair)
-        assertEquals(ParcelDeliveryCertificates.PRIVATE_ENDPOINT, endpoint.certificate)
-        assertEquals(ParcelDeliveryCertificates.PRIVATE_GW, endpoint.gatewayCertificate)
+        with(FirstPartyEndpoint.load(address)) {
+            assertNotNull(this)
+            assertEquals(KeyPairSet.PRIVATE_ENDPOINT, this?.keyPair)
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.certificate)
+            assertEquals(PDACertPath.PRIVATE_GW, this?.gatewayCertificate)
+        }
     }
 }
