@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.persistence
 
+import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.TestCoroutineScope
@@ -7,22 +8,26 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 import java.nio.charset.Charset
 
 @RunWith(AndroidJUnit4::class)
 internal class EncryptedDiskPersistenceTest {
 
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val coroutineScope = TestCoroutineScope()
-    private val subject =
-        EncryptedDiskPersistence(
-            ApplicationProvider.getApplicationContext(),
-            coroutineScope.coroutineContext
-        )
+    private val rootFolder = "relaydroid_test"
+    private val subject = EncryptedDiskPersistence(
+        context,
+        coroutineScope.coroutineContext,
+        rootFolder
+    )
 
     @After
     fun tearDown() {
@@ -32,17 +37,49 @@ internal class EncryptedDiskPersistenceTest {
     }
 
     @Test
-    fun getAndSet() = coroutineScope.runBlockingTest {
+    fun getNonExistentFile() = coroutineScope.runBlockingTest {
         assertNull(subject.get("file"))
+    }
+
+    @Test
+    fun setNonExistentFileAndGetIt() = coroutineScope.runBlockingTest {
         val data = "test"
         subject.set("file", data.toByteArray())
         assertEquals(data, subject.get("file")?.toString(Charset.defaultCharset()))
     }
 
     @Test
-    fun delete() = coroutineScope.runBlockingTest {
+    fun setOnExistingFile() = coroutineScope.runBlockingTest {
+        val data1 = "test1"
+        val data2 = "test2"
+        subject.set("file", data1.toByteArray())
+        subject.set("file", data2.toByteArray())
+        assertEquals(data2, subject.get("file")?.toString(Charset.defaultCharset()))
+    }
+
+    @Test
+    fun setEncryptsContent() = coroutineScope.runBlockingTest {
+        val location = "file"
+        val data = "test"
+        subject.set(location, data.toByteArray())
+        val fileContent =
+            File(context.filesDir, "$rootFolder${File.separator}$location")
+                .readBytes()
+                .toString(Charset.defaultCharset())
+        assertNotEquals(data, fileContent)
+    }
+
+    @Test
+    fun deleteExistingFile() = coroutineScope.runBlockingTest {
         subject.set("file", "test".toByteArray())
         assertNotNull(subject.get("file"))
+        subject.delete("file")
+        assertNull(subject.get("file"))
+    }
+
+    @Test
+    fun deleteNonExistentFile() = coroutineScope.runBlockingTest {
+        assertNull(subject.get("file"))
         subject.delete("file")
         assertNull(subject.get("file"))
     }

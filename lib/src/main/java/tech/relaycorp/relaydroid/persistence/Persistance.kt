@@ -7,3 +7,6 @@ internal interface Persistence {
     suspend fun deleteAll()
     suspend fun list(locationPrefix: String = ""): List<String>
 }
+
+public class PersistenceException(message: String, cause: Throwable? = null)
+    : Exception(message, cause)
