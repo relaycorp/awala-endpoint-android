@@ -3,7 +3,7 @@ package tech.relaycorp.relaydroid.common
 import java.util.logging.Level
 import java.util.logging.Logger
 
-object Logging {
+internal object Logging {
 
     private val rootLogger by lazy { Logger.getLogger("") }
 

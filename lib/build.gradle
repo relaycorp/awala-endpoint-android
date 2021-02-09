@@ -36,6 +36,7 @@ android {
   }
   kotlinOptions {
     jvmTarget = JavaVersion.VERSION_1_8
+    freeCompilerArgs += "-Xexplicit-api=strict"
   }
   testOptions {
     unitTests{
@@ -48,10 +49,6 @@ android {
     exclude 'META-INF/licenses/*'
     exclude '**/attach_hotspot_windows.dll'
   }
-}
-
-kotlin {
-  explicitApi = 'strict'
 }
 
 dependencies {

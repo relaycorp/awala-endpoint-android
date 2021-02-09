@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
-class MessageIdTest {
+internal class MessageIdTest {
     @Test
     fun generate() {
         val messageId = MessageId.generate()

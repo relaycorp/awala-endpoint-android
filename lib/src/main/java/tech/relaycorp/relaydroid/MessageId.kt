@@ -2,12 +2,12 @@ package tech.relaycorp.relaydroid
 
 import java.util.UUID
 
-class MessageId
+public class MessageId
 internal constructor(
-    val value: String
+    public val value: String
 ) {
-    companion object {
-        fun generate() = MessageId(UUID.randomUUID().toString())
+    public companion object {
+        public fun generate(): MessageId = MessageId(UUID.randomUUID().toString())
     }
 
     override fun equals(other: Any?): Boolean {
@@ -17,5 +17,5 @@ internal constructor(
         return true
     }
 
-    override fun hashCode() = value.hashCode()
+    override fun hashCode(): Int = value.hashCode()
 }

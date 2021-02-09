@@ -11,7 +11,7 @@ import java.io.IOException
 import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
 
-class EncryptedDiskPersistence(
+internal class EncryptedDiskPersistence(
     private val context: Context,
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
     private val rootFolder: String = "relaydroid"

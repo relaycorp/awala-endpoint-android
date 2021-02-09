@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import tech.relaycorp.relaydroid.GatewayClient
 import kotlin.coroutines.CoroutineContext
 
-class NotificationBroadcastReceiver : BroadcastReceiver() {
+internal class NotificationBroadcastReceiver : BroadcastReceiver() {
 
     internal var coroutineContext: CoroutineContext = Dispatchers.IO
 

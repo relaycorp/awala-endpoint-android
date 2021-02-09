@@ -15,7 +15,7 @@ import org.junit.runner.RunWith
 import java.nio.charset.Charset
 
 @RunWith(AndroidJUnit4::class)
-class EncryptedDiskPersistenceTest {
+internal class EncryptedDiskPersistenceTest {
 
     private val coroutineScope = TestCoroutineScope()
     private val subject =

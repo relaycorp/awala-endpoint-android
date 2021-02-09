@@ -13,7 +13,7 @@ import tech.relaycorp.relaydroid.GatewayClientI
 import tech.relaycorp.relaydroid.Relaynet
 
 @RunWith(RobolectricTestRunner::class)
-class NotificationBroadcastReceiverTest {
+internal class NotificationBroadcastReceiverTest {
     @Test
     fun name() = runBlockingTest {
         val context = RuntimeEnvironment.systemContext
