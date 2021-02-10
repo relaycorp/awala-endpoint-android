@@ -6,7 +6,7 @@ import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.security.KeyPair
 
 class FirstPartyEndpoint
-private constructor(
+internal constructor(
     internal val keyPair: KeyPair,
     internal val certificate: Certificate,
     internal val gatewayCertificate: Certificate
