@@ -3,35 +3,35 @@ package tech.relaycorp.relaydroid
 import java.time.ZonedDateTime
 import java.util.*
 
-abstract class Message(
-    val id: MessageId,
-    val message: ByteArray,
+public abstract class Message(
+    public val id: MessageId,
+    public val message: ByteArray,
     senderEndpoint: Endpoint,
     receiverEndpoint: Endpoint,
-    val creationDate: ZonedDateTime = ZonedDateTime.now(),
-    val expirationDate: ZonedDateTime = maxExpirationDate()
+    public val creationDate: ZonedDateTime = ZonedDateTime.now(),
+    public val expirationDate: ZonedDateTime = maxExpirationDate()
 ) {
-    companion object {
+    internal companion object {
         internal fun maxExpirationDate() = ZonedDateTime.now().plusDays(30)
     }
 }
 
-class IncomingMessage internal constructor(
+public class IncomingMessage internal constructor(
     id: MessageId,
     message: ByteArray,
-    val senderEndpoint: ThirdPartyEndpoint,
-    val receiverEndpoint: FirstPartyEndpoint,
+    public val senderEndpoint: ThirdPartyEndpoint,
+    public val receiverEndpoint: FirstPartyEndpoint,
     creationDate: ZonedDateTime,
     expiryDate: ZonedDateTime,
-    val ack: suspend () -> Unit
+    public val ack: suspend () -> Unit
 ) : Message(
     id, message, senderEndpoint, receiverEndpoint, creationDate, expiryDate
 )
 
-class OutgoingMessage(
+public class OutgoingMessage(
     message: ByteArray,
-    val senderEndpoint: FirstPartyEndpoint,
-    val receiverEndpoint: ThirdPartyEndpoint,
+    public val senderEndpoint: FirstPartyEndpoint,
+    public val receiverEndpoint: ThirdPartyEndpoint,
     creationDate: ZonedDateTime = ZonedDateTime.now(),
     expirationDate: ZonedDateTime = maxExpirationDate(),
     id: MessageId = MessageId.generate()

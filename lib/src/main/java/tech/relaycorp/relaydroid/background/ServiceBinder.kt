@@ -9,7 +9,7 @@ import android.util.Log
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-suspend fun Context.suspendBindService(
+internal suspend fun Context.suspendBindService(
     packageName: String,
     componentName: String
 ): Pair<ServiceConnection, IBinder> =

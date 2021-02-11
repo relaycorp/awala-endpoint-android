@@ -4,15 +4,15 @@ import kotlinx.coroutines.flow.Flow
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.security.KeyPair
 
-interface GatewayClientI {
+public interface GatewayClientI {
 
-    suspend fun bind()
-    fun unbind()
+    public suspend fun bind()
+    public fun unbind()
 
-    suspend fun registerEndpoint(keyPair: KeyPair): Pair<Certificate, Certificate>
+    public suspend fun registerEndpoint(keyPair: KeyPair): Pair<Certificate, Certificate>
 
-    suspend fun sendMessage(message: OutgoingMessage)
-    fun receiveMessages(): Flow<IncomingMessage>
-    suspend fun checkForNewMessages()
+    public suspend fun sendMessage(message: OutgoingMessage)
+    public fun receiveMessages(): Flow<IncomingMessage>
+    public suspend fun checkForNewMessages()
 
 }

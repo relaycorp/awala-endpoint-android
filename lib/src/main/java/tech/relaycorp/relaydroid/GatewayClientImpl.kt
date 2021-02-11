@@ -27,7 +27,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-class GatewayClientImpl(
+internal class GatewayClientImpl(
     private val context: Context
 ) : GatewayClientI {
 

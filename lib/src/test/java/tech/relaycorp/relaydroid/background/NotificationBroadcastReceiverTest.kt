@@ -1,23 +1,22 @@
 package tech.relaycorp.relaydroid.background
 
 import android.content.Intent
-import androidx.test.rule.ServiceTestRule
+import androidx.test.core.app.ApplicationProvider
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import kotlinx.coroutines.test.runBlockingTest
-import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.relaydroid.GatewayClientI
 import tech.relaycorp.relaydroid.Relaynet
-import tech.relaycorp.relaydroid.test.TestAndroidProvider.context
 
-class NotificationBroadcastReceiverTest {
-
-    @get:Rule
-    val rule = ServiceTestRule()
-
+@RunWith(RobolectricTestRunner::class)
+internal class NotificationBroadcastReceiverTest {
     @Test
     fun name() = runBlockingTest {
+        val context = RuntimeEnvironment.systemContext
         Relaynet.setup(context)
         val gatewayClient = mock<GatewayClientI>()
         Relaynet.gatewayClientImpl = gatewayClient

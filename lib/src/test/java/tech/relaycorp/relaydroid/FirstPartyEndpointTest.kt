@@ -19,7 +19,7 @@ import tech.relaycorp.relaynet.wrappers.privateAddress
 import java.security.KeyPair
 import java.util.UUID
 
-class FirstPartyEndpointTest {
+internal class FirstPartyEndpointTest {
 
     private val gateway = mock<GatewayClientI>()
     private val storage = mock<StorageImpl>()
