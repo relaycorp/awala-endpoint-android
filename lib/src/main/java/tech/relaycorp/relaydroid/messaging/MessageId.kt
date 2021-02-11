@@ -1,4 +1,4 @@
-package tech.relaycorp.relaydroid
+package tech.relaycorp.relaydroid.messaging
 
 import java.util.UUID
 

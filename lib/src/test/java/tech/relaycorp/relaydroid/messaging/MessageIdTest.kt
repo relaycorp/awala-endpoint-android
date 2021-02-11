@@ -1,8 +1,9 @@
-package tech.relaycorp.relaydroid
+package tech.relaycorp.relaydroid.messaging
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import tech.relaycorp.relaydroid.messaging.MessageId
 
 internal class MessageIdTest {
     @Test
