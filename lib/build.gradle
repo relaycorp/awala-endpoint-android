@@ -60,7 +60,7 @@ dependencies {
 
   // Relaynet
   api('tech.relaycorp:relaynet:[1.42.1,2.0.0)')
-  implementation 'tech.relaycorp:poweb:1.5.14'
+  implementation 'tech.relaycorp:poweb:1.5.15'
 
   // Security
   implementation 'androidx.security:security-crypto:1.1.0-alpha03'
