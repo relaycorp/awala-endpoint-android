@@ -20,7 +20,6 @@ import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
-import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
@@ -135,9 +134,9 @@ internal constructor(
                 incomingMessageChannel.send(
                     IncomingMessage(
                         id = MessageId(parcel.id),
-                        message = parcel.payload,
+                        payload = parcel.payload,
                         senderEndpoint = PrivateThirdPartyEndpoint(parcel.senderCertificate.subjectPrivateAddress),
-                        receiverEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)!!,
+                        recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)!!,
                         creationDate = parcel.creationDate,
                         expiryDate = parcel.expiryDate,
                         ack = { parcelCollection.ack() }

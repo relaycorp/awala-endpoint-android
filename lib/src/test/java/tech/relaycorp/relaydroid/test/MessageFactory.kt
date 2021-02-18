@@ -1,16 +1,19 @@
 package tech.relaycorp.relaydroid.test
 
-import tech.relaycorp.relaydroid.FirstPartyEndpoint
+import tech.relaycorp.relaydroid.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
-import tech.relaycorp.relaynet.testing.pki.KeyPairSet
-import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.ramf.RecipientAddressType
+import java.util.UUID
 import kotlin.random.Random
 
 internal object MessageFactory {
-    fun buildOutgoing() = OutgoingMessage(
+    suspend fun buildOutgoing(recipientType: RecipientAddressType) = OutgoingMessage.build(
         Random.Default.nextBytes(10),
         senderEndpoint = FirstPartyEndpointFactory.build(),
-        receiverEndpoint = PublicThirdPartyEndpoint("http://example.org")
+        recipientEndpoint = when (recipientType) {
+            RecipientAddressType.PUBLIC -> PublicThirdPartyEndpoint("http://example.org")
+            RecipientAddressType.PRIVATE -> PrivateThirdPartyEndpoint(UUID.randomUUID().toString())
+        }
     )
 }
