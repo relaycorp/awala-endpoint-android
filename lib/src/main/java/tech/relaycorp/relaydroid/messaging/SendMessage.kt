@@ -12,8 +12,7 @@ import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
 
 internal class SendMessage(
-    private val pdcClientBuilder: () -> PDCClient =
-        { PoWebClient.initLocal(Relaynet.POWEB_PORT) },
+    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) },
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) {
 
@@ -22,14 +21,15 @@ internal class SendMessage(
             val senderPrivateKey = message.senderEndpoint.keyPair.private
 
             return@withContext try {
-                pdcClientBuilder()
-                    .deliverParcel(
+                pdcClientBuilder().use {
+                    it.deliverParcel(
                         message.parcel.serialize(senderPrivateKey),
                         Signer(
                             message.parcel.senderCertificate,
                             senderPrivateKey
                         )
                     )
+                }
             } catch (e: Exception) {
                 logger.log(Level.WARNING, "Error sending message", e)
                 throw SendMessageException("Could not deliver message to gateway", e)
