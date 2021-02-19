@@ -1,7 +1,7 @@
 buildscript {
     ext {
-        kotlinVersion = '1.4.21'
-        kotlinCoroutinesVersion = '1.4.2'
+        kotlinVersion = '1.4.30'
+        kotlinCoroutinesVersion = '1.4.2-native-mt'
     }
     repositories {
         google()
@@ -18,7 +18,7 @@ plugins {
     id('java-library')
     id("org.jetbrains.dokka") version "1.4.20"
     id('maven-publish')
-    id("com.diffplug.spotless") version "5.9.0"
+    id("com.diffplug.spotless") version "5.10.1"
     id('idea')
 }
 
