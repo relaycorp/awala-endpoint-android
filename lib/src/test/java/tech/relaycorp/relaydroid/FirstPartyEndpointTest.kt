@@ -13,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
@@ -40,7 +41,7 @@ internal class FirstPartyEndpointTest {
 
     @Test
     fun register() = runBlockingTest {
-        whenever(gateway.registerEndpoint(any())).thenReturn(Pair(
+        whenever(gateway.registerEndpoint(any())).thenReturn(PrivateNodeRegistration(
             PDACertPath.PRIVATE_ENDPOINT,
             PDACertPath.PRIVATE_GW
         ))

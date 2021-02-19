@@ -1,10 +1,5 @@
 package tech.relaycorp.relaydroid
 
-import android.content.Context
-import android.content.ServiceConnection
-import android.os.Handler
-import android.os.Looper
-import android.os.Messenger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BroadcastChannel
@@ -13,15 +8,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
-import tech.relaycorp.relaydroid.background.suspendBindService
+import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
 import tech.relaycorp.relaydroid.messaging.SendMessage
+import tech.relaycorp.relaynet.bindings.pdc.PDCClient
+import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.security.KeyPair
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
@@ -30,73 +27,72 @@ import kotlin.coroutines.suspendCoroutine
 
 public class GatewayClientImpl
 internal constructor(
-    private val context: Context,
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val serviceInteractorBuilder: () -> ServiceInteractor,
+    private val pdcClientBuilder: () -> PDCClient =
+        { PoWebClient.initLocal(port = Relaynet.POWEB_PORT) },
     private val sendMessage: SendMessage = SendMessage(),
     private val receiveMessages: ReceiveMessages = ReceiveMessages()
 ) {
 
     // Gateway
 
-    private var syncConnection: ServiceConnection? = null
+    private var gwServiceInteractor: ServiceInteractor? = null
 
     public suspend fun bind() {
         withContext(coroutineContext) {
-            if (syncConnection != null) return@withContext // Already connected
+            if (gwServiceInteractor != null) return@withContext // Already connected
 
-            val bindResult = context.suspendBindService(
-                Relaynet.GATEWAY_PACKAGE,
-                Relaynet.GATEWAY_SYNC_COMPONENT
-            )
-            syncConnection = bindResult.first
+            gwServiceInteractor = serviceInteractorBuilder().apply {
+                bind(
+                    Relaynet.GATEWAY_PACKAGE,
+                    Relaynet.GATEWAY_SYNC_COMPONENT
+                )
+            }
             delay(1_000) // Wait for server to start
         }
     }
 
     public fun unbind() {
-        syncConnection?.let { context.unbindService(it) }
-        syncConnection = null
+        gwServiceInteractor?.unbind()
+        gwServiceInteractor = null
     }
 
     // First-Party Endpoints
 
-    internal suspend fun registerEndpoint(keyPair: KeyPair): Pair<Certificate, Certificate> {
+    internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration {
         val preAuthSerialized = preRegister()
         val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
         val requestSerialized = request.serialize(keyPair.private)
 
         bind()
 
-        val poweb = PoWebClient.initLocal(port = Relaynet.POWEB_PORT)
-        val pnr = poweb.registerNode(requestSerialized)
-        return Pair(
-            pnr.privateNodeCertificate,
-            pnr.gatewayCertificate
-        )
+        return pdcClientBuilder().use {
+            it.registerNode(requestSerialized)
+        }
     }
 
     private suspend fun preRegister(): ByteArray {
-        val bindResult = context.suspendBindService(
-            Relaynet.GATEWAY_PACKAGE,
-            Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
-        )
-        val serviceConnection = bindResult.first
-        val binder = bindResult.second
+        val interactor = serviceInteractorBuilder().apply {
+            bind(
+                Relaynet.GATEWAY_PACKAGE,
+                Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
+            )
+        }
 
         return suspendCoroutine { cont ->
             val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
-            request.replyTo = Messenger(object : Handler(Looper.getMainLooper()) {
-                override fun handleMessage(msg: android.os.Message) {
-                    if (msg.what != REGISTRATION_AUTHORIZATION) {
-                        cont.resumeWithException(Exception("pre-register failed"))
-                        context.unbindService(serviceConnection)
-                        return
+            CoroutineScope(coroutineContext).launch {
+                interactor.sendMessage(request) { replyMessage ->
+                    if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
+                        interactor.unbind()
+                        cont.resumeWithException(Exception("Pre-registration failed"))
+                        return@sendMessage
                     }
-                    cont.resume(msg.data.getByteArray("auth")!!)
-                    context.unbindService(serviceConnection)
+                    interactor.unbind()
+                    cont.resume(replyMessage.data.getByteArray("auth")!!)
                 }
-            })
-            Messenger(binder).send(request)
+            }
         }
     }
 
@@ -113,7 +109,7 @@ internal constructor(
 
     // TODO: Review bind checks and uniformise gateway exceptions
     internal suspend fun checkForNewMessages() {
-        val wasBound = syncConnection != null
+        val wasBound = gwServiceInteractor != null
         if (!wasBound) bind()
 
         receiveMessages
@@ -124,8 +120,8 @@ internal constructor(
         if (!wasBound) unbind()
     }
 
-    private companion object {
-        private const val PREREGISTRATION_REQUEST = 1
-        private const val REGISTRATION_AUTHORIZATION = 2
+    internal companion object {
+        internal const val PREREGISTRATION_REQUEST = 1
+        internal const val REGISTRATION_AUTHORIZATION = 2
     }
 }

@@ -1,6 +1,7 @@
 package tech.relaycorp.relaydroid
 
 import android.content.Context
+import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.persistence.EncryptedDiskPersistence
 
 public object Relaynet {
@@ -11,7 +12,9 @@ public object Relaynet {
 
     public suspend fun setup(context: Context) {
         storage = StorageImpl(EncryptedDiskPersistence(context))
-        gatewayClientImpl = GatewayClientImpl(context)
+        gatewayClientImpl = GatewayClientImpl(
+            serviceInteractorBuilder = { ServiceInteractor(context) }
+        )
     }
 
     internal lateinit var storage: StorageImpl
