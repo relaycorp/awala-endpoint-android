@@ -15,11 +15,14 @@ import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.StorageImpl
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerBindingException
+import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.testing.pdc.CollectParcelsCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.wrappers.privateAddress
+import java.time.ZonedDateTime
 import java.util.UUID
 
 internal class ReceiveMessagesTest {
@@ -79,15 +82,47 @@ internal class ReceiveMessagesTest {
         subject.receive().collect()
     }
 
+    @Test
+    fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runBlockingTest {
+        val invalidParcel = Parcel(
+            recipientAddress = UUID.randomUUID().toString(),
+            payload = "1234".toByteArray(),
+            senderCertificate = PDACertPath.PRIVATE_ENDPOINT,
+            creationDate = ZonedDateTime.now().plusDays(1)
+        )
+        var ackWasCalled = false
+        val parcelCollection = ParcelCollection(
+            parcelSerialized = invalidParcel.serialize(KeyPairSet.PRIVATE_ENDPOINT.private),
+            trustedCertificates = emptyList(),
+            ack = { ackWasCalled = true }
+        )
+        val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        val messages = subject.receive().toCollection(mutableListOf())
+
+        assertTrue(pdcClient.wasClosed)
+        assertTrue(collectParcelsCall.wasCalled)
+        assertTrue(messages.isEmpty())
+        assertTrue(ackWasCalled)
+    }
+
     private fun buildParcel() = Parcel(
-        recipientAddress = UUID.randomUUID().toString(),
+        recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
         payload = "1234".toByteArray(),
-        senderCertificate = PDACertPath.PRIVATE_ENDPOINT
+        senderCertificate = issueDeliveryAuthorization(
+            subjectPublicKey = KeyPairSet.PRIVATE_ENDPOINT.public,
+            issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
+            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT,
+            validityStartDate = ZonedDateTime.now().minusDays(1),
+            validityEndDate = ZonedDateTime.now().plusDays(1)
+        ),
+        senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
     )
 
     private fun Parcel.toParcelCollection() = ParcelCollection(
         parcelSerialized = serialize(KeyPairSet.PRIVATE_ENDPOINT.private),
-        trustedCertificates = emptyList(),
+        trustedCertificates = listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
         ack = {}
     )
 }
