@@ -15,8 +15,8 @@ public object Relaynet {
     }
 
     internal lateinit var storage: StorageImpl
-    internal lateinit var gatewayClientImpl: GatewayClientI
+    internal lateinit var gatewayClientImpl: GatewayClientImpl
 }
 
 internal val Storage get() = Relaynet.storage
-public val GatewayClient: GatewayClientI get() = Relaynet.gatewayClientImpl
+public val GatewayClient: GatewayClientImpl get() = Relaynet.gatewayClientImpl

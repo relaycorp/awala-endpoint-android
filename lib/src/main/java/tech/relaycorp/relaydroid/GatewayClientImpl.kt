@@ -5,7 +5,6 @@ import android.content.ServiceConnection
 import android.os.Handler
 import android.os.Looper
 import android.os.Messenger
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.delay
@@ -15,27 +14,31 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaydroid.background.suspendBindService
+import tech.relaycorp.relaydroid.messaging.IncomingMessage
+import tech.relaycorp.relaydroid.messaging.MessageId
+import tech.relaycorp.relaydroid.messaging.OutgoingMessage
+import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
-import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.security.KeyPair
-import java.time.Duration
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-internal class GatewayClientImpl(
-    private val context: Context
-) : GatewayClientI {
+public class GatewayClientImpl
+internal constructor(
+    private val context: Context,
+    private val sendMessage: SendMessage = SendMessage()
+) {
 
     // Gateway
 
     private var syncConnection: ServiceConnection? = null
 
-    override suspend fun bind() {
+    public suspend fun bind() {
         withContext(Dispatchers.IO) {
             if (syncConnection != null) return@withContext // Already connected
 
@@ -48,14 +51,14 @@ internal class GatewayClientImpl(
         }
     }
 
-    override fun unbind() {
+    public fun unbind() {
         syncConnection?.let { context.unbindService(it) }
         syncConnection = null
     }
 
     // First-Party Endpoints
 
-    override suspend fun registerEndpoint(keyPair: KeyPair): Pair<Certificate, Certificate> {
+    internal suspend fun registerEndpoint(keyPair: KeyPair): Pair<Certificate, Certificate> {
         val preAuthSerialized = preRegister()
         val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
         val requestSerialized = request.serialize(keyPair.private)
@@ -97,54 +100,16 @@ internal class GatewayClientImpl(
 
     // Messaging
 
-    override suspend fun sendMessage(message: OutgoingMessage) {
-        withContext(Dispatchers.IO) {
-            val senderCertificate = getParcelDeliveryAuthorization(
-                message.senderEndpoint,
-                FirstPartyEndpoint.load(message.receiverEndpoint.address)!!
-            )
-
-            val parcel = Parcel(
-                recipientAddress = message.receiverEndpoint.address,
-                payload = message.message,
-                senderCertificate = senderCertificate,
-                messageId = message.id.value,
-                creationDate = message.creationDate,
-                ttl = Duration.between(
-                    message.creationDate,
-                    message.expirationDate
-                ).seconds.toInt(),
-                senderCertificateChain = setOf(
-                    Storage.getIdentityCertificate(message.receiverEndpoint.address)!!,
-                    Storage.getGatewayCertificate()!!
-                )
-            )
-
-            val senderPrivateKey = Storage.getIdentityKeyPair(message.senderEndpoint.address)!!.private
-            return@withContext try {
-                PoWebClient.initLocal(Relaynet.POWEB_PORT)
-                    .deliverParcel(
-                        parcel.serialize(senderPrivateKey),
-                        Signer(
-                            senderCertificate,
-                            senderPrivateKey
-                        )
-                    )
-                true
-            } catch (e: Exception) {
-                Log.e("SendMessage", "Error sending message", e)
-                false
-            }
-        }
-
+    public suspend fun sendMessage(message: OutgoingMessage) {
+        sendMessage.send(message)
     }
 
     private val incomingMessageChannel = BroadcastChannel<IncomingMessage>(1)
-    override fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asFlow()
+    public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asFlow()
 
     // Internal
 
-    override suspend fun checkForNewMessages() {
+    internal suspend fun checkForNewMessages() {
         val wasBound = syncConnection != null
         if (!wasBound) bind()
 
@@ -169,9 +134,9 @@ internal class GatewayClientImpl(
                 incomingMessageChannel.send(
                     IncomingMessage(
                         id = MessageId(parcel.id),
-                        message = parcel.payload,
+                        payload = parcel.payload,
                         senderEndpoint = PrivateThirdPartyEndpoint(parcel.senderCertificate.subjectPrivateAddress),
-                        receiverEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)!!,
+                        recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)!!,
                         creationDate = parcel.creationDate,
                         expiryDate = parcel.expiryDate,
                         ack = { parcelCollection.ack() }
@@ -184,27 +149,7 @@ internal class GatewayClientImpl(
         if (!wasBound) unbind()
     }
 
-    // This only works because both endpoints are FirstPartyEndpoint
-    private suspend fun getParcelDeliveryAuthorization(
-        senderEndpoint: FirstPartyEndpoint,
-        receiverEndpoint: FirstPartyEndpoint
-    ): Certificate {
-
-        val senderKeyPair = Storage.getIdentityKeyPair(senderEndpoint.address)!!
-        val receiverKeyPair = Storage.getIdentityKeyPair(receiverEndpoint.address)!!
-        val receiverCertificate = Storage.getIdentityCertificate(receiverEndpoint.address)!!
-
-
-        return issueDeliveryAuthorization(
-            senderKeyPair.public,
-            receiverKeyPair.private,
-            receiverCertificate.expiryDate,
-            receiverCertificate,
-            receiverCertificate.startDate
-        )
-    }
-
-    companion object {
+    private companion object {
         private const val PREREGISTRATION_REQUEST = 1
         private const val REGISTRATION_AUTHORIZATION = 2
     }

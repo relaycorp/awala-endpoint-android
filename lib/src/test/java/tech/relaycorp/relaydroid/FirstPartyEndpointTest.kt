@@ -21,7 +21,7 @@ import java.util.UUID
 
 internal class FirstPartyEndpointTest {
 
-    private val gateway = mock<GatewayClientI>()
+    private val gateway = mock<GatewayClientImpl>()
     private val storage = mock<StorageImpl>()
 
     @Before
