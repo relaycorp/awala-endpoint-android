@@ -107,6 +107,25 @@ internal class ReceiveMessagesTest {
         assertTrue(ackWasCalled)
     }
 
+    @Test
+    fun receiveMalformedParcel_ackedButNotDeliveredToApp() = runBlockingTest {
+        var ackWasCalled = false
+        val parcelCollection = ParcelCollection(
+            parcelSerialized = "1234".toByteArray(),
+            trustedCertificates = emptyList(),
+            ack = { ackWasCalled = true }
+        )
+        val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        val messages = subject.receive().toCollection(mutableListOf())
+
+        assertTrue(pdcClient.wasClosed)
+        assertTrue(collectParcelsCall.wasCalled)
+        assertTrue(messages.isEmpty())
+        assertTrue(ackWasCalled)
+    }
+
     private fun buildParcel() = Parcel(
         recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
         payload = "1234".toByteArray(),

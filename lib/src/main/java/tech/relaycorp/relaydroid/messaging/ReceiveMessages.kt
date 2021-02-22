@@ -11,6 +11,7 @@ import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
+import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import java.util.logging.Level
 
@@ -27,6 +28,10 @@ internal class ReceiveMessages(
                             val parcel = try {
                                 parcelCollection.deserializeAndValidateParcel()
                             } catch (exp: RAMFException) {
+                                logger.log(Level.WARNING, "Malformed incoming parcel", exp)
+                                parcelCollection.ack()
+                                return@mapNotNull null
+                            } catch (exp: InvalidMessageException) {
                                 logger.log(Level.WARNING, "Invalid incoming parcel", exp)
                                 parcelCollection.ack()
                                 return@mapNotNull null
