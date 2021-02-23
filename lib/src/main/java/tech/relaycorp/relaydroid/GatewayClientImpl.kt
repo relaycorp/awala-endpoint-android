@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaydroid.background.ServiceInteractor
+import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
@@ -20,6 +21,7 @@ import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import java.security.KeyPair
+import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -39,15 +41,23 @@ internal constructor(
 
     private var gwServiceInteractor: ServiceInteractor? = null
 
+    @Throws(CouldNotBindToGatewayException::class)
     public suspend fun bind() {
         withContext(coroutineContext) {
             if (gwServiceInteractor != null) return@withContext // Already connected
 
             gwServiceInteractor = serviceInteractorBuilder().apply {
-                bind(
-                    Relaynet.GATEWAY_PACKAGE,
-                    Relaynet.GATEWAY_SYNC_COMPONENT
-                )
+                try {
+                    bind(
+                        Relaynet.GATEWAY_PACKAGE,
+                        Relaynet.GATEWAY_SYNC_COMPONENT
+                    )
+                } catch (exp: ServiceInteractor.BindFailedException) {
+                    throw CouldNotBindToGatewayException(
+                        "Failed binding to Relaynet Gateway for registration",
+                        exp
+                    )
+                }
             }
             delay(1_000) // Wait for server to start
         }
@@ -74,10 +84,17 @@ internal constructor(
 
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
-            bind(
-                Relaynet.GATEWAY_PACKAGE,
-                Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
-            )
+            try {
+                bind(
+                    Relaynet.GATEWAY_PACKAGE,
+                    Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
+                )
+            } catch (exp: ServiceInteractor.BindFailedException) {
+                throw CouldNotBindToGatewayException(
+                    "Failed binding to Relaynet Gateway for pre-registration",
+                    exp
+                )
+            }
         }
 
         return suspendCoroutine { cont ->
@@ -110,7 +127,14 @@ internal constructor(
     // TODO: Review bind checks and uniformise gateway exceptions
     internal suspend fun checkForNewMessages() {
         val wasBound = gwServiceInteractor != null
-        if (!wasBound) bind()
+        if (!wasBound) {
+            try {
+                bind()
+            } catch (exp: CouldNotBindToGatewayException) {
+                logger.log(Level.SEVERE, "Could not bind to gateway to receive new messages", exp)
+                return
+            }
+        }
 
         receiveMessages
             .receive()
@@ -125,3 +149,9 @@ internal constructor(
         internal const val REGISTRATION_AUTHORIZATION = 2
     }
 }
+
+public open class GatewayRelaynetException(message: String, cause: Throwable? = null)
+    : RelaynetException(message, cause)
+
+public class CouldNotBindToGatewayException(message: String, cause: Throwable? = null)
+    : GatewayRelaynetException(message, cause)
