@@ -8,6 +8,7 @@ import org.junit.Test
 import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.MessageFactory
+import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import java.time.Duration
 import java.time.ZonedDateTime

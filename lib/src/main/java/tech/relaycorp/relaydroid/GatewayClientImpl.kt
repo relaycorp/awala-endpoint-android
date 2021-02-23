@@ -5,25 +5,25 @@ import android.content.ServiceConnection
 import android.os.Handler
 import android.os.Looper
 import android.os.Messenger
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaydroid.background.suspendBindService
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
-import tech.relaycorp.relaydroid.messaging.MessageId
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
+import tech.relaycorp.relaydroid.messaging.ReceiveMessages
 import tech.relaycorp.relaydroid.messaging.SendMessage
-import tech.relaycorp.relaynet.bindings.pdc.Signer
-import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
-import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.security.KeyPair
+import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -31,7 +31,9 @@ import kotlin.coroutines.suspendCoroutine
 public class GatewayClientImpl
 internal constructor(
     private val context: Context,
-    private val sendMessage: SendMessage = SendMessage()
+    private val coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val sendMessage: SendMessage = SendMessage(),
+    private val receiveMessages: ReceiveMessages = ReceiveMessages()
 ) {
 
     // Gateway
@@ -39,7 +41,7 @@ internal constructor(
     private var syncConnection: ServiceConnection? = null
 
     public suspend fun bind() {
-        withContext(Dispatchers.IO) {
+        withContext(coroutineContext) {
             if (syncConnection != null) return@withContext // Already connected
 
             val bindResult = context.suspendBindService(
@@ -109,42 +111,15 @@ internal constructor(
 
     // Internal
 
+    // TODO: Review bind checks and uniformise gateway exceptions
     internal suspend fun checkForNewMessages() {
         val wasBound = syncConnection != null
         if (!wasBound) bind()
 
-        val poweb = PoWebClient.initLocal(Relaynet.POWEB_PORT)
-
-        val nonceSigners = Storage
-            .listEndpoints()
-            .map { endpoint ->
-                Signer(
-                    Storage.getIdentityCertificate(endpoint)!!,
-                    Storage.getIdentityKeyPair(endpoint)!!.private
-                )
-            }
-            .toTypedArray()
-
-        poweb
-            .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
-            .collect { parcelCollection ->
-
-                val parcel = Parcel.deserialize(parcelCollection.parcelSerialized)
-
-                incomingMessageChannel.send(
-                    IncomingMessage(
-                        id = MessageId(parcel.id),
-                        payload = parcel.payload,
-                        senderEndpoint = PrivateThirdPartyEndpoint(parcel.senderCertificate.subjectPrivateAddress),
-                        recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)!!,
-                        creationDate = parcel.creationDate,
-                        expiryDate = parcel.expiryDate,
-                        ack = { parcelCollection.ack() }
-                    )
-                )
-            }
-
-        poweb.close()
+        receiveMessages
+            .receive()
+            .onEach(incomingMessageChannel::send)
+            .launchIn(CoroutineScope(coroutineContext))
 
         if (!wasBound) unbind()
     }

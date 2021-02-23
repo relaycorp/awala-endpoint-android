@@ -6,6 +6,7 @@ import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.RelaynetException
 import tech.relaycorp.relaydroid.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
@@ -86,9 +87,3 @@ private constructor(
             is PrivateThirdPartyEndpoint -> TODO("Not implemented yet")
         } + senderEndpoint.gatewayCertificate
 }
-
-public class InvalidMessageException(message: String, throwable: Throwable? = null)
-    : RelaynetException(message, throwable)
-
-public class UnauthorizedRecipientException(endpoint: PrivateThirdPartyEndpoint)
-    : RelaynetException("Unauthorized recipient ${endpoint.address}")
