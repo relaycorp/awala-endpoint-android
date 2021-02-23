@@ -28,8 +28,12 @@ internal constructor(
     public companion object {
         public suspend fun register(): FirstPartyEndpoint {
             val keyPair = generateRSAKeyPair()
-            val certificates = GatewayClient.registerEndpoint(keyPair)
-            val endpoint = FirstPartyEndpoint(keyPair, certificates.first, certificates.second)
+            val registration = GatewayClient.registerEndpoint(keyPair)
+            val endpoint = FirstPartyEndpoint(
+                keyPair,
+                registration.privateNodeCertificate,
+                registration.gatewayCertificate
+            )
             endpoint.store()
             return endpoint
         }
