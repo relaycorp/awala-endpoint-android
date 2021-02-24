@@ -11,6 +11,7 @@ import android.os.Message
 import android.os.Messenger
 import tech.relaycorp.relaydroid.common.Logging.logger
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 internal class ServiceInteractor(
@@ -20,25 +21,50 @@ internal class ServiceInteractor(
     private var serviceConnection: ServiceConnection? = null
     private var binder: IBinder? = null
 
+    @Throws(BindFailedException::class)
     suspend fun bind(packageName: String, componentName: String) =
         suspendCoroutine<Unit> { cont ->
+            var isResumed = false
+
             val serviceConnection = object : ServiceConnection {
                 override fun onServiceConnected(p0: ComponentName?, binder: IBinder) {
                     logger.info("Connected to service $packageName - $componentName")
                     serviceConnection = this
                     this@ServiceInteractor.binder = binder
-                    cont.resume(Unit)
+                    if (!isResumed) {
+                        isResumed = true
+                        cont.resume(Unit)
+                    }
                 }
 
                 override fun onServiceDisconnected(p0: ComponentName?) {
-                    logger.info("Disconnected to service $packageName - $componentName")
+                    if (!isResumed) {
+                        isResumed = true
+                        cont.resumeWithException(BindFailedException("Service disconnected"))
+                    }
+                }
+
+                override fun onBindingDied(name: ComponentName?) {
+                    if (!isResumed) {
+                        isResumed = true
+                        cont.resumeWithException(BindFailedException("Binding died"))
+                    }
+                }
+
+                override fun onNullBinding(name: ComponentName?) {
+                    if (!isResumed) {
+                        isResumed = true
+                        cont.resumeWithException(BindFailedException("Null binding"))
+                    }
                 }
             }
-            context.bindService(
+
+            val bindWasSuccessful = context.bindService(
                 Intent().setComponent(ComponentName(packageName, componentName)),
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
+            if (!bindWasSuccessful) cont.resumeWithException(BindFailedException("Binding failed"))
         }
 
     fun unbind() {
@@ -59,4 +85,6 @@ internal class ServiceInteractor(
         }
         Messenger(binder).send(message)
     }
+
+    class BindFailedException(message: String) : Exception(message)
 }

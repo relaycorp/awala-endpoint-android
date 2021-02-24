@@ -5,6 +5,7 @@ import android.os.Message
 import android.os.RemoteException
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.test.TestCoroutineScope
@@ -33,7 +34,41 @@ internal class GatewayClientImplTest {
     )
 
     @Test
-    internal fun registerEndpoint_sucessful() = coroutineScope.runBlockingTest {
+    fun bind() = coroutineScope.runBlockingTest {
+        subject.bind()
+
+        verify(serviceInteractor).bind(Relaynet.GATEWAY_PACKAGE, Relaynet.GATEWAY_SYNC_COMPONENT)
+    }
+
+    @Test
+    fun secondBindIsSkipped() = coroutineScope.runBlockingTest {
+        subject.bind()
+        subject.bind()
+
+        verify(serviceInteractor, times(1))
+            .bind(Relaynet.GATEWAY_PACKAGE, Relaynet.GATEWAY_SYNC_COMPONENT)
+    }
+
+    @Test
+    fun reBind() = coroutineScope.runBlockingTest {
+        subject.bind()
+        subject.unbind()
+        subject.bind()
+
+        verify(serviceInteractor, times(2))
+            .bind(Relaynet.GATEWAY_PACKAGE, Relaynet.GATEWAY_SYNC_COMPONENT)
+    }
+
+    @Test(expected = GatewayBindingException::class)
+    fun bindUnsuccessful() = coroutineScope.runBlockingTest {
+        whenever(serviceInteractor.bind(any(), any()))
+            .thenThrow(ServiceInteractor.BindFailedException(""))
+
+        subject.bind()
+    }
+
+    @Test
+    internal fun registerEndpoint_successful() = coroutineScope.runBlockingTest {
         val replyMessage = buildAuthorizationReplyMessage()
         whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
             it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
