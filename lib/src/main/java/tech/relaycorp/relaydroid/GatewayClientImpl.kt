@@ -41,7 +41,7 @@ internal constructor(
 
     private var gwServiceInteractor: ServiceInteractor? = null
 
-    @Throws(CouldNotBindToGatewayException::class)
+    @Throws(GatewayBindingException::class)
     public suspend fun bind() {
         withContext(coroutineContext) {
             if (gwServiceInteractor != null) return@withContext // Already connected
@@ -53,7 +53,7 @@ internal constructor(
                         Relaynet.GATEWAY_SYNC_COMPONENT
                     )
                 } catch (exp: ServiceInteractor.BindFailedException) {
-                    throw CouldNotBindToGatewayException(
+                    throw GatewayBindingException(
                         "Failed binding to Relaynet Gateway for registration",
                         exp
                     )
@@ -90,7 +90,7 @@ internal constructor(
                     Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
                 )
             } catch (exp: ServiceInteractor.BindFailedException) {
-                throw CouldNotBindToGatewayException(
+                throw GatewayBindingException(
                     "Failed binding to Relaynet Gateway for pre-registration",
                     exp
                 )
@@ -130,7 +130,7 @@ internal constructor(
         if (!wasBound) {
             try {
                 bind()
-            } catch (exp: CouldNotBindToGatewayException) {
+            } catch (exp: GatewayBindingException) {
                 logger.log(Level.SEVERE, "Could not bind to gateway to receive new messages", exp)
                 return
             }
@@ -153,5 +153,5 @@ internal constructor(
 public open class GatewayRelaynetException(message: String, cause: Throwable? = null)
     : RelaynetException(message, cause)
 
-public class CouldNotBindToGatewayException(message: String, cause: Throwable? = null)
+public class GatewayBindingException(message: String, cause: Throwable? = null)
     : GatewayRelaynetException(message, cause)

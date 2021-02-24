@@ -59,7 +59,7 @@ internal class GatewayClientImplTest {
             .bind(Relaynet.GATEWAY_PACKAGE, Relaynet.GATEWAY_SYNC_COMPONENT)
     }
 
-    @Test(expected = CouldNotBindToGatewayException::class)
+    @Test(expected = GatewayBindingException::class)
     fun bindUnsuccessful() = coroutineScope.runBlockingTest {
         whenever(serviceInteractor.bind(any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
