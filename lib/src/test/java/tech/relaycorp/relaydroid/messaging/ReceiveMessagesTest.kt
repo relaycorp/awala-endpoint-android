@@ -13,6 +13,8 @@ import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.StorageImpl
+import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
+import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerBindingException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
@@ -73,10 +75,25 @@ internal class ReceiveMessagesTest {
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, nonceSigners.first().certificate)
     }
 
-    // TODO: Uniformise gateway exceptions
-    @Test(expected = Exception::class)
-    fun errorWhenReceivingMessage() = runBlockingTest {
+    @Test(expected = ReceiveMessagesException::class)
+    fun collectParcelsGetsServerError() = runBlockingTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(ServerBindingException("")))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        subject.receive().collect()
+    }
+
+    @Test(expected = ReceiveMessagesException::class)
+    fun collectParcelsGetsClientError() = runBlockingTest {
+        val collectParcelsCall = CollectParcelsCall(Result.failure(ClientBindingException("")))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        subject.receive().collect()
+    }
+
+    @Test(expected = ReceiveMessagesException::class)
+    fun collectParcelsGetsSigningError() = runBlockingTest {
+        val collectParcelsCall = CollectParcelsCall(Result.failure(NonceSignerException("")))
         pdcClient = MockPDCClient(collectParcelsCall)
 
         subject.receive().collect()

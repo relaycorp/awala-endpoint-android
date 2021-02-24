@@ -1,14 +1,11 @@
 package tech.relaycorp.relaydroid
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaydroid.background.ServiceInteractor
@@ -16,8 +13,12 @@ import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
+import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
 import tech.relaycorp.relaydroid.messaging.SendMessage
+import tech.relaycorp.relaydroid.messaging.SendMessageException
+import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
+import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import java.security.KeyPair
@@ -70,52 +71,70 @@ internal constructor(
 
     // First-Party Endpoints
 
-    internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration {
-        val preAuthSerialized = preRegister()
-        val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
-        val requestSerialized = request.serialize(keyPair.private)
+    @Throws(RegistrationFailedException::class)
+    internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
+        withContext(coroutineContext) {
+            try {
 
-        bind()
+                val preAuthSerialized = preRegister()
+                val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
+                val requestSerialized = request.serialize(keyPair.private)
 
-        return pdcClientBuilder().use {
-            it.registerNode(requestSerialized)
+                bind()
+
+                return@withContext pdcClientBuilder().use {
+                    it.registerNode(requestSerialized)
+                }
+
+            } catch (exp: ServiceInteractor.BindFailedException) {
+                throw RegistrationFailedException("Failed binding to gateway", exp)
+            } catch (exp: ServiceInteractor.SendFailedException) {
+                throw RegistrationFailedException("Failed communicating with gateway", exp)
+            } catch (exp: ServerException) {
+                throw RegistrationFailedException("Registration failed due to server", exp)
+            } catch (exp: ClientBindingException) {
+                throw RegistrationFailedException("Registration failed due to client", exp)
+            } catch (exp: GatewayBindingException) {
+                throw RegistrationFailedException("Failed binding to gateway", exp)
+            }
         }
-    }
 
+    @Throws(
+        ServiceInteractor.BindFailedException::class,
+        ServiceInteractor.SendFailedException::class,
+        RegistrationFailedException::class
+    )
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
-            try {
-                bind(
-                    Relaynet.GATEWAY_PACKAGE,
-                    Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
-                )
-            } catch (exp: ServiceInteractor.BindFailedException) {
-                throw GatewayBindingException(
-                    "Failed binding to Relaynet Gateway for pre-registration",
-                    exp
-                )
-            }
+            bind(
+                Relaynet.GATEWAY_PACKAGE,
+                Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
+            )
         }
 
         return suspendCoroutine { cont ->
             val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
-            CoroutineScope(coroutineContext).launch {
-                interactor.sendMessage(request) { replyMessage ->
-                    if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
-                        interactor.unbind()
-                        cont.resumeWithException(Exception("Pre-registration failed"))
-                        return@sendMessage
-                    }
+            interactor.sendMessage(request) { replyMessage ->
+                if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
                     interactor.unbind()
-                    cont.resume(replyMessage.data.getByteArray("auth")!!)
+                    cont.resumeWithException(
+                        RegistrationFailedException("Pre-registration failed")
+                    )
+                    return@sendMessage
                 }
+                interactor.unbind()
+                cont.resume(replyMessage.data.getByteArray("auth")!!)
             }
         }
     }
 
     // Messaging
 
+    @Throws(GatewayBindingException::class, SendMessageException::class)
     public suspend fun sendMessage(message: OutgoingMessage) {
+        if (gwServiceInteractor == null) {
+            throw GatewayBindingException("Gateway not bound")
+        }
         sendMessage.send(message)
     }
 
@@ -124,24 +143,28 @@ internal constructor(
 
     // Internal
 
-    // TODO: Review bind checks and uniformise gateway exceptions
     internal suspend fun checkForNewMessages() {
-        val wasBound = gwServiceInteractor != null
-        if (!wasBound) {
-            try {
-                bind()
-            } catch (exp: GatewayBindingException) {
-                logger.log(Level.SEVERE, "Could not bind to gateway to receive new messages", exp)
-                return
+        withContext(coroutineContext) {
+            val wasAlreadyBound = gwServiceInteractor != null
+            if (!wasAlreadyBound) {
+                try {
+                    bind()
+                } catch (exp: GatewayBindingException) {
+                    logger.log(Level.SEVERE, "Could not bind to gateway to receive new messages", exp)
+                    return@withContext
+                }
             }
+
+            try {
+                receiveMessages
+                    .receive()
+                    .collect(incomingMessageChannel::send)
+            } catch (exp: ReceiveMessagesException) {
+                logger.log(Level.SEVERE, "Could not receive new messages", exp)
+            }
+
+            if (!wasAlreadyBound) unbind()
         }
-
-        receiveMessages
-            .receive()
-            .onEach(incomingMessageChannel::send)
-            .launchIn(CoroutineScope(coroutineContext))
-
-        if (!wasBound) unbind()
     }
 
     internal companion object {
@@ -154,4 +177,7 @@ public open class GatewayRelaynetException(message: String, cause: Throwable? = 
     : RelaynetException(message, cause)
 
 public class GatewayBindingException(message: String, cause: Throwable? = null)
+    : GatewayRelaynetException(message, cause)
+
+public class RegistrationFailedException(message: String, cause: Throwable? = null)
     : GatewayRelaynetException(message, cause)

@@ -26,6 +26,7 @@ internal constructor(
     }
 
     public companion object {
+        @Throws(RegistrationFailedException::class)
         public suspend fun register(): FirstPartyEndpoint {
             val keyPair = generateRSAKeyPair()
             val registration = GatewayClient.registerEndpoint(keyPair)

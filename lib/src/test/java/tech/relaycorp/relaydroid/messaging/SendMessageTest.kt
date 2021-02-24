@@ -6,6 +6,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.relaydroid.test.MessageFactory
+import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
+import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerConnectionException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
@@ -48,8 +50,24 @@ internal class SendMessageTest {
     }
 
     @Test(expected = SendMessageException::class)
-    fun deliverParcelWithError() = coroutineScope.runBlockingTest {
+    fun deliverParcelWithServerError() = coroutineScope.runBlockingTest {
         val deliverParcelCall = DeliverParcelCall(ServerConnectionException(""))
+        pdcClient = MockPDCClient(deliverParcelCall)
+
+        subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
+    }
+
+    @Test(expected = SendMessageException::class)
+    fun deliverParcelWithClientError() = coroutineScope.runBlockingTest {
+        val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
+        pdcClient = MockPDCClient(deliverParcelCall)
+
+        subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
+    }
+
+    @Test(expected = SendMessageException::class)
+    fun deliverParcelWithRejectedParcelError() = coroutineScope.runBlockingTest {
+        val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
         subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
