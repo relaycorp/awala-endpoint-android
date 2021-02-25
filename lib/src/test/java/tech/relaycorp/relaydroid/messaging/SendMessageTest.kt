@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.test.MessageFactory
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
@@ -57,7 +58,7 @@ internal class SendMessageTest {
         subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
     }
 
-    @Test(expected = SendMessageException::class)
+    @Test(expected = GatewayProtocolException::class)
     fun deliverParcelWithClientError() = coroutineScope.runBlockingTest {
         val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
@@ -65,7 +66,7 @@ internal class SendMessageTest {
         subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
     }
 
-    @Test(expected = SendMessageException::class)
+    @Test(expected = RejectedMessageException::class)
     fun deliverParcelWithRejectedParcelError() = coroutineScope.runBlockingTest {
         val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
         pdcClient = MockPDCClient(deliverParcelCall)

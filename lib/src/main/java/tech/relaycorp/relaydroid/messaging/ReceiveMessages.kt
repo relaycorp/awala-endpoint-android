@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import tech.relaycorp.poweb.PoWebClient
-import tech.relaycorp.relaydroid.GatewayRelaynetException
+import tech.relaycorp.relaydroid.GatewayException
+import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.common.Logging.logger
@@ -18,11 +19,16 @@ import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import java.util.logging.Level
+import kotlin.jvm.Throws
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) }
 ) {
 
+    @Throws(
+        ReceiveMessagesException::class,
+        GatewayProtocolException::class
+    )
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
             .flatMapLatest { nonceSigners ->
@@ -32,9 +38,9 @@ internal class ReceiveMessages(
                     } catch (exp: ServerException) {
                         throw ReceiveMessagesException("Server error", exp)
                     } catch (exp: ClientBindingException) {
-                        throw ReceiveMessagesException("Client error", exp)
+                        throw GatewayProtocolException("Client error", exp)
                     } catch (exp: NonceSignerException) {
-                        throw ReceiveMessagesException("Client signing error", exp)
+                        throw GatewayProtocolException("Client signing error", exp)
                     }
                 }
             }
@@ -71,4 +77,4 @@ internal class ReceiveMessages(
 }
 
 public class ReceiveMessagesException(message: String, throwable: Throwable? = null)
-    : GatewayRelaynetException(message, throwable)
+    : GatewayException(message, throwable)

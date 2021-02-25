@@ -7,9 +7,9 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
@@ -22,6 +22,8 @@ import org.robolectric.RobolectricTestRunner
 import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
+import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
+import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
 import tech.relaycorp.relaydroid.test.MessageFactory
@@ -137,7 +139,7 @@ internal class GatewayClientImplTest {
             subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
 
-    @Test(expected = RegistrationFailedException::class)
+    @Test(expected = GatewayProtocolException::class)
     internal fun registerEndpoint_withFailedRegistrationDueToClient() =
         coroutineScope.runBlockingTest {
             val replyMessage = buildAuthorizationReplyMessage()
@@ -189,6 +191,24 @@ internal class GatewayClientImplTest {
         subject.sendMessage(message)
     }
 
+    @Test(expected = GatewayProtocolException::class)
+    fun sendMessage_unsuccessfulDueToClient() = coroutineScope.runBlockingTest {
+        whenever(sendMessage.send(any())).thenThrow(GatewayProtocolException(""))
+        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+
+        subject.bind()
+        subject.sendMessage(message)
+    }
+
+    @Test(expected = RejectedMessageException::class)
+    fun sendMessage_unsuccessfulDueToRejection() = coroutineScope.runBlockingTest {
+        whenever(sendMessage.send(any())).thenThrow(RejectedMessageException(""))
+        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+
+        subject.bind()
+        subject.sendMessage(message)
+    }
+
     @Test
     fun checkForNewMessages_bindsIfNeeded() = coroutineScope.runBlockingTest {
         whenever(receiveMessages.receive()).thenReturn(emptyFlow())
@@ -224,5 +244,19 @@ internal class GatewayClientImplTest {
         subject.checkForNewMessages()
 
         assertEquals(listOf(message), messagesReceived)
+    }
+
+    @Test
+    fun checkForNewMessages_handlesReceiveException() = coroutineScope.runBlockingTest {
+        whenever(receiveMessages.receive()).thenReturn(flow { throw ReceiveMessagesException("") })
+
+        subject.checkForNewMessages()
+    }
+
+    @Test
+    fun checkForNewMessages_handlesProtocolException() = coroutineScope.runBlockingTest {
+        whenever(receiveMessages.receive()).thenReturn(flow { throw GatewayProtocolException("") })
+
+        subject.checkForNewMessages()
     }
 }

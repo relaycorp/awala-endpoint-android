@@ -11,6 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.StorageImpl
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
@@ -83,7 +84,7 @@ internal class ReceiveMessagesTest {
         subject.receive().collect()
     }
 
-    @Test(expected = ReceiveMessagesException::class)
+    @Test(expected = GatewayProtocolException::class)
     fun collectParcelsGetsClientError() = runBlockingTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(ClientBindingException("")))
         pdcClient = MockPDCClient(collectParcelsCall)
@@ -91,7 +92,7 @@ internal class ReceiveMessagesTest {
         subject.receive().collect()
     }
 
-    @Test(expected = ReceiveMessagesException::class)
+    @Test(expected = GatewayProtocolException::class)
     fun collectParcelsGetsSigningError() = runBlockingTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(NonceSignerException("")))
         pdcClient = MockPDCClient(collectParcelsCall)

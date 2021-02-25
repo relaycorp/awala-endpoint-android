@@ -62,8 +62,17 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test(expected = RegistrationFailedException::class)
-    fun registerFailed() = runBlockingTest {
+    fun register_failed() = runBlockingTest {
         whenever(gateway.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
+
+        FirstPartyEndpoint.register()
+
+        verifyZeroInteractions(storage)
+    }
+
+    @Test(expected = GatewayProtocolException::class)
+    fun register_failedDueToProtocol() = runBlockingTest {
+        whenever(gateway.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
 
         FirstPartyEndpoint.register()
 

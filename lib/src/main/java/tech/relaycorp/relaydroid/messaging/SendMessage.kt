@@ -3,16 +3,14 @@ package tech.relaycorp.relaydroid.messaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
-import tech.relaycorp.relaydroid.GatewayRelaynetException
+import tech.relaycorp.relaydroid.GatewayException
+import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
-import tech.relaycorp.relaydroid.RelaynetException
-import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
-import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
 
 internal class SendMessage(
@@ -20,7 +18,11 @@ internal class SendMessage(
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) {
 
-    @Throws(SendMessageException::class)
+    @Throws(
+        SendMessageException::class,
+        RejectedMessageException::class,
+        GatewayProtocolException::class
+    )
     suspend fun send(message: OutgoingMessage) {
         withContext(coroutineContext) {
             val senderPrivateKey = message.senderEndpoint.keyPair.private
@@ -38,13 +40,16 @@ internal class SendMessage(
             } catch (e: ServerException) {
                 throw SendMessageException("Server error", e)
             } catch (e: ClientBindingException) {
-                throw SendMessageException("Client error", e)
+                throw GatewayProtocolException("Client error", e)
             } catch (e: RejectedParcelException) {
-                throw SendMessageException("Parcel rejected by server", e)
+                throw RejectedMessageException("Parcel rejected by server", e)
             }
         }
     }
 }
 
 public class SendMessageException(message: String, cause: Throwable? = null)
-    : GatewayRelaynetException(message, cause)
+    : GatewayException(message, cause)
+
+public class RejectedMessageException(message: String, cause: Throwable? = null)
+    : GatewayException(message, cause)

@@ -14,6 +14,7 @@ import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
 import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
+import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
@@ -71,7 +72,10 @@ internal constructor(
 
     // First-Party Endpoints
 
-    @Throws(RegistrationFailedException::class)
+    @Throws(
+        RegistrationFailedException::class,
+        GatewayProtocolException::class
+    )
     internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
         withContext(coroutineContext) {
             try {
@@ -93,7 +97,7 @@ internal constructor(
             } catch (exp: ServerException) {
                 throw RegistrationFailedException("Registration failed due to server", exp)
             } catch (exp: ClientBindingException) {
-                throw RegistrationFailedException("Registration failed due to client", exp)
+                throw GatewayProtocolException("Registration failed due to client", exp)
             } catch (exp: GatewayBindingException) {
                 throw RegistrationFailedException("Failed binding to gateway", exp)
             }
@@ -102,7 +106,7 @@ internal constructor(
     @Throws(
         ServiceInteractor.BindFailedException::class,
         ServiceInteractor.SendFailedException::class,
-        RegistrationFailedException::class
+        GatewayProtocolException::class
     )
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
@@ -118,7 +122,7 @@ internal constructor(
                 if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
                     interactor.unbind()
                     cont.resumeWithException(
-                        RegistrationFailedException("Pre-registration failed")
+                        GatewayProtocolException("Pre-registration failed, received wrong reply")
                     )
                     return@sendMessage
                 }
@@ -130,7 +134,12 @@ internal constructor(
 
     // Messaging
 
-    @Throws(GatewayBindingException::class, SendMessageException::class)
+    @Throws(
+        GatewayBindingException::class,
+        GatewayProtocolException::class,
+        SendMessageException::class,
+        RejectedMessageException::class
+    )
     public suspend fun sendMessage(message: OutgoingMessage) {
         if (gwServiceInteractor == null) {
             throw GatewayBindingException("Gateway not bound")
@@ -161,6 +170,8 @@ internal constructor(
                     .collect(incomingMessageChannel::send)
             } catch (exp: ReceiveMessagesException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
+            } catch (exp: GatewayProtocolException) {
+                logger.log(Level.SEVERE, "Could not receive new messages", exp)
             }
 
             if (!wasAlreadyBound) unbind()
@@ -173,11 +184,17 @@ internal constructor(
     }
 }
 
-public open class GatewayRelaynetException(message: String, cause: Throwable? = null)
+// General class for all exceptions deriving from interactions with the Gateway
+public open class GatewayException(message: String, cause: Throwable? = null)
     : RelaynetException(message, cause)
 
+// Non-recoverable protocol-level discrepancies when interacting with the Gateway
+public open class GatewayProtocolException(message: String, cause: Throwable? = null)
+    : RelaynetException(message, cause)
+
+// Not bound or unable to bind to the Gateway
 public class GatewayBindingException(message: String, cause: Throwable? = null)
-    : GatewayRelaynetException(message, cause)
+    : GatewayException(message, cause)
 
 public class RegistrationFailedException(message: String, cause: Throwable? = null)
-    : GatewayRelaynetException(message, cause)
+    : GatewayException(message, cause)
