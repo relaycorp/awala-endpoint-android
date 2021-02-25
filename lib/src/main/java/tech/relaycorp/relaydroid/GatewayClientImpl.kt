@@ -17,6 +17,7 @@ import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
 import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
+import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
@@ -190,7 +191,7 @@ public open class GatewayException(message: String, cause: Throwable? = null)
 
 // Non-recoverable protocol-level discrepancies when interacting with the Gateway
 public open class GatewayProtocolException(message: String, cause: Throwable? = null)
-    : RelaynetException(message, cause)
+    : GatewayException(message, cause)
 
 // Not bound or unable to bind to the Gateway
 public class GatewayBindingException(message: String, cause: Throwable? = null)
