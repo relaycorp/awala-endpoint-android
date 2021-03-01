@@ -9,6 +9,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.RemoteException
 import tech.relaycorp.relaydroid.common.Logging.logger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -40,6 +41,7 @@ internal class ServiceInteractor(
                 override fun onServiceDisconnected(p0: ComponentName?) {
                     if (!isResumed) {
                         isResumed = true
+                        unbind()
                         cont.resumeWithException(BindFailedException("Service disconnected"))
                     }
                 }
@@ -47,6 +49,7 @@ internal class ServiceInteractor(
                 override fun onBindingDied(name: ComponentName?) {
                     if (!isResumed) {
                         isResumed = true
+                        unbind()
                         cont.resumeWithException(BindFailedException("Binding died"))
                     }
                 }
@@ -54,6 +57,7 @@ internal class ServiceInteractor(
                 override fun onNullBinding(name: ComponentName?) {
                     if (!isResumed) {
                         isResumed = true
+                        unbind()
                         cont.resumeWithException(BindFailedException("Null binding"))
                     }
                 }
@@ -72,8 +76,9 @@ internal class ServiceInteractor(
         binder = null
     }
 
-    suspend fun sendMessage(message: Message, reply: ((Message) -> Unit)? = null) {
-        val binder = binder ?: return
+    @Throws(BindFailedException::class, SendFailedException::class)
+    fun sendMessage(message: Message, reply: ((Message) -> Unit)? = null) {
+        val binder = binder ?: throw BindFailedException("Service not bound")
 
         val looper = Looper.myLooper() ?: Looper.getMainLooper()
         reply?.let {
@@ -83,8 +88,13 @@ internal class ServiceInteractor(
                 }
             })
         }
-        Messenger(binder).send(message)
+        try {
+            Messenger(binder).send(message)
+        } catch (exp: RemoteException) {
+            throw SendFailedException(exp)
+        }
     }
 
     class BindFailedException(message: String) : Exception(message)
+    class SendFailedException(throwable: Throwable) : Exception(throwable)
 }
