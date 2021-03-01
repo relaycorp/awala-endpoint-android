@@ -3,7 +3,6 @@ package tech.relaycorp.relaydroid.messaging
 import tech.relaycorp.relaydroid.FirstPartyEndpoint
 import tech.relaycorp.relaydroid.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
-import tech.relaycorp.relaydroid.RelaynetException
 import tech.relaycorp.relaydroid.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.InvalidMessageException
