@@ -5,6 +5,7 @@ import com.nhaarman.mockitokotlin2.argumentCaptor
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
@@ -19,6 +20,7 @@ import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import java.security.KeyPair
 import java.util.UUID
+import kotlin.math.exp
 
 internal class FirstPartyEndpointTest {
 
@@ -57,6 +59,24 @@ internal class FirstPartyEndpointTest {
             .setIdentityCertificate(eq(endpoint.address), eq(PDACertPath.PRIVATE_ENDPOINT))
         verify(storage)
             .setGatewayCertificate(eq(PDACertPath.PRIVATE_GW))
+    }
+
+    @Test(expected = RegistrationFailedException::class)
+    fun register_failed() = runBlockingTest {
+        whenever(gateway.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
+
+        FirstPartyEndpoint.register()
+
+        verifyZeroInteractions(storage)
+    }
+
+    @Test(expected = GatewayProtocolException::class)
+    fun register_failedDueToProtocol() = runBlockingTest {
+        whenever(gateway.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
+
+        FirstPartyEndpoint.register()
+
+        verifyZeroInteractions(storage)
     }
 
     @Test
