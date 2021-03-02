@@ -17,10 +17,10 @@ private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
     creationDate: ZonedDateTime = ZonedDateTime.now(),
-    expirationDate: ZonedDateTime = maxExpirationDate(),
+    expiryDate: ZonedDateTime = maxExpiryDate(),
     id: MessageId = MessageId.generate()
 ) : Message(
-    id, payload, senderEndpoint, recipientEndpoint, creationDate, expirationDate
+    id, payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate
 ) {
 
     internal lateinit var parcel: Parcel
@@ -32,11 +32,11 @@ private constructor(
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
             creationDate: ZonedDateTime = ZonedDateTime.now(),
-            expirationDate: ZonedDateTime = maxExpirationDate(),
+            expiryDate: ZonedDateTime = maxExpiryDate(),
             id: MessageId = MessageId.generate()
         ): OutgoingMessage {
             val message = OutgoingMessage(
-                payload, senderEndpoint, recipientEndpoint, creationDate, expirationDate, id
+                payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate, id
             )
             message.parcel = message.buildParcel()
             try {
@@ -49,7 +49,7 @@ private constructor(
     }
 
     private suspend fun buildParcel() = Parcel(
-        recipientAddress = recipientEndpoint.address,
+        recipientAddress = recipientEndpoint.thirdPartyAddress,
         payload = payload,
         senderCertificate = getSenderCertificate(),
         messageId = id.value,
@@ -71,7 +71,7 @@ private constructor(
             senderEndpoint.keyPair.public,
             senderEndpoint.keyPair.private,
             validityStartDate = creationDate,
-            validityEndDate = expirationDate
+            validityEndDate = expiryDate
         )
     }
 

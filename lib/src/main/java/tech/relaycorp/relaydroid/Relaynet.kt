@@ -2,7 +2,8 @@ package tech.relaycorp.relaydroid
 
 import android.content.Context
 import tech.relaycorp.relaydroid.background.ServiceInteractor
-import tech.relaycorp.relaydroid.persistence.EncryptedDiskPersistence
+import tech.relaycorp.relaydroid.storage.persistence.EncryptedDiskPersistence
+import tech.relaycorp.relaydroid.storage.StorageImpl
 
 public object Relaynet {
     internal const val POWEB_PORT = 13276

@@ -17,6 +17,7 @@ import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
 import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
+import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
@@ -172,6 +173,8 @@ internal constructor(
             } catch (exp: ReceiveMessagesException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
             } catch (exp: GatewayProtocolException) {
+                logger.log(Level.SEVERE, "Could not receive new messages", exp)
+            } catch (exp: PersistenceException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
             }
 

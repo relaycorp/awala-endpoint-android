@@ -5,13 +5,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.time.ZonedDateTime
 import kotlin.random.Random
 
 internal class MessageTest {
 
     private val senderEndpoint = FirstPartyEndpointFactory.build()
-    private val recipientEndpoint = PublicThirdPartyEndpoint("http://example.org")
+    private val recipientEndpoint = PublicThirdPartyEndpoint("http://example.org", PDACertPath.PUBLIC_GW)
 
     @Test
     fun ttl() = runBlockingTest {
@@ -21,7 +22,7 @@ internal class MessageTest {
             senderEndpoint = senderEndpoint,
             recipientEndpoint = recipientEndpoint,
             creationDate,
-            expirationDate = creationDate.plusMinutes(1)
+            expiryDate = creationDate.plusMinutes(1)
         )
 
         assertEquals(

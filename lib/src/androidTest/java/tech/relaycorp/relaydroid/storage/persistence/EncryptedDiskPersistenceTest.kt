@@ -1,4 +1,4 @@
-package tech.relaycorp.relaydroid.persistence
+package tech.relaycorp.relaydroid.storage.persistence
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -77,11 +77,10 @@ internal class EncryptedDiskPersistenceTest {
         assertNull(subject.get("file"))
     }
 
-    @Test
+    @Test(expected = PersistenceException::class)
     fun deleteNonExistentFile() = coroutineScope.runBlockingTest {
         assertNull(subject.get("file"))
         subject.delete("file")
-        assertNull(subject.get("file"))
     }
 
     @Test
@@ -91,6 +90,15 @@ internal class EncryptedDiskPersistenceTest {
         subject.deleteAll()
         assertNull(subject.get("file1"))
         assertNull(subject.get("file2"))
+    }
+
+    @Test
+    fun deleteAll_withPrefix() = coroutineScope.runBlockingTest {
+        subject.set("file1", "test".toByteArray())
+        subject.set("different2", "test".toByteArray())
+        subject.deleteAll("file")
+        assertNull(subject.get("file1"))
+        assertNotNull(subject.get("different2"))
     }
 
     @Test
