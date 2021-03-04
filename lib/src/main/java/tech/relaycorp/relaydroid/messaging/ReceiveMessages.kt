@@ -10,6 +10,7 @@ import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.common.Logging.logger
+import tech.relaycorp.relaydroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException

@@ -1,7 +1,7 @@
 package tech.relaycorp.relaydroid.test
 
-import tech.relaycorp.relaydroid.PrivateThirdPartyEndpoint
-import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.MessageId
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
@@ -23,6 +23,7 @@ internal object MessageFactory {
             RecipientAddressType.PRIVATE -> PrivateThirdPartyEndpoint(
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
+                PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_ENDPOINT
             )
         }

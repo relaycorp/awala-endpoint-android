@@ -8,5 +8,6 @@ internal fun mockStorage() = mock<StorageImpl> {
     on { identityCertificate } doReturn mock()
     on { gatewayCertificate } doReturn mock()
     on { publicThirdPartyCertificate } doReturn mock()
-    on { privateThirdPartyAuthorization } doReturn mock()
+    on { thirdPartyAuthorization } doReturn mock()
+    on { thirdPartyIdentityCertificate } doReturn mock()
 }

@@ -41,7 +41,9 @@ internal class ReceiveMessagesTest {
             whenever(storage.identityCertificate.get(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
             whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
-            whenever(storage.privateThirdPartyAuthorization.get(any()))
+            whenever(storage.thirdPartyAuthorization.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.thirdPartyIdentityCertificate.get(any()))
                 .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
         }
     }

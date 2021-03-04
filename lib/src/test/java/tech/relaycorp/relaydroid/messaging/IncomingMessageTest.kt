@@ -26,7 +26,9 @@ internal class IncomingMessageTest {
             whenever(Relaynet.storage.identityCertificate.get(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
             whenever(Relaynet.storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(Relaynet.storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
-            whenever(Relaynet.storage.privateThirdPartyAuthorization.get(any()))
+            whenever(Relaynet.storage.thirdPartyAuthorization.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.thirdPartyIdentityCertificate.get(any()))
                 .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
         }
     }

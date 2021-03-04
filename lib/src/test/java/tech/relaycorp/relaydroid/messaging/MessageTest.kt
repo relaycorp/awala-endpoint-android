@@ -3,7 +3,7 @@ package tech.relaycorp.relaydroid.messaging
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.time.ZonedDateTime

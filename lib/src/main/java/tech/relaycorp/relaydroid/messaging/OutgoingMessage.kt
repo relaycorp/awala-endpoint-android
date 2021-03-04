@@ -1,9 +1,9 @@
 package tech.relaycorp.relaydroid.messaging
 
-import tech.relaycorp.relaydroid.FirstPartyEndpoint
-import tech.relaycorp.relaydroid.PrivateThirdPartyEndpoint
-import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
-import tech.relaycorp.relaydroid.ThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
@@ -49,7 +49,7 @@ private constructor(
     }
 
     private suspend fun buildParcel() = Parcel(
-        recipientAddress = recipientEndpoint.thirdPartyAddress,
+        recipientAddress = recipientEndpoint.address,
         payload = payload,
         senderCertificate = getSenderCertificate(),
         messageId = id.value,

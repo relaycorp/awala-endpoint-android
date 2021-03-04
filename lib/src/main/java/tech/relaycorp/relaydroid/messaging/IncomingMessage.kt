@@ -1,9 +1,10 @@
 package tech.relaycorp.relaydroid.messaging
 
-import tech.relaycorp.relaydroid.FirstPartyEndpoint
-import tech.relaycorp.relaydroid.ThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.ThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.UnknownFirstPartyEndpointException
+import tech.relaycorp.relaydroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.messages.Parcel
 import java.time.ZonedDateTime
 
@@ -52,6 +53,3 @@ public class IncomingMessage internal constructor(
         }
     }
 }
-
-public class UnknownThirdPartyEndpointException(message: String) : RelaynetException(message, null)
-public class UnknownFirstPartyEndpointException(message: String) : RelaynetException(message, null)

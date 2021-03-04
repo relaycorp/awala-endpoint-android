@@ -1,11 +1,18 @@
-package tech.relaycorp.relaydroid
+package tech.relaycorp.relaydroid.endpoint
 
+import tech.relaycorp.relaydroid.GatewayClient
+import tech.relaycorp.relaydroid.GatewayProtocolException
+import tech.relaycorp.relaydroid.RegistrationFailedException
+import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 import java.security.KeyPair
 import java.security.PublicKey
+import java.time.ZonedDateTime
 
 public class FirstPartyEndpoint
 internal constructor(
@@ -14,20 +21,32 @@ internal constructor(
     internal val gatewayCertificate: Certificate
 ) : Endpoint {
 
-    public override val thirdPartyAddress: String get() = keyPair.public.privateAddress
+    public override val address: String get() = keyPair.public.privateAddress
 
     public val publicKey: PublicKey get() = keyPair.public
 
+    @Throws(CertificateException::class)
+    public fun issueAuthorization(
+        privateThirdPartyPublicKey: PublicKey,
+        expiryDate: ZonedDateTime
+    ): Certificate =
+        issueDeliveryAuthorization(
+            subjectPublicKey = privateThirdPartyPublicKey,
+            issuerPrivateKey = keyPair.private,
+            validityEndDate = expiryDate,
+            issuerCertificate = certificate
+        )
+
     @Throws(PersistenceException::class)
-    public suspend fun remove() {
-        Storage.identityKeyPair.delete(thirdPartyAddress)
-        Storage.identityCertificate.delete(thirdPartyAddress)
+    public suspend fun delete() {
+        Storage.identityKeyPair.delete(address)
+        Storage.identityCertificate.delete(address)
     }
 
     @Throws(PersistenceException::class)
     private suspend fun store() {
-        Storage.identityKeyPair.set(thirdPartyAddress, keyPair)
-        Storage.identityCertificate.set(thirdPartyAddress, certificate)
+        Storage.identityKeyPair.set(address, keyPair)
+        Storage.identityCertificate.set(address, certificate)
         Storage.gatewayCertificate.set(gatewayCertificate)
     }
 

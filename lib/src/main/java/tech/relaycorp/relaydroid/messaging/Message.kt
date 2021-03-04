@@ -1,6 +1,6 @@
 package tech.relaycorp.relaydroid.messaging
 
-import tech.relaycorp.relaydroid.Endpoint
+import tech.relaycorp.relaydroid.endpoint.Endpoint
 import java.time.Duration
 import java.time.ZonedDateTime
 

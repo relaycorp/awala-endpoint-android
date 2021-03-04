@@ -1,26 +1,27 @@
-package tech.relaycorp.relaydroid
+package tech.relaycorp.relaydroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.test.runBlockingTest
-import org.bouncycastle.asn1.x500.style.BCStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
-import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
+import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import java.time.ZonedDateTime
 import java.util.UUID
 
-internal class ThirdPartyEndpointTest {
+internal class PrivateThirdPartyEndpointTest {
 
     private lateinit var storage: StorageImpl
 
@@ -29,30 +30,31 @@ internal class ThirdPartyEndpointTest {
         storage = mockStorage().also { Relaynet.storage = it }
     }
 
-    // Private
-
     @Test
-    internal fun loadPrivate_successful() = runBlockingTest {
-        whenever(storage.privateThirdPartyAuthorization.get(any()))
+    fun load_successful() = runBlockingTest {
+        whenever(storage.thirdPartyAuthorization.get(any()))
+            .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+        whenever(storage.thirdPartyIdentityCertificate.get(any()))
             .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
         val firstAddress = UUID.randomUUID().toString()
         val thirdAddress = UUID.randomUUID().toString()
 
-        with(ThirdPartyEndpoint.loadPrivate(firstAddress, thirdAddress)!!) {
+        with(PrivateThirdPartyEndpoint.load(firstAddress, thirdAddress)!!) {
             assertEquals(firstAddress, firstPartyAddress)
-            assertEquals(thirdAddress, thirdPartyAddress)
+            assertEquals(thirdAddress, address)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, authorization)
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, identity)
         }
 
-        verify(storage.privateThirdPartyAuthorization).get("${firstAddress}_$thirdAddress")
+        verify(storage.thirdPartyAuthorization).get("${firstAddress}_$thirdAddress")
     }
 
     @Test
-    internal fun loadPrivate_nonExistent() = runBlockingTest {
-        whenever(storage.privateThirdPartyAuthorization.get(any())).thenReturn(null)
+    fun load_nonExistent() = runBlockingTest {
+        whenever(storage.thirdPartyAuthorization.get(any())).thenReturn(null)
 
         assertNull(
-            ThirdPartyEndpoint.loadPrivate(
+            PrivateThirdPartyEndpoint.load(
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString()
             )
@@ -60,7 +62,7 @@ internal class ThirdPartyEndpointTest {
     }
 
     @Test
-    fun importPrivateAuthorization_successful() = runBlockingTest {
+    fun importAuthorization_successful() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val firstPartyAddress = firstPartyEndpoint.certificate.subjectPrivateAddress
         whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.certificate)
@@ -73,29 +75,40 @@ internal class ThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        val endpoint = ThirdPartyEndpoint.importPrivateAuthorization(authorization)
+        val endpoint = PrivateThirdPartyEndpoint.importAuthorization(
+            authorization, PDACertPath.PRIVATE_ENDPOINT
+        )
+
         assertEquals(
             firstPartyAddress,
             endpoint.firstPartyAddress
         )
         assertEquals(
             thirdPartyAddress,
-            endpoint.thirdPartyAddress
+            endpoint.address
         )
         assertEquals(
             authorization,
             endpoint.authorization
         )
+        assertEquals(
+            PDACertPath.PRIVATE_ENDPOINT,
+            endpoint.identity
+        )
 
         verify(storage.identityCertificate).get(firstPartyAddress)
-        verify(storage.privateThirdPartyAuthorization).set(
+        verify(storage.thirdPartyAuthorization).set(
             "${firstPartyAddress}_$thirdPartyAddress",
             authorization
         )
+        verify(storage.thirdPartyIdentityCertificate).set(
+            "${firstPartyAddress}_$thirdPartyAddress",
+            PDACertPath.PRIVATE_ENDPOINT
+        )
     }
 
-    @Test(expected = InvalidFirstPartyEndpointAddressException::class)
-    fun importPrivateAuthorization_invalidFirstParty() = runBlockingTest {
+    @Test(expected = UnknownFirstPartyEndpointException::class)
+    fun importAuthorization_invalidFirstParty() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val authorization = issueDeliveryAuthorization(
             subjectPublicKey = firstPartyEndpoint.keyPair.public,
@@ -104,11 +117,34 @@ internal class ThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        ThirdPartyEndpoint.importPrivateAuthorization(authorization)
+        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
+    }
+
+    @Test(expected = InvalidAuthorizationException::class)
+    fun importAuthorization_invalidAuthorization() = runBlockingTest {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val firstPartyAddress = firstPartyEndpoint.certificate.subjectPrivateAddress
+        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.certificate)
+
+        val unrelatedKeyPair = generateRSAKeyPair()
+        val unrelatedCertificate = issueEndpointCertificate(
+            unrelatedKeyPair.public,
+            unrelatedKeyPair.private,
+            ZonedDateTime.now().plusDays(1)
+        )
+
+        val authorization = issueDeliveryAuthorization(
+            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
+            validityEndDate = ZonedDateTime.now().plusDays(1),
+            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
+        )
+
+        PrivateThirdPartyEndpoint.importAuthorization(authorization, unrelatedCertificate)
     }
 
     @Test(expected = PersistenceException::class)
-    fun importPrivateAuthorization_persistenceException() = runBlockingTest {
+    fun importAuthorization_persistenceException() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any())).thenThrow(PersistenceException(""))
 
@@ -119,65 +155,6 @@ internal class ThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        ThirdPartyEndpoint.importPrivateAuthorization(authorization)
-    }
-
-    @Test
-    fun issueAuthorization() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
-
-        val authorization = ThirdPartyEndpoint.issueAuthorization(
-            firstPartyEndpoint,
-            KeyPairSet.PRIVATE_ENDPOINT.public,
-            expiryDate
-        )
-
-        assertEquals(
-            firstPartyEndpoint.certificate.subjectPrivateAddress,
-            authorization.subjectPrivateAddress
-        )
-        assertEquals(
-            firstPartyEndpoint.certificate.subjectPrivateAddress,
-            authorization.certificateHolder.subject.getRDNs(BCStyle.CN)
-                .first().first.value.toString()
-        )
-        assertSameDateTime(
-            expiryDate,
-            authorization.expiryDate
-        )
-    }
-
-    // Public
-
-    @Test
-    internal fun loadPublic_successful() = runBlockingTest {
-        whenever(storage.publicThirdPartyCertificate.get(any()))
-            .thenReturn(PDACertPath.PUBLIC_GW)
-        val address = "example.org"
-
-        with(ThirdPartyEndpoint.loadPublic(address)!!) {
-            assertEquals(address, thirdPartyAddress)
-            assertEquals(PDACertPath.PUBLIC_GW, certificate)
-        }
-    }
-
-    @Test
-    internal fun loadPublic_nonExistent() = runBlockingTest {
-        whenever(storage.publicThirdPartyCertificate.get(any())).thenReturn(null)
-
-        assertNull(ThirdPartyEndpoint.loadPublic("example.org"))
-    }
-
-    @Test
-    fun importPublicEndpointCertificate() = runBlockingTest {
-        val address = "example.org"
-
-        with(ThirdPartyEndpoint.importPublicEndpointCertificate(address, PDACertPath.PUBLIC_GW)) {
-            assertEquals(address, thirdPartyAddress)
-            assertEquals(PDACertPath.PUBLIC_GW, certificate)
-        }
-
-        verify(storage.publicThirdPartyCertificate).set(address, PDACertPath.PUBLIC_GW)
+        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 }

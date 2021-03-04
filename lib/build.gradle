@@ -8,7 +8,7 @@ apply from: 'jacoco.gradle'
 
 android {
   compileSdkVersion 30
-  buildToolsVersion "30.0.2"
+  buildToolsVersion "30.0.3"
 
   defaultConfig {
     minSdkVersion 21
@@ -59,7 +59,7 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
 
   // Relaynet
-  api('tech.relaycorp:relaynet:[1.42.1,2.0.0)')
+  api('tech.relaycorp:relaynet:[1.47.0,2.0.0)')
   implementation 'tech.relaycorp:poweb:1.5.15'
 
   // Security
