@@ -1,4 +1,4 @@
-package tech.relaycorp.relaydroid
+package tech.relaycorp.relaydroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.argumentCaptor
@@ -13,19 +13,25 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import tech.relaycorp.relaydroid.GatewayClientImpl
+import tech.relaycorp.relaydroid.GatewayProtocolException
+import tech.relaycorp.relaydroid.RegistrationFailedException
+import tech.relaycorp.relaydroid.Relaynet
+import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import java.security.KeyPair
+import java.time.ZonedDateTime
 import java.util.UUID
-import kotlin.math.exp
 
 internal class FirstPartyEndpointTest {
 
     private val gateway = mock<GatewayClientImpl>()
-    private val storage = mock<StorageImpl>()
+    private val storage = mockStorage()
 
     @Before
     fun setUp() {
@@ -42,6 +48,12 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test
+    fun publicKey() {
+        val endpoint = FirstPartyEndpointFactory.build()
+        assertEquals(endpoint.keyPair.public, endpoint.publicKey)
+    }
+
+    @Test
     fun register() = runBlockingTest {
         whenever(gateway.registerEndpoint(any())).thenReturn(PrivateNodeRegistration(
             PDACertPath.PRIVATE_ENDPOINT,
@@ -53,12 +65,12 @@ internal class FirstPartyEndpointTest {
         val keyPairCaptor = argumentCaptor<KeyPair>()
         verify(gateway)
             .registerEndpoint(keyPairCaptor.capture())
-        verify(storage)
-            .setIdentityKeyPair(eq(endpoint.address), eq(keyPairCaptor.firstValue))
-        verify(storage)
-            .setIdentityCertificate(eq(endpoint.address), eq(PDACertPath.PRIVATE_ENDPOINT))
-        verify(storage)
-            .setGatewayCertificate(eq(PDACertPath.PRIVATE_GW))
+        verify(storage.identityKeyPair)
+            .set(eq(endpoint.address), eq(keyPairCaptor.firstValue))
+        verify(storage.identityCertificate)
+            .set(eq(endpoint.address), eq(PDACertPath.PRIVATE_ENDPOINT))
+        verify(storage.gatewayCertificate)
+            .set(eq(PDACertPath.PRIVATE_GW))
     }
 
     @Test(expected = RegistrationFailedException::class)
@@ -88,11 +100,11 @@ internal class FirstPartyEndpointTest {
     fun load_withResult() = runBlockingTest {
         val address = UUID.randomUUID().toString()
 
-        whenever(storage.getIdentityKeyPair(eq(address)))
+        whenever(storage.identityKeyPair.get(eq(address)))
             .thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
-        whenever(storage.getIdentityCertificate(eq(address)))
+        whenever(storage.identityCertificate.get(eq(address)))
             .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-        whenever(storage.getGatewayCertificate())
+        whenever(storage.gatewayCertificate.get())
             .thenReturn(PDACertPath.PRIVATE_GW)
 
         with(FirstPartyEndpoint.load(address)) {
@@ -101,5 +113,25 @@ internal class FirstPartyEndpointTest {
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.certificate)
             assertEquals(PDACertPath.PRIVATE_GW, this?.gatewayCertificate)
         }
+    }
+
+    @Test
+    fun issueAuthorization() {
+        val endpoint = FirstPartyEndpointFactory.build()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = endpoint.issueAuthorization(
+            KeyPairSet.PRIVATE_ENDPOINT.public,
+            expiryDate
+        )
+
+        assertEquals(
+            endpoint.certificate.subjectPrivateAddress,
+            authorization.subjectPrivateAddress
+        )
+        assertSameDateTime(
+            expiryDate,
+            authorization.expiryDate
+        )
     }
 }

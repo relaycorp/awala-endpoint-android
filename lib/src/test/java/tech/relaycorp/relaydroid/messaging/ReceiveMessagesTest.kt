@@ -1,7 +1,6 @@
 package tech.relaycorp.relaydroid.messaging
 
 import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
@@ -13,7 +12,7 @@ import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
-import tech.relaycorp.relaydroid.StorageImpl
+import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
@@ -32,16 +31,20 @@ internal class ReceiveMessagesTest {
 
     private lateinit var pdcClient: MockPDCClient
     private val subject = ReceiveMessages { pdcClient }
-    private val storage = mock<StorageImpl>()
+    private val storage = mockStorage()
 
     @Before
     fun setUp() {
         runBlockingTest {
             Relaynet.storage = storage
-            whenever(storage.listEndpoints()).thenReturn(listOf("1234"))
-            whenever(storage.getIdentityCertificate(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-            whenever(storage.getIdentityKeyPair(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
-            whenever(storage.getGatewayCertificate()).thenReturn(PDACertPath.PRIVATE_GW)
+            whenever(storage.identityCertificate.list()).thenReturn(listOf("1234"))
+            whenever(storage.identityCertificate.get(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
+            whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
+            whenever(storage.thirdPartyAuthorization.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.thirdPartyIdentityCertificate.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
         }
     }
 

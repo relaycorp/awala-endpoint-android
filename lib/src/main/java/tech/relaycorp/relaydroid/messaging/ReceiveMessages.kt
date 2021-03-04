@@ -10,6 +10,8 @@ import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.common.Logging.logger
+import tech.relaycorp.relaydroid.endpoint.UnknownFirstPartyEndpointException
+import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
@@ -19,7 +21,6 @@ import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import java.util.logging.Level
-import kotlin.jvm.Throws
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) }
@@ -27,7 +28,8 @@ internal class ReceiveMessages(
 
     @Throws(
         ReceiveMessagesException::class,
-        GatewayProtocolException::class
+        GatewayProtocolException::class,
+        PersistenceException::class
     )
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
@@ -45,18 +47,21 @@ internal class ReceiveMessages(
                 }
             }
 
+    @Throws(PersistenceException::class)
     private fun getNonceSigners() = suspend {
         Storage
-            .listEndpoints()
+            .identityCertificate
+            .list()
             .map { endpoint ->
                 Signer(
-                    Storage.getIdentityCertificate(endpoint)!!,
-                    Storage.getIdentityKeyPair(endpoint)!!.private
+                    Storage.identityCertificate.get(endpoint)!!,
+                    Storage.identityKeyPair.get(endpoint)!!.private
                 )
             }
             .toTypedArray()
     }.asFlow()
 
+    @Throws(PersistenceException::class)
     private suspend fun collectParcels(pdcClient: PDCClient, nonceSigners: Array<Signer>) =
         pdcClient
             .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
@@ -72,7 +77,17 @@ internal class ReceiveMessages(
                     parcelCollection.ack()
                     return@mapNotNull null
                 }
-                IncomingMessage.build(parcel) { parcelCollection.ack() }
+                try {
+                    IncomingMessage.build(parcel) { parcelCollection.ack() }
+                } catch (exp: UnknownFirstPartyEndpointException) {
+                    logger.log(Level.WARNING, "Incoming parcel with invalid recipient", exp)
+                    parcelCollection.ack()
+                    return@mapNotNull null
+                } catch (exp: UnknownFirstPartyEndpointException) {
+                    logger.log(Level.WARNING, "Incoming parcel issues with invalid sender", exp)
+                    parcelCollection.ack()
+                    return@mapNotNull null
+                }
             }
 }
 

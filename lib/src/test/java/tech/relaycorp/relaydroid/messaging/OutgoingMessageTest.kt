@@ -3,14 +3,14 @@ package tech.relaycorp.relaydroid.messaging
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
-import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.MessageFactory
+import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
-import java.time.Duration
+import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.time.ZonedDateTime
 
 internal class OutgoingMessageTest {
@@ -20,7 +20,7 @@ internal class OutgoingMessageTest {
         OutgoingMessage.build(
             ByteArray(0),
             FirstPartyEndpointFactory.build(),
-            PublicThirdPartyEndpoint("http://example.org"),
+            PublicThirdPartyEndpoint("example.org", PDACertPath.PUBLIC_GW),
             creationDate = ZonedDateTime.now().plusDays(1)
         )
     }
@@ -46,7 +46,7 @@ internal class OutgoingMessageTest {
             cert.validate()
             assertEquals(message.senderEndpoint.keyPair.public, cert.subjectPublicKey)
             assertSameDateTime(message.creationDate, cert.startDate)
-            assertSameDateTime(message.expirationDate, cert.expiryDate)
+            assertSameDateTime(message.expiryDate, cert.expiryDate)
         }
     }
 
@@ -60,7 +60,4 @@ internal class OutgoingMessageTest {
             parcel.senderCertificateChain.toTypedArray()
         )
     }
-
-    private fun assertSameDateTime(date1: ZonedDateTime, date2: ZonedDateTime) =
-        assertTrue(Duration.between(date1, date2).seconds < 2)
 }

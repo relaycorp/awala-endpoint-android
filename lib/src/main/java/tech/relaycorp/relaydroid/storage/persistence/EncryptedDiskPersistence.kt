@@ -1,4 +1,4 @@
-package tech.relaycorp.relaydroid.persistence
+package tech.relaycorp.relaydroid.storage.persistence
 
 import android.content.Context
 import androidx.security.crypto.EncryptedFile
@@ -19,7 +19,7 @@ internal class EncryptedDiskPersistence(
     @Throws(PersistenceException::class)
     override suspend fun set(location: String, data: ByteArray) {
         withContext(coroutineContext) {
-            delete(location)
+            deleteIfExists(location)
             try {
                 buildEncryptedFile(location)
                     .openFileOutput()
@@ -45,15 +45,24 @@ internal class EncryptedDiskPersistence(
         }
     }
 
+    @Throws(PersistenceException::class)
     override suspend fun delete(location: String) {
         withContext(coroutineContext) {
-            buildFile(location).delete()
+            val result = buildFile(location).delete()
+            if (!result) throw PersistenceException("Failed to delete file at $location")
         }
     }
 
-    override suspend fun deleteAll() {
+    private fun deleteIfExists(location: String) {
+        buildFile(location).delete()
+    }
+
+    override suspend fun deleteAll(locationPrefix: String) {
         withContext(coroutineContext) {
-            buildFile("").deleteRecursively()
+            val parentFolder = buildFile("")
+            parentFolder
+                .listFiles { file: File -> file.name.startsWith(locationPrefix) }
+                ?.forEach { it.delete() }
         }
     }
 

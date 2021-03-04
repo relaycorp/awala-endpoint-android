@@ -1,9 +1,9 @@
 package tech.relaycorp.relaydroid.messaging
 
-import tech.relaycorp.relaydroid.FirstPartyEndpoint
-import tech.relaycorp.relaydroid.PrivateThirdPartyEndpoint
-import tech.relaycorp.relaydroid.PublicThirdPartyEndpoint
-import tech.relaycorp.relaydroid.ThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
@@ -17,10 +17,10 @@ private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
     creationDate: ZonedDateTime = ZonedDateTime.now(),
-    expirationDate: ZonedDateTime = maxExpirationDate(),
+    expiryDate: ZonedDateTime = maxExpiryDate(),
     id: MessageId = MessageId.generate()
 ) : Message(
-    id, payload, senderEndpoint, recipientEndpoint, creationDate, expirationDate
+    id, payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate
 ) {
 
     internal lateinit var parcel: Parcel
@@ -32,11 +32,11 @@ private constructor(
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
             creationDate: ZonedDateTime = ZonedDateTime.now(),
-            expirationDate: ZonedDateTime = maxExpirationDate(),
+            expiryDate: ZonedDateTime = maxExpiryDate(),
             id: MessageId = MessageId.generate()
         ): OutgoingMessage {
             val message = OutgoingMessage(
-                payload, senderEndpoint, recipientEndpoint, creationDate, expirationDate, id
+                payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate, id
             )
             message.parcel = message.buildParcel()
             try {
@@ -71,7 +71,7 @@ private constructor(
             senderEndpoint.keyPair.public,
             senderEndpoint.keyPair.private,
             validityStartDate = creationDate,
-            validityEndDate = expirationDate
+            validityEndDate = expiryDate
         )
     }
 
