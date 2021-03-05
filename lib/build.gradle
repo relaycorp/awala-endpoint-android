@@ -1,7 +1,8 @@
 plugins {
-  id 'com.android.library'
+  id 'com.android.library' // TODO: This is now in the root. Should we remove it here?
   id 'kotlin-android'
   id 'kotlin-kapt'
+  id 'maven-publish'
 }
 
 apply from: 'jacoco.gradle'
@@ -39,7 +40,7 @@ android {
     freeCompilerArgs += "-Xexplicit-api=strict"
   }
   testOptions {
-    unitTests{
+    unitTests {
       returnDefaultValues = true
       includeAndroidResources = true
     }
@@ -97,5 +98,55 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
       '-Xuse-experimental=kotlin.time.ExperimentalTime',
       '-Xuse-experimental=io.ktor.util.KtorExperimentalAPI'
     ]
+  }
+}
+
+afterEvaluate {
+  publishing {
+    publications {
+      release(MavenPublication) {
+        from components.release
+
+        groupId = 'tech.relaycorp'
+        artifactId = 'relaydroid'
+
+        pom {
+          name.set(rootProject.name)
+          description.set("High-level library for Android apps implementing Relaynet endpoints")
+          url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+          developers {
+            developer {
+              id.set("relaycorp")
+              name.set("Relaycorp, Inc.")
+              email.set("no-reply@relaycorp.tech")
+            }
+          }
+          licenses {
+            license {
+              name.set("Apache-2.0")
+            }
+          }
+          scm {
+            connection.set("scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git")
+            developerConnection.set(
+              "scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git"
+            )
+            url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+          }
+        }
+      }
+    }
+    repositories {
+      maven {
+        // publish=1 automatically publishes the version
+        url = uri(
+          "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.relaydroid/;publish=1"
+        )
+        credentials {
+          username = System.getenv("BINTRAY_USERNAME")
+          password = System.getenv("BINTRAY_KEY")
+        }
+      }
+    }
   }
 }
