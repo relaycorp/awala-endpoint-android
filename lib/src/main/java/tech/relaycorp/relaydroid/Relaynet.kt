@@ -2,8 +2,8 @@ package tech.relaycorp.relaydroid
 
 import android.content.Context
 import tech.relaycorp.relaydroid.background.ServiceInteractor
-import tech.relaycorp.relaydroid.storage.persistence.EncryptedDiskPersistence
 import tech.relaycorp.relaydroid.storage.StorageImpl
+import tech.relaycorp.relaydroid.storage.persistence.EncryptedDiskPersistence
 
 public object Relaynet {
     internal const val POWEB_PORT = 13276
@@ -22,5 +22,5 @@ public object Relaynet {
     internal lateinit var gatewayClientImpl: GatewayClientImpl
 }
 
-internal val Storage get() = Relaynet.storage
 public val GatewayClient: GatewayClientImpl get() = Relaynet.gatewayClientImpl
+internal val Storage get() = Relaynet.storage

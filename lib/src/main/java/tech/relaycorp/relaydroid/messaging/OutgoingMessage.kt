@@ -49,7 +49,11 @@ private constructor(
     }
 
     private suspend fun buildParcel() = Parcel(
-        recipientAddress = recipientEndpoint.address,
+        recipientAddress = if (recipientEndpoint is PublicThirdPartyEndpoint) {
+            "https://" + recipientEndpoint.address
+        } else {
+            recipientEndpoint.address
+        },
         payload = payload,
         senderCertificate = getSenderCertificate(),
         messageId = id.value,
@@ -82,7 +86,7 @@ private constructor(
 
     private suspend fun getSenderCertificateChain(): Set<Certificate> =
         when (recipientEndpoint) {
-            is PublicThirdPartyEndpoint -> emptySet<Certificate>()
-            is PrivateThirdPartyEndpoint -> TODO("Not implemented yet")
-        } + senderEndpoint.gatewayCertificate
+            is PublicThirdPartyEndpoint -> emptySet()
+            is PrivateThirdPartyEndpoint -> TODO("Not implemented yet") // + senderEndpoint.gatewayCertificate
+        }
 }
