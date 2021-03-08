@@ -1,5 +1,5 @@
 plugins {
-  id 'com.android.library' // TODO: This is now in the root. Should we remove it here?
+  id 'com.android.library'
   id 'kotlin-android'
   id 'kotlin-kapt'
   id 'maven-publish'
