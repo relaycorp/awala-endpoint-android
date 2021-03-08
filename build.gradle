@@ -15,10 +15,8 @@ buildscript {
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "$kotlinVersion"
-    id('java-library')
     id("org.jetbrains.dokka") version "1.4.20"
-    id('maven-publish')
-    id("com.diffplug.spotless") version "5.10.2"
+    id("com.diffplug.spotless") version "5.11.0"
     id('idea')
 }
 
@@ -41,51 +39,6 @@ dokkaHtml.configure {
         configureEach {
             reportUndocumented.set(true)
             includes.from("api-docs.md")
-        }
-    }
-}
-
-publishing {
-    publications {
-        create("default", MavenPublication) {
-            from(components["java"])
-
-            pom {
-                name.set(rootProject.name)
-                description.set("High-level library for Android apps implementing Relaynet endpoints")
-                url.set("https://github.com/relaycorp/relaynet-endpoint-android")
-                developers {
-                    developer {
-                        id.set("relaycorp")
-                        name.set("Relaycorp, Inc.")
-                        email.set("no-reply@relaycorp.tech")
-                    }
-                }
-                licenses {
-                    license {
-                        name.set("Apache-2.0")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git")
-                    developerConnection.set(
-                            "scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git"
-                    )
-                    url.set("https://github.com/relaycorp/relaynet-endpoint-android")
-                }
-            }
-        }
-    }
-    repositories {
-        maven {
-            // publish=1 automatically publishes the version
-            url = uri(
-                    "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.relaydroid/;publish=1"
-            )
-            credentials {
-                username = System.getenv("BINTRAY_USERNAME")
-                password = System.getenv("BINTRAY_KEY")
-            }
         }
     }
 }
