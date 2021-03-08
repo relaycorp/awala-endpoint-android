@@ -17,13 +17,8 @@ public sealed class ThirdPartyEndpoint(
         internal suspend fun load(
             firstPartyAddress: String, thirdPartyAddress: String
         ): ThirdPartyEndpoint? =
-            if (isPublicAddress(thirdPartyAddress)) {
-                PublicThirdPartyEndpoint.load(thirdPartyAddress)
-            } else {
-                PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyAddress)
-            }
-
-        private fun isPublicAddress(address: String) = address.contains(":")
+            PublicThirdPartyEndpoint.load(thirdPartyAddress)
+                ?: PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyAddress)
     }
 }
 
@@ -91,10 +86,13 @@ public class PublicThirdPartyEndpoint(
                 PublicThirdPartyEndpoint(thirdPartyAddress, it)
             }
 
-        @Throws(PersistenceException::class)
-        public suspend fun import(
-            thirdPartyAddress: String, certificate: Certificate
-        ): PublicThirdPartyEndpoint {
+        @Throws(
+            PersistenceException::class,
+            CertificateException::class
+        )
+        public suspend fun import(certificate: Certificate): PublicThirdPartyEndpoint {
+            certificate.validate()
+            val thirdPartyAddress = certificate.subjectPrivateAddress
             Storage.publicThirdPartyCertificate.set(thirdPartyAddress, certificate)
             return PublicThirdPartyEndpoint(thirdPartyAddress, certificate)
         }
