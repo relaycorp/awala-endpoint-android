@@ -11,7 +11,11 @@ import org.junit.Test
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
+import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.wrappers.x509.CertificateException
+import java.time.ZonedDateTime
 
 internal class PublicThirdPartyEndpointTest {
 
@@ -42,14 +46,26 @@ internal class PublicThirdPartyEndpointTest {
     }
 
     @Test
-    fun import() = runBlockingTest {
-        val address = "example.org"
-
-        with(PublicThirdPartyEndpoint.import(address, PDACertPath.PUBLIC_GW)) {
+    fun import_successful() = runBlockingTest {
+        with(PublicThirdPartyEndpoint.import(PDACertPath.PUBLIC_GW)) {
             assertEquals(address, this.address)
             assertEquals(PDACertPath.PUBLIC_GW, certificate)
         }
 
-        verify(storage.publicThirdPartyCertificate).set(address, PDACertPath.PUBLIC_GW)
+        verify(storage.publicThirdPartyCertificate).set(
+            PDACertPath.PUBLIC_GW.subjectPrivateAddress,
+            PDACertPath.PUBLIC_GW
+        )
+    }
+
+    @Test(expected = CertificateException::class)
+    fun import_invalidCertificate() = runBlockingTest {
+        val cert = issueEndpointCertificate(
+            subjectPublicKey = KeyPairSet.PRIVATE_GW.public,
+            issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
+            validityEndDate = ZonedDateTime.now().minusDays(1)
+        )
+
+        PublicThirdPartyEndpoint.import(cert)
     }
 }
