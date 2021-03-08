@@ -45,7 +45,7 @@ internal class SendMessageTest {
         assertTrue(deliverParcelCall.wasCalled)
         val signer = deliverParcelCall.arguments!!.deliverySigner
         assertEquals(
-            message.senderEndpoint.certificate.subjectPrivateAddress,
+            message.senderEndpoint.identityCertificate.subjectPrivateAddress,
             signer.certificate.subjectPrivateAddress
         )
     }
