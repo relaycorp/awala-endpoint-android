@@ -32,7 +32,7 @@ internal class SendMessage(
                     it.deliverParcel(
                         message.parcel.serialize(senderPrivateKey),
                         Signer(
-                            message.parcel.senderCertificate,
+                            message.senderEndpoint.certificate,
                             senderPrivateKey
                         )
                     )

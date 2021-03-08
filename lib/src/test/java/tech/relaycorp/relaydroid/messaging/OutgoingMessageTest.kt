@@ -3,6 +3,7 @@ package tech.relaycorp.relaydroid.messaging
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
@@ -30,7 +31,7 @@ internal class OutgoingMessageTest {
         val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
         val parcel = message.parcel
 
-        assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
+        assertEquals("https://" + message.recipientEndpoint.address, parcel.recipientAddress)
         assertArrayEquals(message.payload, parcel.payload)
         assertEquals(message.id.value, parcel.id)
         assertSameDateTime(message.creationDate, parcel.creationDate)
@@ -53,11 +54,7 @@ internal class OutgoingMessageTest {
     @Test
     internal fun buildForPublicRecipient_checkSenderCertificateChain() = runBlockingTest {
         val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
-        val parcel = message.parcel
 
-        assertArrayEquals(
-            arrayOf(message.senderEndpoint.gatewayCertificate),
-            parcel.senderCertificateChain.toTypedArray()
-        )
+        assertTrue(message.parcel.senderCertificateChain.isEmpty())
     }
 }
