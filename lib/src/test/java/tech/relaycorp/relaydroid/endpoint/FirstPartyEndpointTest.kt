@@ -7,10 +7,14 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
+import java.security.KeyPair
+import java.time.ZonedDateTime
+import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.GatewayClientImpl
@@ -24,9 +28,7 @@ import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
-import java.security.KeyPair
-import java.time.ZonedDateTime
-import java.util.UUID
+import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 internal class FirstPartyEndpointTest {
 
@@ -110,7 +112,7 @@ internal class FirstPartyEndpointTest {
         with(FirstPartyEndpoint.load(address)) {
             assertNotNull(this)
             assertEquals(KeyPairSet.PRIVATE_ENDPOINT, this?.keyPair)
-            assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.certificate)
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
             assertEquals(PDACertPath.PRIVATE_GW, this?.gatewayCertificate)
         }
     }
@@ -121,17 +123,32 @@ internal class FirstPartyEndpointTest {
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
         val authorization = endpoint.issueAuthorization(
-            KeyPairSet.PRIVATE_ENDPOINT.public,
+            KeyPairSet.PDA_GRANTEE.public,
             expiryDate
         )
 
+        // PDA
+        val pda = Certificate.deserialize(authorization.pdaSerialized)
         assertEquals(
-            endpoint.certificate.subjectPrivateAddress,
-            authorization.subjectPrivateAddress
+            KeyPairSet.PDA_GRANTEE.public.encoded.asList(),
+            pda.subjectPublicKey.encoded.asList()
+        )
+        assertEquals(
+            2,
+            pda.getCertificationPath(emptyList(), listOf(PDACertPath.PRIVATE_ENDPOINT)).size
         )
         assertSameDateTime(
             expiryDate,
-            authorization.expiryDate
+            pda.expiryDate
+        )
+
+        // PDA chain
+        val pdaChainSerialized = authorization.pdaChainSerialized.map { it.asList() }
+        assertTrue(
+            pdaChainSerialized.contains(PDACertPath.PRIVATE_ENDPOINT.serialize().asList())
+        )
+        assertTrue(
+            pdaChainSerialized.contains(PDACertPath.PRIVATE_GW.serialize().asList())
         )
     }
 }

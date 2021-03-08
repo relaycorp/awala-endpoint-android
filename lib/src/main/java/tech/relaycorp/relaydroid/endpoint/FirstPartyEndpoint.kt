@@ -17,7 +17,7 @@ import java.time.ZonedDateTime
 public class FirstPartyEndpoint
 internal constructor(
     internal val keyPair: KeyPair,
-    internal val certificate: Certificate,
+    internal val identityCertificate: Certificate,
     internal val gatewayCertificate: Certificate
 ) : Endpoint {
 
@@ -29,13 +29,19 @@ internal constructor(
     public fun issueAuthorization(
         privateThirdPartyPublicKey: PublicKey,
         expiryDate: ZonedDateTime
-    ): Certificate =
-        issueDeliveryAuthorization(
+    ): AuthorizationBundle {
+        val pda = issueDeliveryAuthorization(
             subjectPublicKey = privateThirdPartyPublicKey,
             issuerPrivateKey = keyPair.private,
             validityEndDate = expiryDate,
-            issuerCertificate = certificate
+            issuerCertificate = identityCertificate
         )
+        val pdaChain = listOf(identityCertificate, gatewayCertificate)
+        return AuthorizationBundle(
+            pda.serialize(),
+            pdaChain.map { it.serialize() }
+        )
+    }
 
     @Throws(PersistenceException::class)
     public suspend fun delete() {
@@ -46,7 +52,7 @@ internal constructor(
     @Throws(PersistenceException::class)
     private suspend fun store() {
         Storage.identityKeyPair.set(address, keyPair)
-        Storage.identityCertificate.set(address, certificate)
+        Storage.identityCertificate.set(address, identityCertificate)
         Storage.gatewayCertificate.set(gatewayCertificate)
     }
 

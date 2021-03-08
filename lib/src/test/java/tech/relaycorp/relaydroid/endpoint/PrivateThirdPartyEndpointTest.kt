@@ -64,8 +64,8 @@ internal class PrivateThirdPartyEndpointTest {
     @Test
     fun importAuthorization_successful() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        val firstPartyAddress = firstPartyEndpoint.certificate.subjectPrivateAddress
-        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.certificate)
+        val firstPartyAddress = firstPartyEndpoint.identityCertificate.subjectPrivateAddress
+        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.identityCertificate)
 
         val thirdPartyAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress
         val authorization = issueDeliveryAuthorization(
@@ -123,8 +123,7 @@ internal class PrivateThirdPartyEndpointTest {
     @Test(expected = InvalidAuthorizationException::class)
     fun importAuthorization_invalidAuthorization() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        val firstPartyAddress = firstPartyEndpoint.certificate.subjectPrivateAddress
-        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.certificate)
+        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.identityCertificate)
 
         val unrelatedKeyPair = generateRSAKeyPair()
         val unrelatedCertificate = issueEndpointCertificate(

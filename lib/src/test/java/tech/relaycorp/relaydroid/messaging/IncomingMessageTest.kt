@@ -45,7 +45,7 @@ internal class IncomingMessageTest {
 
         verify(Relaynet.storage.identityCertificate).get(eq(parcel.recipientAddress))
 
-        assertEquals(PDACertPath.PRIVATE_ENDPOINT, message.recipientEndpoint.certificate)
+        assertEquals(PDACertPath.PRIVATE_ENDPOINT, message.recipientEndpoint.identityCertificate)
         assertArrayEquals(parcel.payload, message.payload)
         assertEquals(parcel.id, message.id.value)
         assertSameDateTime(parcel.creationDate, message.creationDate)
