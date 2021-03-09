@@ -14,9 +14,6 @@ public sealed class ThirdPartyEndpoint(
 
     public val thirdPartyAddress: String get() = address
 
-    internal fun encryptServiceMessage(serviceMessage: ServiceMessage): ByteArray =
-        serviceMessage.encrypt(identityCertificate)
-
     public companion object {
         @Throws(PersistenceException::class)
         internal suspend fun load(
