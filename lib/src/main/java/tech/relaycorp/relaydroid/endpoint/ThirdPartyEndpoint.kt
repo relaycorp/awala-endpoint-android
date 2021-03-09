@@ -1,18 +1,19 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import org.json.JSONObject
 import tech.relaycorp.relaydroid.Storage
+import tech.relaycorp.relaydroid.common.decodeBase64
+import tech.relaycorp.relaydroid.common.encodeBase64
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
-import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
+import java.nio.charset.Charset
 
 public sealed class ThirdPartyEndpoint(
-    override val address: String,
+    public val thirdPartyAddress: String, // Private address
     public val identityCertificate: Certificate
 ) : Endpoint {
-
-    public val thirdPartyAddress: String get() = address
 
     public companion object {
         @Throws(PersistenceException::class)
@@ -30,6 +31,8 @@ public class PrivateThirdPartyEndpoint(
     public val authorization: Certificate,
     identityCertificate: Certificate
 ) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
+
+    override val address: String get() = thirdPartyAddress
 
     public companion object {
 
@@ -77,26 +80,57 @@ public class PrivateThirdPartyEndpoint(
 }
 
 public class PublicThirdPartyEndpoint(
+    public val publicAddress: String,
     thirdPartyAddress: String,
     identityCertificate: Certificate
 ) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
+
+    override val address: String get() = "https://$publicAddress"
 
     public companion object {
         @Throws(PersistenceException::class)
         public suspend fun load(thirdPartyAddress: String): PublicThirdPartyEndpoint? =
             Storage.publicThirdPartyCertificate.get(thirdPartyAddress)?.let {
-                PublicThirdPartyEndpoint(thirdPartyAddress, it)
+                PublicThirdPartyEndpoint(it.publicAddress, thirdPartyAddress, it.identityCertificate)
             }
 
         @Throws(
             PersistenceException::class,
             CertificateException::class
         )
-        public suspend fun import(certificate: Certificate): PublicThirdPartyEndpoint {
+        public suspend fun import(publicAddress: String, certificate: Certificate): PublicThirdPartyEndpoint {
             certificate.validate()
             val thirdPartyAddress = certificate.subjectPrivateAddress
-            Storage.publicThirdPartyCertificate.set(thirdPartyAddress, certificate)
-            return PublicThirdPartyEndpoint(thirdPartyAddress, certificate)
+            Storage.publicThirdPartyCertificate.set(thirdPartyAddress, StoredData(publicAddress, certificate))
+            return PublicThirdPartyEndpoint(publicAddress, thirdPartyAddress, certificate)
+        }
+    }
+
+    internal data class StoredData(
+        val publicAddress: String, val identityCertificate: Certificate
+    ) {
+        fun serialize() =
+            JSONObject().also { json ->
+                json.put("public_address", publicAddress)
+                json.put(
+                    "identity_certificate",
+                    identityCertificate.serialize().encodeBase64()
+                )
+            }
+                .toString()
+                .toByteArray(Charset.forName("UTF-8"))
+
+        companion object {
+            fun deserialize(byteArray: ByteArray): StoredData {
+                val jsonString = byteArray.toString(Charset.forName("UTF-8"))
+                val json = JSONObject(jsonString)
+                return StoredData(
+                    json.getString("public_address"),
+                    Certificate.deserialize(
+                        json.getString("identity_certificate").decodeBase64()
+                    )
+                )
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 import java.time.ZonedDateTime
+import java.util.UUID
 
 internal class PublicThirdPartyEndpointTest {
 
@@ -28,33 +29,41 @@ internal class PublicThirdPartyEndpointTest {
 
     @Test
     fun load_successful() = runBlockingTest {
+        val privateAddress = UUID.randomUUID().toString()
+        val publicAddress = "example.org"
         whenever(storage.publicThirdPartyCertificate.get(any()))
-            .thenReturn(PDACertPath.PUBLIC_GW)
-        val address = "example.org"
+            .thenReturn(PublicThirdPartyEndpoint.StoredData(publicAddress, PDACertPath.PUBLIC_GW))
 
-        with(PublicThirdPartyEndpoint.load(address)!!) {
-            assertEquals(address, this.address)
-            assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
-        }
+        val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
+        assertEquals(privateAddress, endpoint.thirdPartyAddress)
+        assertEquals(publicAddress, endpoint.publicAddress)
+        assertEquals("https://$publicAddress", endpoint.address)
+        assertEquals(PDACertPath.PUBLIC_GW, endpoint.identityCertificate)
     }
 
     @Test
     fun load_nonExistent() = runBlockingTest {
         whenever(storage.publicThirdPartyCertificate.get(any())).thenReturn(null)
 
-        assertNull(PublicThirdPartyEndpoint.load("example.org"))
+        assertNull(PublicThirdPartyEndpoint.load(UUID.randomUUID().toString()))
     }
 
     @Test
     fun import_successful() = runBlockingTest {
-        with(PublicThirdPartyEndpoint.import(PDACertPath.PUBLIC_GW)) {
-            assertEquals(address, this.address)
+        val publicAddress = "example.org"
+        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PUBLIC_GW)) {
+            assertEquals(PDACertPath.PUBLIC_GW.subjectPrivateAddress, this.thirdPartyAddress)
+            assertEquals(publicAddress, this.publicAddress)
             assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
+            assertEquals("https://$publicAddress", this.address)
         }
 
         verify(storage.publicThirdPartyCertificate).set(
             PDACertPath.PUBLIC_GW.subjectPrivateAddress,
-            PDACertPath.PUBLIC_GW
+            PublicThirdPartyEndpoint.StoredData(
+                publicAddress,
+                PDACertPath.PUBLIC_GW
+            )
         )
     }
 
@@ -66,6 +75,6 @@ internal class PublicThirdPartyEndpointTest {
             validityEndDate = ZonedDateTime.now().minusDays(1)
         )
 
-        PublicThirdPartyEndpoint.import(cert)
+        PublicThirdPartyEndpoint.import("example.org", cert)
     }
 }
