@@ -93,7 +93,7 @@ internal class ReceiveMessages(
                     return@mapNotNull null
                 } catch (exp: InvalidMessageException) {
                     parcelCollection.disregard(
-                        "Failed to decrypt parcel; sender might have used wrong key",
+                        "Incoming parcel did not encapsulate a valid service message",
                         exp
                     )
                     return@mapNotNull null
