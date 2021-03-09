@@ -8,6 +8,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
@@ -76,5 +78,18 @@ internal class PublicThirdPartyEndpointTest {
         )
 
         PublicThirdPartyEndpoint.import("example.org", cert)
+    }
+
+    @Test
+    fun storedDataSerialization() {
+        val publicAddress = "example.org"
+        val certificate = PDACertPath.PUBLIC_GW
+
+        val dataSerialized =
+            PublicThirdPartyEndpoint.StoredData(publicAddress, certificate).serialize()
+        val data = PublicThirdPartyEndpoint.StoredData.deserialize(dataSerialized)
+
+        assertEquals(publicAddress, data.publicAddress)
+        assertEquals(certificate, data.identityCertificate)
     }
 }
