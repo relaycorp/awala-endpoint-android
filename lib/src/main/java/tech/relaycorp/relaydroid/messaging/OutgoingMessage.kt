@@ -7,10 +7,10 @@ import tech.relaycorp.relaydroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.time.ZonedDateTime
-import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 public class OutgoingMessage
 private constructor(
@@ -55,11 +55,7 @@ private constructor(
     ): Parcel {
         val serviceMessage = ServiceMessage(serviceMessageType, serviceMessageContent)
         return Parcel(
-            recipientAddress = if (recipientEndpoint is PublicThirdPartyEndpoint) {
-                "https://" + recipientEndpoint.address
-            } else {
-                recipientEndpoint.address
-            },
+            recipientAddress = recipientEndpoint.address,
             payload = serviceMessage.encrypt(recipientEndpoint.identityCertificate),
             senderCertificate = getSenderCertificate(),
             messageId = id.value,

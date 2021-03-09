@@ -8,6 +8,7 @@ import org.junit.Test
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.MessageFactory
+import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
@@ -23,7 +24,7 @@ internal class OutgoingMessageTest {
             "the type",
             ByteArray(0),
             FirstPartyEndpointFactory.build(),
-            PublicThirdPartyEndpoint("example.org", PDACertPath.PUBLIC_GW),
+            ThirdPartyEndpointFactory.buildPublic(),
             creationDate = ZonedDateTime.now().plusDays(1)
         )
     }
@@ -33,7 +34,7 @@ internal class OutgoingMessageTest {
         val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
         val parcel = message.parcel
 
-        assertEquals("https://" + message.recipientEndpoint.address, parcel.recipientAddress)
+        assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
         assertEquals(message.id.value, parcel.id)
         assertSameDateTime(message.creationDate, parcel.creationDate)
         assertEquals(message.ttl, parcel.ttl)

@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.storage
 
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.storage.persistence.Persistence
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAKeyPair
@@ -33,11 +34,11 @@ constructor(
         deserializer = Certificate::deserialize
     )
 
-    internal val publicThirdPartyCertificate: Module<Certificate> = Module(
+    internal val publicThirdPartyCertificate: Module<PublicThirdPartyEndpoint.StoredData> = Module(
         persistence = persistence,
-        prefix = "public_third_party_certificate_",
-        serializer = Certificate::serialize,
-        deserializer = Certificate::deserialize
+        prefix = "public_third_party_",
+        serializer = PublicThirdPartyEndpoint.StoredData::serialize,
+        deserializer = PublicThirdPartyEndpoint.StoredData::deserialize
     )
 
     internal val thirdPartyAuthorization: Module<Certificate> = Module(
