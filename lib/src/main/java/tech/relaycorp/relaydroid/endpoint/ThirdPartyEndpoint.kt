@@ -1,14 +1,17 @@
 package tech.relaycorp.relaydroid.endpoint
 
-import org.json.JSONObject
+import org.bson.BSONException
+import org.bson.BsonBinary
+import org.bson.BsonBinaryReader
+import org.bson.BsonBinaryWriter
+import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.relaydroid.Storage
-import tech.relaycorp.relaydroid.common.decodeBase64
-import tech.relaycorp.relaydroid.common.encodeBase64
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
-import java.nio.charset.Charset
+import java.nio.ByteBuffer
+
 
 public sealed class ThirdPartyEndpoint(
     public val thirdPartyAddress: String, // Private address
@@ -109,28 +112,40 @@ public class PublicThirdPartyEndpoint(
     internal data class StoredData(
         val publicAddress: String, val identityCertificate: Certificate
     ) {
-        fun serialize() =
-            JSONObject().also { json ->
-                json.put("public_address", publicAddress)
-                json.put(
-                    "identity_certificate",
-                    identityCertificate.serialize().encodeBase64()
-                )
+        @Throws(PersistenceException::class)
+        fun serialize(): ByteArray {
+            try {
+                val output = BasicOutputBuffer()
+                BsonBinaryWriter(output).use {
+                    it.writeStartDocument()
+                    it.writeString("public_address", publicAddress)
+                    it.writeBinaryData("identity_certificate", BsonBinary(identityCertificate.serialize()))
+                    it.writeEndDocument()
+                }
+                return output.toByteArray()
+            } catch (exp: BSONException) {
+                throw PersistenceException("Could not serialize PublicThirdPartyEndpoint", exp)
             }
-                .toString()
-                .toByteArray(Charset.forName("UTF-8"))
+        }
 
         companion object {
-            fun deserialize(byteArray: ByteArray): StoredData {
-                val jsonString = byteArray.toString(Charset.forName("UTF-8"))
-                val json = JSONObject(jsonString)
-                return StoredData(
-                    json.getString("public_address"),
-                    Certificate.deserialize(
-                        json.getString("identity_certificate").decodeBase64()
-                    )
-                )
-            }
+            @Throws(PersistenceException::class)
+            fun deserialize(byteArray: ByteArray): StoredData =
+                try {
+                    BsonBinaryReader(ByteBuffer.wrap(byteArray)).use { reader ->
+                        reader.readStartDocument()
+                        StoredData(
+                            reader.readString("public_address"),
+                            Certificate.deserialize(
+                                reader.readBinaryData("identity_certificate").data
+                            )
+                        ).also {
+                            reader.readEndDocument()
+                        }
+                    }
+                } catch (exp: BSONException) {
+                    throw PersistenceException("Could not deserialize PublicThirdPartyEndpoint", exp)
+                }
         }
     }
 }
