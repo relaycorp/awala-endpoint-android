@@ -111,6 +111,7 @@ public class PublicThirdPartyEndpoint(
     internal data class StoredData(
         val publicAddress: String, val identityCertificate: Certificate
     ) {
+        @Throws(PersistenceException::class)
         fun serialize(): ByteArray {
             try {
                 val output = BasicOutputBuffer()
@@ -127,6 +128,7 @@ public class PublicThirdPartyEndpoint(
         }
 
         companion object {
+            @Throws(PersistenceException::class)
             fun deserialize(byteArray: ByteArray): StoredData =
                 try {
                     BsonBinaryReader(ByteBuffer.wrap(byteArray)).use { reader ->
