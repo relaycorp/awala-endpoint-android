@@ -43,7 +43,7 @@ internal class PrivateThirdPartyEndpointTest {
             assertEquals(firstAddress, firstPartyAddress)
             assertEquals(thirdAddress, address)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, authorization)
-            assertEquals(PDACertPath.PRIVATE_ENDPOINT, identity)
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificate)
         }
 
         verify(storage.thirdPartyAuthorization).get("${firstAddress}_$thirdAddress")
@@ -93,7 +93,7 @@ internal class PrivateThirdPartyEndpointTest {
         )
         assertEquals(
             PDACertPath.PRIVATE_ENDPOINT,
-            endpoint.identity
+            endpoint.identityCertificate
         )
 
         verify(storage.identityCertificate).get(firstPartyAddress)

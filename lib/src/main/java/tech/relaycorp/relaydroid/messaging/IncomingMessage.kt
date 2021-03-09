@@ -7,24 +7,29 @@ import tech.relaycorp.relaydroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.messages.Parcel
 import java.time.ZonedDateTime
+import tech.relaycorp.relaynet.messages.InvalidMessageException
+import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
 public class IncomingMessage internal constructor(
     id: MessageId,
-    payload: ByteArray,
+    public val type: String,
+    public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
     creationDate: ZonedDateTime,
     expiryDate: ZonedDateTime,
     public val ack: suspend () -> Unit
 ) : Message(
-    id, payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate
+    id, senderEndpoint, recipientEndpoint, creationDate, expiryDate
 ) {
 
     internal companion object {
         @Throws(
             UnknownFirstPartyEndpointException::class,
             UnknownThirdPartyEndpointException::class,
-            PersistenceException::class
+            PersistenceException::class,
+            EnvelopedDataException::class,
+            InvalidMessageException::class
         )
         internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage {
             val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)
@@ -41,9 +46,11 @@ public class IncomingMessage internal constructor(
                     "for first party endpoint ${parcel.recipientAddress}"
             )
 
+            val serviceMessage = parcel.unwrapPayload(recipientEndpoint.keyPair.private)
             return IncomingMessage(
                 id = MessageId(parcel.id),
-                payload = parcel.payload,
+                type = serviceMessage.type,
+                content = serviceMessage.content,
                 senderEndpoint = sender,
                 recipientEndpoint = recipientEndpoint,
                 creationDate = parcel.creationDate,

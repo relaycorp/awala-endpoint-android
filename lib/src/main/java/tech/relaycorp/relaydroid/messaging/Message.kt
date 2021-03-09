@@ -6,7 +6,6 @@ import java.time.ZonedDateTime
 
 public abstract class Message(
     public val id: MessageId,
-    public val payload: ByteArray,
     senderEndpoint: Endpoint,
     recipientEndpoint: Endpoint,
     public val creationDate: ZonedDateTime = ZonedDateTime.now(),

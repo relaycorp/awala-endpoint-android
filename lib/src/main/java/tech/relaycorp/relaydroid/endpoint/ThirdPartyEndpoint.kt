@@ -3,11 +3,13 @@ package tech.relaycorp.relaydroid.endpoint
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
 public sealed class ThirdPartyEndpoint(
-    override val address: String
+    override val address: String,
+    public val identityCertificate: Certificate
 ) : Endpoint {
 
     public val thirdPartyAddress: String get() = address
@@ -26,8 +28,8 @@ public class PrivateThirdPartyEndpoint(
     public val firstPartyAddress: String,
     thirdPartyAddress: String,
     public val authorization: Certificate,
-    public val identity: Certificate
-) : ThirdPartyEndpoint(thirdPartyAddress) {
+    identityCertificate: Certificate
+) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
 
     public companion object {
 
@@ -76,8 +78,8 @@ public class PrivateThirdPartyEndpoint(
 
 public class PublicThirdPartyEndpoint(
     thirdPartyAddress: String,
-    public val certificate: Certificate
-) : ThirdPartyEndpoint(thirdPartyAddress) {
+    identityCertificate: Certificate
+) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
 
     public companion object {
         @Throws(PersistenceException::class)
