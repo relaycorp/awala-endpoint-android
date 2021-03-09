@@ -10,17 +10,17 @@ import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.time.ZonedDateTime
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 public class OutgoingMessage
 private constructor(
-    payload: ByteArray,
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
     creationDate: ZonedDateTime = ZonedDateTime.now(),
     expiryDate: ZonedDateTime = maxExpiryDate(),
     id: MessageId = MessageId.generate()
 ) : Message(
-    id, payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate
+    id, senderEndpoint, recipientEndpoint, creationDate, expiryDate
 ) {
 
     internal lateinit var parcel: Parcel
@@ -28,7 +28,8 @@ private constructor(
 
     public companion object {
         public suspend fun build(
-            payload: ByteArray,
+            type: String,
+            content: ByteArray,
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
             creationDate: ZonedDateTime = ZonedDateTime.now(),
@@ -36,9 +37,9 @@ private constructor(
             id: MessageId = MessageId.generate()
         ): OutgoingMessage {
             val message = OutgoingMessage(
-                payload, senderEndpoint, recipientEndpoint, creationDate, expiryDate, id
+                senderEndpoint, recipientEndpoint, creationDate, expiryDate, id
             )
-            message.parcel = message.buildParcel()
+            message.parcel = message.buildParcel(type, content)
             try {
                 message.parcel.validate(null)
             } catch (exp: RAMFException) {
@@ -48,19 +49,25 @@ private constructor(
         }
     }
 
-    private suspend fun buildParcel() = Parcel(
-        recipientAddress = if (recipientEndpoint is PublicThirdPartyEndpoint) {
-            "https://" + recipientEndpoint.address
-        } else {
-            recipientEndpoint.address
-        },
-        payload = payload,
-        senderCertificate = getSenderCertificate(),
-        messageId = id.value,
-        creationDate = creationDate,
-        ttl = ttl,
-        senderCertificateChain = getSenderCertificateChain()
-    )
+    private suspend fun buildParcel(
+        serviceMessageType: String,
+        serviceMessageContent: ByteArray
+    ): Parcel {
+        val serviceMessage = ServiceMessage(serviceMessageType, serviceMessageContent)
+        return Parcel(
+            recipientAddress = if (recipientEndpoint is PublicThirdPartyEndpoint) {
+                "https://" + recipientEndpoint.address
+            } else {
+                recipientEndpoint.address
+            },
+            payload = serviceMessage.encrypt(recipientEndpoint.identityCertificate),
+            senderCertificate = getSenderCertificate(),
+            messageId = id.value,
+            creationDate = creationDate,
+            ttl = ttl,
+            senderCertificateChain = getSenderCertificateChain()
+        )
+    }
 
     private suspend fun getSenderCertificate() =
         when (recipientEndpoint) {

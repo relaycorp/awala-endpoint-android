@@ -16,6 +16,7 @@ import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.util.UUID
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 internal class IncomingMessageTest {
 
@@ -35,10 +36,11 @@ internal class IncomingMessageTest {
 
     @Test
     fun buildFromParcel() = runBlockingTest {
+        val serviceMessage = ServiceMessage("the type", "the content".toByteArray())
         val parcel = Parcel(
             recipientAddress = UUID.randomUUID().toString(),
-            payload = "1234".toByteArray(),
-            senderCertificate = PDACertPath.PRIVATE_ENDPOINT
+            payload = serviceMessage.encrypt(PDACertPath.PRIVATE_ENDPOINT),
+            senderCertificate = PDACertPath.PDA
         )
 
         val message = IncomingMessage.build(parcel) {}
@@ -46,7 +48,8 @@ internal class IncomingMessageTest {
         verify(Relaynet.storage.identityCertificate).get(eq(parcel.recipientAddress))
 
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, message.recipientEndpoint.identityCertificate)
-        assertArrayEquals(parcel.payload, message.payload)
+        assertEquals(serviceMessage.type, message.type)
+        assertArrayEquals(serviceMessage.content, message.content)
         assertEquals(parcel.id, message.id.value)
         assertSameDateTime(parcel.creationDate, message.creationDate)
         assertSameDateTime(parcel.expiryDate, message.expiryDate)

@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.messaging
 
+import java.util.logging.Level
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -15,12 +16,13 @@ import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
+import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RAMFException
-import java.util.logging.Level
+import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) }
@@ -69,26 +71,39 @@ internal class ReceiveMessages(
                 val parcel = try {
                     parcelCollection.deserializeAndValidateParcel()
                 } catch (exp: RAMFException) {
-                    logger.log(Level.WARNING, "Malformed incoming parcel", exp)
-                    parcelCollection.ack()
+                    parcelCollection.disregard("Malformed incoming parcel", exp)
                     return@mapNotNull null
                 } catch (exp: InvalidMessageException) {
-                    logger.log(Level.WARNING, "Invalid incoming parcel", exp)
-                    parcelCollection.ack()
+                    parcelCollection.disregard("Invalid incoming parcel", exp)
                     return@mapNotNull null
                 }
                 try {
                     IncomingMessage.build(parcel) { parcelCollection.ack() }
                 } catch (exp: UnknownFirstPartyEndpointException) {
-                    logger.log(Level.WARNING, "Incoming parcel with invalid recipient", exp)
-                    parcelCollection.ack()
+                    parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
                     return@mapNotNull null
                 } catch (exp: UnknownFirstPartyEndpointException) {
-                    logger.log(Level.WARNING, "Incoming parcel issues with invalid sender", exp)
-                    parcelCollection.ack()
+                    parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
+                    return@mapNotNull null
+                } catch (exp: EnvelopedDataException) {
+                    parcelCollection.disregard(
+                        "Failed to decrypt parcel; sender might have used wrong key",
+                        exp
+                    )
+                    return@mapNotNull null
+                } catch (exp: InvalidMessageException) {
+                    parcelCollection.disregard(
+                        "Failed to decrypt parcel; sender might have used wrong key",
+                        exp
+                    )
                     return@mapNotNull null
                 }
             }
+}
+
+private suspend fun ParcelCollection.disregard(reason: String, exc: Throwable) {
+    logger.log(Level.WARNING, reason, exc)
+    ack()
 }
 
 public class ReceiveMessagesException(message: String, throwable: Throwable? = null)

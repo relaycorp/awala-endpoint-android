@@ -34,7 +34,7 @@ internal class PublicThirdPartyEndpointTest {
 
         with(PublicThirdPartyEndpoint.load(address)!!) {
             assertEquals(address, this.address)
-            assertEquals(PDACertPath.PUBLIC_GW, certificate)
+            assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
         }
     }
 
@@ -49,7 +49,7 @@ internal class PublicThirdPartyEndpointTest {
     fun import_successful() = runBlockingTest {
         with(PublicThirdPartyEndpoint.import(PDACertPath.PUBLIC_GW)) {
             assertEquals(address, this.address)
-            assertEquals(PDACertPath.PUBLIC_GW, certificate)
+            assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
         }
 
         verify(storage.publicThirdPartyCertificate).set(

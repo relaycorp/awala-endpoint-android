@@ -18,6 +18,7 @@ internal class MessageTest {
     fun ttl() = runBlockingTest {
         val creationDate = ZonedDateTime.now()
         val message = OutgoingMessage.build(
+            "the type",
             Random.Default.nextBytes(10),
             senderEndpoint = senderEndpoint,
             recipientEndpoint = recipientEndpoint,

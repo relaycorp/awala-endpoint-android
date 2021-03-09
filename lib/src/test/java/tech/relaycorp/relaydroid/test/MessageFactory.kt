@@ -9,11 +9,14 @@ import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.time.ZonedDateTime
 import java.util.UUID
-import kotlin.random.Random
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 internal object MessageFactory {
+    val serviceMessage = ServiceMessage("application/foo", "the content".toByteArray())
+
     suspend fun buildOutgoing(recipientType: RecipientAddressType) = OutgoingMessage.build(
-        Random.Default.nextBytes(10),
+        serviceMessage.type,
+        serviceMessage.content,
         senderEndpoint = FirstPartyEndpointFactory.build(),
         recipientEndpoint = when (recipientType) {
             RecipientAddressType.PUBLIC -> PublicThirdPartyEndpoint(
@@ -31,7 +34,8 @@ internal object MessageFactory {
 
     fun buildIncoming() = IncomingMessage(
         id = MessageId(UUID.randomUUID().toString()),
-        payload = Random.nextBytes(10),
+        type = serviceMessage.type,
+        content = serviceMessage.content,
         senderEndpoint = PublicThirdPartyEndpoint("example.org", PDACertPath.PUBLIC_GW),
         recipientEndpoint = FirstPartyEndpointFactory.build(),
         creationDate = ZonedDateTime.now(),
