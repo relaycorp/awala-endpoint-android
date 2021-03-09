@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
 import org.bson.BsonBinaryWriter
@@ -122,7 +123,7 @@ public class PublicThirdPartyEndpoint(
                     it.writeEndDocument()
                 }
                 return output.toByteArray()
-            } catch (exp: Exception) {
+            } catch (exp: BSONException) {
                 throw PersistenceException("Could not serialize PublicThirdPartyEndpoint", exp)
             }
         }
@@ -142,7 +143,7 @@ public class PublicThirdPartyEndpoint(
                             reader.readEndDocument()
                         }
                     }
-                } catch (exp: Exception) {
+                } catch (exp: BSONException) {
                     throw PersistenceException("Could not deserialize PublicThirdPartyEndpoint", exp)
                 }
         }
