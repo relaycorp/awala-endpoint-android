@@ -155,7 +155,10 @@ public class PublicThirdPartyEndpoint internal constructor(
                         }
                     }
                 } catch (exp: BSONException) {
-                    throw PersistenceException("Could not deserialize PublicThirdPartyEndpoint", exp)
+                    throw PersistenceException(
+                        "Could not deserialize PublicThirdPartyEndpoint",
+                        exp
+                    )
                 }
         }
     }

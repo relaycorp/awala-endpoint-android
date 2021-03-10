@@ -42,7 +42,8 @@ internal class ReceiveMessagesTest {
         runBlockingTest {
             Relaynet.storage = storage
             whenever(storage.identityCertificate.list()).thenReturn(listOf("1234"))
-            whenever(storage.identityCertificate.get(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(storage.identityCertificate.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
             whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
             whenever(storage.thirdPartyAuthorization.get(any()))
@@ -163,7 +164,7 @@ internal class ReceiveMessagesTest {
             senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
         )
         var ackWasCalled = false
-        val parcelCollection = parcel.toParcelCollection() { ackWasCalled = true }
+        val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
 
@@ -184,7 +185,7 @@ internal class ReceiveMessagesTest {
             senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
         )
         var ackWasCalled = false
-        val parcelCollection = parcel.toParcelCollection() { ackWasCalled = true }
+        val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
 

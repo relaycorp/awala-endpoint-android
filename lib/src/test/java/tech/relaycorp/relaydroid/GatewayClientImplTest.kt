@@ -134,7 +134,8 @@ internal class GatewayClientImplTest {
                 it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
             }
 
-            pdcClient = MockPDCClient(RegisterNodeCall(Result.failure(ServerConnectionException(""))))
+            pdcClient =
+                MockPDCClient(RegisterNodeCall(Result.failure(ServerConnectionException(""))))
 
             subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
