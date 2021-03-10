@@ -14,28 +14,28 @@ import java.nio.ByteBuffer
 
 
 public sealed class ThirdPartyEndpoint(
-    public val thirdPartyAddress: String, // Private address
     public val identityCertificate: Certificate
 ) : Endpoint {
 
-    public companion object {
+    public val privateAddress : String get() = identityCertificate.subjectPrivateAddress
+
+    internal companion object {
         @Throws(PersistenceException::class)
         internal suspend fun load(
-            firstPartyAddress: String, thirdPartyAddress: String
+            firstPartyAddress: String, thirdPartyPrivateAddress: String
         ): ThirdPartyEndpoint? =
-            PublicThirdPartyEndpoint.load(thirdPartyAddress)
-                ?: PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyAddress)
+            PublicThirdPartyEndpoint.load(thirdPartyPrivateAddress)
+                ?: PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyPrivateAddress)
     }
 }
 
-public class PrivateThirdPartyEndpoint(
+public class PrivateThirdPartyEndpoint internal constructor(
     public val firstPartyAddress: String,
-    thirdPartyAddress: String,
     public val authorization: Certificate,
     identityCertificate: Certificate
-) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
+) : ThirdPartyEndpoint(identityCertificate) {
 
-    override val address: String get() = thirdPartyAddress
+    override val address: String get() = privateAddress
 
     public companion object {
 
@@ -46,7 +46,7 @@ public class PrivateThirdPartyEndpoint(
             val key = "${firstPartyAddress}_$thirdPartyAddress"
             return Storage.thirdPartyAuthorization.get(key)?.let { auth ->
                 Storage.thirdPartyIdentityCertificate.get(key)?.let { id ->
-                    PrivateThirdPartyEndpoint(firstPartyAddress, thirdPartyAddress, auth, id)
+                    PrivateThirdPartyEndpoint(firstPartyAddress, auth, id)
                 }
             }
         }
@@ -56,7 +56,7 @@ public class PrivateThirdPartyEndpoint(
             UnknownFirstPartyEndpointException::class
         )
         public suspend fun importAuthorization(
-            pda: Certificate, identity: Certificate
+            pda: Certificate, identityCertificate: Certificate
         ): PrivateThirdPartyEndpoint {
             val firstPartyAddress = pda.subjectPrivateAddress
 
@@ -66,46 +66,51 @@ public class PrivateThirdPartyEndpoint(
                 )
 
             try {
-                pda.getCertificationPath(emptyList(), listOf(identity))
+                pda.getCertificationPath(emptyList(), listOf(identityCertificate))
             } catch (e: CertificateException) {
                 throw InvalidAuthorizationException("PDA was not issued by third-party endpoint", e)
             }
 
-            val thirdPartyAddress = identity.subjectPrivateAddress
+            val thirdPartyAddress = identityCertificate.subjectPrivateAddress
 
             val key = "${firstPartyAddress}_$thirdPartyAddress"
             Storage.thirdPartyAuthorization.set(key, pda)
-            Storage.thirdPartyIdentityCertificate.set(key, identity)
+            Storage.thirdPartyIdentityCertificate.set(key, identityCertificate)
 
-            return PrivateThirdPartyEndpoint(firstPartyAddress, thirdPartyAddress, pda, identity)
+            return PrivateThirdPartyEndpoint(firstPartyAddress, pda, identityCertificate)
         }
     }
 }
 
-public class PublicThirdPartyEndpoint(
+public class PublicThirdPartyEndpoint internal constructor(
     public val publicAddress: String,
-    thirdPartyAddress: String,
     identityCertificate: Certificate
-) : ThirdPartyEndpoint(thirdPartyAddress, identityCertificate) {
+) : ThirdPartyEndpoint(identityCertificate) {
 
     override val address: String get() = "https://$publicAddress"
 
     public companion object {
         @Throws(PersistenceException::class)
-        public suspend fun load(thirdPartyAddress: String): PublicThirdPartyEndpoint? =
-            Storage.publicThirdPartyCertificate.get(thirdPartyAddress)?.let {
-                PublicThirdPartyEndpoint(it.publicAddress, thirdPartyAddress, it.identityCertificate)
+        public suspend fun load(publicAddress: String): PublicThirdPartyEndpoint? =
+            Storage.publicThirdPartyCertificate.get(publicAddress)?.let {
+                PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
             }
 
         @Throws(
             PersistenceException::class,
             CertificateException::class
         )
-        public suspend fun import(publicAddress: String, certificate: Certificate): PublicThirdPartyEndpoint {
-            certificate.validate()
-            val thirdPartyAddress = certificate.subjectPrivateAddress
-            Storage.publicThirdPartyCertificate.set(thirdPartyAddress, StoredData(publicAddress, certificate))
-            return PublicThirdPartyEndpoint(publicAddress, thirdPartyAddress, certificate)
+        public suspend fun import(
+            publicAddress: String,
+            identityCertificate: Certificate
+        ): PublicThirdPartyEndpoint {
+            identityCertificate.validate()
+            val thirdPartyAddress = identityCertificate.subjectPrivateAddress
+            Storage.publicThirdPartyCertificate.set(
+                thirdPartyAddress,
+                StoredData(publicAddress, identityCertificate)
+            )
+            return PublicThirdPartyEndpoint(publicAddress, identityCertificate)
         }
     }
 
