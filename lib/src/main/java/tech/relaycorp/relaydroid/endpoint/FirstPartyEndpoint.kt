@@ -41,7 +41,7 @@ internal constructor(
      */
     @Throws(CertificateException::class)
     public fun issueAuthorization(
-        thirdPartyEndpoint: PublicThirdPartyEndpoint,
+        thirdPartyEndpoint: ThirdPartyEndpoint,
         expiryDate: ZonedDateTime
     ): AuthorizationBundle {
         return issueAuthorization(
