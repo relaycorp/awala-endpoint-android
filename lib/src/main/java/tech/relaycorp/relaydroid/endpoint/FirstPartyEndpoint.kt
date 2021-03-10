@@ -86,6 +86,9 @@ internal constructor(
         )
     }
 
+    /**
+     * Delete the endpoint.
+     */
     @Throws(PersistenceException::class)
     public suspend fun delete() {
         Storage.identityKeyPair.delete(address)
@@ -140,5 +143,8 @@ internal constructor(
     }
 }
 
+/**
+ * Failure to issue a PDA.
+ */
 public class AuthorizationIssuanceException(message: String, cause: Throwable) :
     RelaydroidException(message, cause)
