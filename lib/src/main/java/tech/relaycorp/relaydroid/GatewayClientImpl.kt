@@ -18,8 +18,8 @@ import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
-import tech.relaycorp.relaydroid.messaging.ReceiveMessages
 import tech.relaycorp.relaydroid.messaging.ReceiveMessageException
+import tech.relaycorp.relaydroid.messaging.ReceiveMessages
 import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
