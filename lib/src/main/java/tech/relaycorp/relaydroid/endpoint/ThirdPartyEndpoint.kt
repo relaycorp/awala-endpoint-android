@@ -25,7 +25,7 @@ public sealed class ThirdPartyEndpoint(
             thirdPartyPrivateAddress: String
         ): ThirdPartyEndpoint? =
             PublicThirdPartyEndpoint.load(thirdPartyPrivateAddress)
-                ?: PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyPrivateAddress)
+                ?: PrivateThirdPartyEndpoint.load(thirdPartyPrivateAddress, firstPartyAddress)
     }
 }
 
@@ -49,8 +49,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
          */
         @Throws(PersistenceException::class)
         public suspend fun load(
-            firstPartyAddress: String,
-            thirdPartyAddress: String
+            thirdPartyAddress: String,
+            firstPartyAddress: String
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
             return Storage.thirdPartyAuthorization.get(key)?.let { auth ->

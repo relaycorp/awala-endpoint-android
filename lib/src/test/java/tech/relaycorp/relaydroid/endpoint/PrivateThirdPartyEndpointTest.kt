@@ -45,7 +45,7 @@ internal class PrivateThirdPartyEndpointTest {
         val firstAddress = UUID.randomUUID().toString()
         val thirdAddress = UUID.randomUUID().toString()
 
-        with(PrivateThirdPartyEndpoint.load(firstAddress, thirdAddress)!!) {
+        with(PrivateThirdPartyEndpoint.load(thirdAddress, firstAddress)!!) {
             assertEquals(firstAddress, firstPartyEndpointAddress)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress, address)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, pda)
