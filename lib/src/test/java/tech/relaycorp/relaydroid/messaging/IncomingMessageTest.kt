@@ -51,6 +51,5 @@ internal class IncomingMessageTest {
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, message.recipientEndpoint.identityCertificate)
         assertEquals(serviceMessage.type, message.type)
         assertArrayEquals(serviceMessage.content, message.content)
-        assertEquals(parcel.id, message.parcelId.value)
     }
 }

@@ -65,7 +65,6 @@ internal class ReceiveMessagesTest {
         assertTrue(pdcClient.wasClosed)
         assertTrue(collectParcelsCall.wasCalled)
         assertEquals(1, messages.size)
-        assertEquals(parcel.id, messages.first().parcelId.value)
     }
 
     @Test

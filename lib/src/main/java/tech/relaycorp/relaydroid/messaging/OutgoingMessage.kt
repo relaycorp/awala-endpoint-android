@@ -17,15 +17,16 @@ import tech.relaycorp.relaynet.wrappers.x509.Certificate
  * @property senderEndpoint The first-party endpoint that created the message.
  * @property recipientEndpoint The third-party endpoint that should receive the message.
  * @property parcelExpiryDate The expiry date of the parcel.
+ * @property parcelId The parcel id.
  */
 public class OutgoingMessage
 private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
     public val parcelExpiryDate: ZonedDateTime = maxExpiryDate(),
-    parcelId: ParcelId,
+    public val parcelId: ParcelId,
     internal val parcelCreationDate: ZonedDateTime = ZonedDateTime.now()
-) : Message(parcelId) {
+) : Message() {
 
     internal lateinit var parcel: Parcel
         private set

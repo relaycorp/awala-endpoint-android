@@ -19,13 +19,12 @@ import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
  * @property ack The function to call as soon as the message has been processed.
  */
 public class IncomingMessage internal constructor(
-    parcelId: ParcelId,
     public val type: String,
     public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
     public val ack: suspend () -> Unit
-) : Message(parcelId) {
+) : Message() {
 
     internal companion object {
         @Throws(
@@ -52,7 +51,6 @@ public class IncomingMessage internal constructor(
 
             val serviceMessage = parcel.unwrapPayload(recipientEndpoint.keyPair.private)
             return IncomingMessage(
-                parcelId = ParcelId(parcel.id),
                 type = serviceMessage.type,
                 content = serviceMessage.content,
                 senderEndpoint = sender,
