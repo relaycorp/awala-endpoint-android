@@ -23,11 +23,11 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 public class FirstPartyEndpoint
 internal constructor(
     internal val keyPair: KeyPair,
-    internal val identityCertificate: Certificate,
+    identityCertificate: Certificate,
     internal val gatewayCertificate: Certificate
-) : Endpoint {
+) : Endpoint(identityCertificate) {
 
-    public override val address: String get() = keyPair.public.privateAddress
+    public override val address: String get() = privateAddress
 
     /**
      * The RSA public key of the endpoint.

@@ -16,14 +16,8 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
  * An endpoint owned by a different instance of this app, or a different app in the same service.
  */
 public sealed class ThirdPartyEndpoint(
-    internal val identityCertificate: Certificate
-) : Endpoint {
-
-    /**
-     * The private address of the endpoint.
-     */
-    public val privateAddress: String get() = identityCertificate.subjectPrivateAddress
-
+    identityCertificate: Certificate
+) : Endpoint(identityCertificate) {
     internal companion object {
         @Throws(PersistenceException::class)
         internal suspend fun load(

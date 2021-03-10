@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
-internal class ThirdPartyEndpointTest {
+internal class EndpointTest {
     @Test
     fun privateAddress() {
         val endpoint = PublicThirdPartyEndpoint(
