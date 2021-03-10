@@ -22,8 +22,8 @@ internal class OutgoingMessageTest {
         val parcel = message.parcel
 
         assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
-        assertEquals(message.id.value, parcel.id)
-        assertSameDateTime(message.creationDate, parcel.creationDate)
+        assertEquals(message.parcelId.value, parcel.id)
+        assertSameDateTime(message.parcelCreationDate, parcel.creationDate)
         assertEquals(message.ttl, parcel.ttl)
     }
 
@@ -37,7 +37,7 @@ internal class OutgoingMessageTest {
             Random.Default.nextBytes(10),
             senderEndpoint = senderEndpoint,
             recipientEndpoint = recipientEndpoint,
-            expiryDate = ZonedDateTime.now().plusMinutes(1)
+            parcelExpiryDate = ZonedDateTime.now().plusMinutes(1)
         )
 
         assertTrue(58 < message.ttl)
@@ -62,8 +62,8 @@ internal class OutgoingMessageTest {
         parcel.senderCertificate.let { cert ->
             cert.validate()
             assertEquals(message.senderEndpoint.keyPair.public, cert.subjectPublicKey)
-            assertSameDateTime(message.creationDate, cert.startDate)
-            assertSameDateTime(message.expiryDate, cert.expiryDate)
+            assertSameDateTime(message.parcelCreationDate, cert.startDate)
+            assertSameDateTime(message.parcelExpiryDate, cert.expiryDate)
         }
     }
 

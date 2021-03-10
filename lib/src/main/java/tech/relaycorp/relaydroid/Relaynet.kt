@@ -13,6 +13,9 @@ public object Relaynet {
     internal const val GATEWAY_SYNC_COMPONENT =
         "tech.relaycorp.gateway.background.endpoint.GatewaySyncService"
 
+    /**
+     * Set up the endpoint library.
+     */
     public suspend fun setup(context: Context) {
         storage = StorageImpl(EncryptedDiskPersistence(context))
         gatewayClientImpl = GatewayClientImpl(
@@ -24,5 +27,9 @@ public object Relaynet {
     internal lateinit var gatewayClientImpl: GatewayClientImpl
 }
 
+/**
+ * Private gateway client.
+ */
 public val GatewayClient: GatewayClientImpl get() = Relaynet.gatewayClientImpl
+
 internal val Storage get() = Relaynet.storage

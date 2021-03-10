@@ -37,9 +37,12 @@ public sealed class ThirdPartyEndpoint(
 
 /**
  * A private third-party endpoint (i.e., one behind a different private gateway).
+ *
+ * @property firstPartyEndpointAddress The private address of the first-party endpoint linked to
+ * this endpoint.
  */
 public class PrivateThirdPartyEndpoint internal constructor(
-    public val firstPartyAddress: String,
+    public val firstPartyEndpointAddress: String,
     internal val pda: Certificate,
     identityCertificate: Certificate
 ) : ThirdPartyEndpoint(identityCertificate) {
@@ -64,7 +67,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
         }
 
         /**
-         * Import PDA along with its chain.
+         * Create third-party endpoint by importing its PDA and chain.
          */
         @Throws(
             PersistenceException::class,
@@ -106,6 +109,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
 /**
  * A public third-party endpoint (i.e., an Internet host in a centralized service).
+ *
+ * @property publicAddress The public address of the endpoint (e.g., "ping.awala.services").
  */
 public class PublicThirdPartyEndpoint internal constructor(
     public val publicAddress: String,

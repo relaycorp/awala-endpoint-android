@@ -2,7 +2,7 @@ package tech.relaycorp.relaydroid.test
 
 import java.util.UUID
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
-import tech.relaycorp.relaydroid.messaging.MessageId
+import tech.relaycorp.relaydroid.messaging.ParcelId
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
@@ -18,7 +18,7 @@ internal object MessageFactory {
     )
 
     fun buildIncoming() = IncomingMessage(
-        id = MessageId(UUID.randomUUID().toString()),
+        parcelId = ParcelId(UUID.randomUUID().toString()),
         type = serviceMessage.type,
         content = serviceMessage.content,
         senderEndpoint = ThirdPartyEndpointFactory.buildPublic(),

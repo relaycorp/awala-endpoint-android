@@ -29,7 +29,7 @@ internal class ReceiveMessages(
 ) {
 
     @Throws(
-        ReceiveMessagesException::class,
+        ReceiveMessageException::class,
         GatewayProtocolException::class,
         PersistenceException::class
     )
@@ -40,7 +40,7 @@ internal class ReceiveMessages(
                     try {
                         collectParcels(it, nonceSigners)
                     } catch (exp: ServerException) {
-                        throw ReceiveMessagesException("Server error", exp)
+                        throw ReceiveMessageException("Server error", exp)
                     } catch (exp: ClientBindingException) {
                         throw GatewayProtocolException("Client error", exp)
                     } catch (exp: NonceSignerException) {
@@ -106,5 +106,10 @@ private suspend fun ParcelCollection.disregard(reason: String, exc: Throwable) {
     ack()
 }
 
-public class ReceiveMessagesException(message: String, throwable: Throwable? = null) :
+/**
+ * The private gateway failed to give us incoming messages.
+ *
+ * This is most likely to be a bug in the gateway and retrying later may work.
+ */
+public class ReceiveMessageException(message: String, throwable: Throwable? = null) :
     GatewayException(message, throwable)

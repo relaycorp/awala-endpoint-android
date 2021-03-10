@@ -23,7 +23,7 @@ import org.robolectric.RobolectricTestRunner
 import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
-import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
+import tech.relaycorp.relaydroid.messaging.ReceiveMessageException
 import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
@@ -249,7 +249,7 @@ internal class GatewayClientImplTest {
 
     @Test
     fun checkForNewMessages_handlesReceiveException() = coroutineScope.runBlockingTest {
-        whenever(receiveMessages.receive()).thenReturn(flow { throw ReceiveMessagesException("") })
+        whenever(receiveMessages.receive()).thenReturn(flow { throw ReceiveMessageException("") })
 
         subject.checkForNewMessages()
     }
