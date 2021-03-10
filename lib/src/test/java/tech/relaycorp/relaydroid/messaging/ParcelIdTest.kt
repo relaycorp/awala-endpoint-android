@@ -4,17 +4,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
-internal class MessageIdTest {
+internal class ParcelIdTest {
     @Test
     fun generate() {
-        val messageId = MessageId.generate()
+        val messageId = ParcelId.generate()
         assertNotNull(messageId.value)
     }
 
     @Test
     fun equals() {
-        val messageId1 = MessageId.generate()
-        val messageId2 = MessageId(messageId1.value)
+        val messageId1 = ParcelId.generate()
+        val messageId2 = ParcelId(messageId1.value)
         assertEquals(messageId1, messageId2)
     }
 }

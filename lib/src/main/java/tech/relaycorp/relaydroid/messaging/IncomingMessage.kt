@@ -9,14 +9,23 @@ import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
+/**
+ * An incoming service message.
+ *
+ * @property type The type of the service message (e.g., "application/vnd.relaynet.ping-v1.ping").
+ * @property content The contents of the service message.
+ * @property senderEndpoint The third-party endpoint that created the message.
+ * @property recipientEndpoint The first-party endpoint that should receive the message.
+ * @property ack The function to call as soon as the message has been processed.
+ */
 public class IncomingMessage internal constructor(
-    id: MessageId,
+    parcelId: ParcelId,
     public val type: String,
     public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
     public val ack: suspend () -> Unit
-) : Message(id) {
+) : Message(parcelId) {
 
     internal companion object {
         @Throws(
@@ -43,7 +52,7 @@ public class IncomingMessage internal constructor(
 
             val serviceMessage = parcel.unwrapPayload(recipientEndpoint.keyPair.private)
             return IncomingMessage(
-                id = MessageId(parcel.id),
+                parcelId = ParcelId(parcel.id),
                 type = serviceMessage.type,
                 content = serviceMessage.content,
                 senderEndpoint = sender,

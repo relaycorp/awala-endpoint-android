@@ -4,6 +4,7 @@ plugins {
   id 'kotlin-kapt'
   id 'maven-publish'
   id 'org.jlleitschuh.gradle.ktlint' version "10.0.0"
+  id 'org.jetbrains.dokka' version "1.4.20"
 }
 
 apply from: 'jacoco.gradle'
@@ -103,6 +104,15 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
       '-Xuse-experimental=io.ktor.util.KtorExperimentalAPI'
     ]
   }
+}
+
+dokkaHtml.configure {
+    dokkaSourceSets {
+        configureEach {
+            reportUndocumented.set(true)
+            includes.from("api-docs.md")
+        }
+    }
 }
 
 ktlint {

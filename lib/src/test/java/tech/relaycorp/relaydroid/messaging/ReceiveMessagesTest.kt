@@ -65,7 +65,7 @@ internal class ReceiveMessagesTest {
         assertTrue(pdcClient.wasClosed)
         assertTrue(collectParcelsCall.wasCalled)
         assertEquals(1, messages.size)
-        assertEquals(parcel.id, messages.first().id.value)
+        assertEquals(parcel.id, messages.first().parcelId.value)
     }
 
     @Test
@@ -84,7 +84,7 @@ internal class ReceiveMessagesTest {
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, nonceSigners.first().certificate)
     }
 
-    @Test(expected = ReceiveMessagesException::class)
+    @Test(expected = ReceiveMessageException::class)
     fun collectParcelsGetsServerError() = runBlockingTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(ServerBindingException("")))
         pdcClient = MockPDCClient(collectParcelsCall)

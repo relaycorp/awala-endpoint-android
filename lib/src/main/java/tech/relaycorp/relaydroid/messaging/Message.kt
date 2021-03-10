@@ -1,3 +1,8 @@
 package tech.relaycorp.relaydroid.messaging
 
-public abstract class Message(public val id: MessageId)
+/**
+ * A service message.
+ *
+ * @property parcelId The parcel id.
+ */
+public abstract class Message internal constructor(public val parcelId: ParcelId)

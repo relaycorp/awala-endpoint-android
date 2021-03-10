@@ -46,7 +46,7 @@ internal class PrivateThirdPartyEndpointTest {
         val thirdAddress = UUID.randomUUID().toString()
 
         with(PrivateThirdPartyEndpoint.load(firstAddress, thirdAddress)!!) {
-            assertEquals(firstAddress, firstPartyAddress)
+            assertEquals(firstAddress, firstPartyEndpointAddress)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress, address)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, pda)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificate)
@@ -68,7 +68,7 @@ internal class PrivateThirdPartyEndpointTest {
     }
 
     @Test
-    fun importAuthorization_successful() = runBlockingTest {
+    fun import_successful() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val firstPartyAddress = firstPartyEndpoint.identityCertificate.subjectPrivateAddress
         whenever(storage.identityCertificate.get(any()))
@@ -82,13 +82,13 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        val endpoint = PrivateThirdPartyEndpoint.importAuthorization(
+        val endpoint = PrivateThirdPartyEndpoint.import(
             authorization, PDACertPath.PRIVATE_ENDPOINT
         )
 
         assertEquals(
             firstPartyAddress,
-            endpoint.firstPartyAddress
+            endpoint.firstPartyEndpointAddress
         )
         assertEquals(
             thirdPartyAddress,
@@ -115,7 +115,7 @@ internal class PrivateThirdPartyEndpointTest {
     }
 
     @Test(expected = UnknownFirstPartyEndpointException::class)
-    fun importAuthorization_invalidFirstParty() = runBlockingTest {
+    fun import_invalidFirstParty() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val authorization = issueDeliveryAuthorization(
             subjectPublicKey = firstPartyEndpoint.keyPair.public,
@@ -124,11 +124,11 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 
     @Test
-    fun importAuthorization_wrongAuthorizationIssuer() = runBlockingTest {
+    fun import_wrongAuthorizationIssuer() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any()))
             .thenReturn(firstPartyEndpoint.identityCertificate)
@@ -149,11 +149,11 @@ internal class PrivateThirdPartyEndpointTest {
 
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA was not issued by third-party endpoint")
-        PrivateThirdPartyEndpoint.importAuthorization(authorization, unrelatedCertificate)
+        PrivateThirdPartyEndpoint.import(authorization, unrelatedCertificate)
     }
 
     @Test
-    fun importAuthorization_invalidAuthorization() = runBlockingTest {
+    fun import_invalidAuthorization() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any()))
             .thenReturn(firstPartyEndpoint.identityCertificate)
@@ -168,11 +168,11 @@ internal class PrivateThirdPartyEndpointTest {
 
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA is invalid")
-        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 
     @Test(expected = PersistenceException::class)
-    fun importAuthorization_persistenceException() = runBlockingTest {
+    fun import_persistenceException() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any())).thenThrow(PersistenceException(""))
 
@@ -183,6 +183,6 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 }

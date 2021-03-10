@@ -48,8 +48,21 @@ internal class SendMessage(
     }
 }
 
+/**
+ * The private gateway failed to process the outgoing message.
+ *
+ * This is most likely to be a bug in the private gateway. You should retry later.
+ */
 public class SendMessageException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)
 
+/**
+ * The private gateway refused to accept an outgoing message.
+ *
+ * It could be that the first-party endpoint certificate isn't valid anymore or the message
+ * already expired, for example.
+ *
+ * Retrying won't make any difference.
+ */
 public class RejectedMessageException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)

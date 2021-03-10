@@ -12,10 +12,16 @@ import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
+/**
+ * An endpoint owned by a different instance of this app, or a different app in the same service.
+ */
 public sealed class ThirdPartyEndpoint(
     internal val identityCertificate: Certificate
 ) : Endpoint {
 
+    /**
+     * The private address of the endpoint.
+     */
     public val privateAddress: String get() = identityCertificate.subjectPrivateAddress
 
     internal companion object {
@@ -29,8 +35,14 @@ public sealed class ThirdPartyEndpoint(
     }
 }
 
+/**
+ * A private third-party endpoint (i.e., one behind a different private gateway).
+ *
+ * @property firstPartyEndpointAddress The private address of the first-party endpoint linked to
+ * this endpoint.
+ */
 public class PrivateThirdPartyEndpoint internal constructor(
-    public val firstPartyAddress: String,
+    public val firstPartyEndpointAddress: String,
     internal val pda: Certificate,
     identityCertificate: Certificate
 ) : ThirdPartyEndpoint(identityCertificate) {
@@ -38,7 +50,9 @@ public class PrivateThirdPartyEndpoint internal constructor(
     override val address: String get() = privateAddress
 
     public companion object {
-
+        /**
+         * Load an endpoint.
+         */
         @Throws(PersistenceException::class)
         public suspend fun load(
             firstPartyAddress: String,
@@ -52,12 +66,15 @@ public class PrivateThirdPartyEndpoint internal constructor(
             }
         }
 
+        /**
+         * Create third-party endpoint by importing its PDA and chain.
+         */
         @Throws(
             PersistenceException::class,
             UnknownFirstPartyEndpointException::class,
             InvalidAuthorizationException::class
         )
-        public suspend fun importAuthorization(
+        public suspend fun import(
             pda: Certificate,
             identityCertificate: Certificate
         ): PrivateThirdPartyEndpoint {
@@ -90,6 +107,11 @@ public class PrivateThirdPartyEndpoint internal constructor(
     }
 }
 
+/**
+ * A public third-party endpoint (i.e., an Internet host in a centralized service).
+ *
+ * @property publicAddress The public address of the endpoint (e.g., "ping.awala.services").
+ */
 public class PublicThirdPartyEndpoint internal constructor(
     public val publicAddress: String,
     identityCertificate: Certificate
@@ -98,12 +120,21 @@ public class PublicThirdPartyEndpoint internal constructor(
     override val address: String get() = "https://$publicAddress"
 
     public companion object {
+        /**
+         * Load an endpoint by its [publicAddress].
+         */
         @Throws(PersistenceException::class)
         public suspend fun load(publicAddress: String): PublicThirdPartyEndpoint? =
             Storage.publicThirdPartyCertificate.get(publicAddress)?.let {
                 PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
             }
 
+        /**
+         * Import the public endpoint at [publicAddress].
+         *
+         * @param publicAddress The public address of the endpoint (e.g., `ping.awala.services`).
+         * @param identityCertificate The identity certificate of the endpoint.
+         */
         @Throws(
             PersistenceException::class,
             InvalidThirdPartyEndpoint::class

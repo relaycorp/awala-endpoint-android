@@ -11,32 +11,54 @@ import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
+/**
+ * An outgoing service message.
+ *
+ * @property senderEndpoint The first-party endpoint that created the message.
+ * @property recipientEndpoint The third-party endpoint that should receive the message.
+ * @property parcelExpiryDate The expiry date of the parcel.
+ */
 public class OutgoingMessage
 private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
-    public val expiryDate: ZonedDateTime = maxExpiryDate(),
-    id: MessageId,
-    internal val creationDate: ZonedDateTime = ZonedDateTime.now()
-) : Message(id) {
+    public val parcelExpiryDate: ZonedDateTime = maxExpiryDate(),
+    parcelId: ParcelId,
+    internal val parcelCreationDate: ZonedDateTime = ZonedDateTime.now()
+) : Message(parcelId) {
 
     internal lateinit var parcel: Parcel
         private set
 
-    internal val ttl get() = Duration.between(creationDate, expiryDate).seconds.toInt()
+    internal val ttl get() = Duration.between(parcelCreationDate, parcelExpiryDate).seconds.toInt()
 
     public companion object {
         internal fun maxExpiryDate() = ZonedDateTime.now().plusDays(30)
 
+        /**
+         * Create an outgoing service message (but don't send it).
+         *
+         * @param type The type of the message (e.g., "application/vnd.relaynet.ping-v1.ping").
+         * @param content The contents of the service message.
+         * @param senderEndpoint The endpoint used to send the message.
+         * @param recipientEndpoint The endpoint that will receive the message.
+         * @param parcelExpiryDate The date when the parcel should expire.
+         * @param parcelId The id of the parcel.
+         */
         public suspend fun build(
             type: String,
             content: ByteArray,
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
-            expiryDate: ZonedDateTime = maxExpiryDate(),
-            id: MessageId = MessageId.generate()
+            parcelExpiryDate: ZonedDateTime = maxExpiryDate(),
+            parcelId: ParcelId = ParcelId.generate()
         ): OutgoingMessage {
-            val message = OutgoingMessage(senderEndpoint, recipientEndpoint, expiryDate, id)
+            val message = OutgoingMessage(
+                senderEndpoint,
+                recipientEndpoint,
+                parcelExpiryDate,
+                parcelId
+            )
             message.parcel = message.buildParcel(type, content)
             return message
         }
@@ -51,8 +73,8 @@ private constructor(
             recipientAddress = recipientEndpoint.address,
             payload = serviceMessage.encrypt(recipientEndpoint.identityCertificate),
             senderCertificate = getSenderCertificate(),
-            messageId = id.value,
-            creationDate = creationDate,
+            messageId = parcelId.value,
+            creationDate = parcelCreationDate,
             ttl = ttl,
             senderCertificateChain = getSenderCertificateChain()
         )
@@ -70,8 +92,8 @@ private constructor(
         return issueEndpointCertificate(
             senderEndpoint.keyPair.public,
             senderEndpoint.keyPair.private,
-            validityStartDate = creationDate,
-            validityEndDate = expiryDate
+            validityStartDate = parcelCreationDate,
+            validityEndDate = parcelExpiryDate
         )
     }
 

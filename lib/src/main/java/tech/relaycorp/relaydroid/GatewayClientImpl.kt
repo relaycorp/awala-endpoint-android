@@ -18,8 +18,8 @@ import tech.relaycorp.relaydroid.background.ServiceInteractor
 import tech.relaycorp.relaydroid.common.Logging.logger
 import tech.relaycorp.relaydroid.messaging.IncomingMessage
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
+import tech.relaycorp.relaydroid.messaging.ReceiveMessageException
 import tech.relaycorp.relaydroid.messaging.ReceiveMessages
-import tech.relaycorp.relaydroid.messaging.ReceiveMessagesException
 import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
@@ -30,6 +30,9 @@ import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 
+/**
+ * Private gateway client.
+ */
 public class GatewayClientImpl
 internal constructor(
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
@@ -44,6 +47,9 @@ internal constructor(
 
     private var gwServiceInteractor: ServiceInteractor? = null
 
+    /**
+     * Bind to the gateway to be able to communicate with it.
+     */
     @Throws(GatewayBindingException::class)
     public suspend fun bind() {
         withContext(coroutineContext) {
@@ -66,6 +72,11 @@ internal constructor(
         }
     }
 
+    /**
+     * Unbind from the gateway.
+     *
+     * Make sure to call this when you no longer need to communicate with the gateway.
+     */
     public fun unbind() {
         gwServiceInteractor?.unbind()
         gwServiceInteractor = null
@@ -148,6 +159,10 @@ internal constructor(
     }
 
     private val incomingMessageChannel = BroadcastChannel<IncomingMessage>(1)
+
+    /**
+     * Receive messages from the gateway.
+     */
     public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asFlow()
 
     // Internal
@@ -172,7 +187,7 @@ internal constructor(
                 receiveMessages
                     .receive()
                     .collect(incomingMessageChannel::send)
-            } catch (exp: ReceiveMessagesException) {
+            } catch (exp: ReceiveMessageException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
             } catch (exp: GatewayProtocolException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
@@ -190,17 +205,26 @@ internal constructor(
     }
 }
 
-// General class for all exceptions deriving from interactions with the Gateway
+/**
+ * General class for all exceptions deriving from interactions with the gateway.
+ */
 public open class GatewayException(message: String, cause: Throwable? = null) :
     RelaydroidException(message, cause)
 
-// Non-recoverable protocol-level discrepancies when interacting with the Gateway
+/**
+ * Non-recoverable, protocol-level discrepancies when interacting with the gateway.
+ */
 public open class GatewayProtocolException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)
 
-// Not bound or unable to bind to the Gateway
+/**
+ * Not bound or failure to bind to the gateway.
+ */
 public class GatewayBindingException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)
 
+/**
+ * Failure to register a first-party endpoint.
+ */
 public class RegistrationFailedException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)
