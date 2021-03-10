@@ -8,8 +8,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
@@ -37,7 +35,6 @@ internal class PublicThirdPartyEndpointTest {
             .thenReturn(PublicThirdPartyEndpoint.StoredData(publicAddress, PDACertPath.PUBLIC_GW))
 
         val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
-        assertEquals(privateAddress, endpoint.thirdPartyAddress)
         assertEquals(publicAddress, endpoint.publicAddress)
         assertEquals("https://$publicAddress", endpoint.address)
         assertEquals(PDACertPath.PUBLIC_GW, endpoint.identityCertificate)
@@ -54,7 +51,6 @@ internal class PublicThirdPartyEndpointTest {
     fun import_successful() = runBlockingTest {
         val publicAddress = "example.org"
         with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PUBLIC_GW)) {
-            assertEquals(PDACertPath.PUBLIC_GW.subjectPrivateAddress, this.thirdPartyAddress)
             assertEquals(publicAddress, this.publicAddress)
             assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
             assertEquals("https://$publicAddress", this.address)

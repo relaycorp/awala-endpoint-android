@@ -15,12 +15,10 @@ internal object ThirdPartyEndpointFactory {
 
     fun buildPublic(): PublicThirdPartyEndpoint = PublicThirdPartyEndpoint(
         "example.org",
-        UUID.randomUUID().toString(),
         PDACertPath.PUBLIC_GW
     )
 
     fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
-        UUID.randomUUID().toString(),
         UUID.randomUUID().toString(),
         PDACertPath.PRIVATE_ENDPOINT,
         PDACertPath.PRIVATE_ENDPOINT
