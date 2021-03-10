@@ -45,7 +45,7 @@ internal class OutgoingMessageTest {
         val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
         val parcel = message.parcel
 
-        val serviceMessageDecrypted = parcel.unwrapPayload(KeyPairSet.PUBLIC_GW.private)
+        val serviceMessageDecrypted = parcel.unwrapPayload(KeyPairSet.PDA_GRANTEE.private)
         assertEquals(MessageFactory.serviceMessage.type, serviceMessageDecrypted.type)
         assertArrayEquals(MessageFactory.serviceMessage.content, serviceMessageDecrypted.content)
     }

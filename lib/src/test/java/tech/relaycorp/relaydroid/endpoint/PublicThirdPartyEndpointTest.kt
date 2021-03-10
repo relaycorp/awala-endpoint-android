@@ -32,12 +32,12 @@ internal class PublicThirdPartyEndpointTest {
         val privateAddress = UUID.randomUUID().toString()
         val publicAddress = "example.org"
         whenever(storage.publicThirdPartyCertificate.get(any()))
-            .thenReturn(PublicThirdPartyEndpoint.StoredData(publicAddress, PDACertPath.PUBLIC_GW))
+            .thenReturn(PublicThirdPartyEndpoint.StoredData(publicAddress, PDACertPath.PDA))
 
         val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
         assertEquals(publicAddress, endpoint.publicAddress)
         assertEquals("https://$publicAddress", endpoint.address)
-        assertEquals(PDACertPath.PUBLIC_GW, endpoint.identityCertificate)
+        assertEquals(PDACertPath.PDA, endpoint.identityCertificate)
     }
 
     @Test
@@ -50,17 +50,17 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun import_successful() = runBlockingTest {
         val publicAddress = "example.org"
-        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PUBLIC_GW)) {
+        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PDA)) {
             assertEquals(publicAddress, this.publicAddress)
-            assertEquals(PDACertPath.PUBLIC_GW, identityCertificate)
+            assertEquals(PDACertPath.PDA, identityCertificate)
             assertEquals("https://$publicAddress", this.address)
         }
 
         verify(storage.publicThirdPartyCertificate).set(
-            PDACertPath.PUBLIC_GW.subjectPrivateAddress,
+            PDACertPath.PDA.subjectPrivateAddress,
             PublicThirdPartyEndpoint.StoredData(
                 publicAddress,
-                PDACertPath.PUBLIC_GW
+                PDACertPath.PDA
             )
         )
     }
@@ -79,7 +79,7 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun storedDataSerialization() {
         val publicAddress = "example.org"
-        val certificate = PDACertPath.PUBLIC_GW
+        val certificate = PDACertPath.PDA
 
         val dataSerialized =
             PublicThirdPartyEndpoint.StoredData(publicAddress, certificate).serialize()
