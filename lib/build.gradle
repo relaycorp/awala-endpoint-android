@@ -110,7 +110,7 @@ dokkaHtml.configure {
     dokkaSourceSets {
         configureEach {
             reportUndocumented.set(true)
-            includes.from("../api-docs.md")
+            includes.from("api-docs.md")
         }
     }
 }
