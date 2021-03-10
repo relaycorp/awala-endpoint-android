@@ -5,11 +5,14 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
 import java.util.UUID
+import kotlin.jvm.Throws
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.ExpectedException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
@@ -24,6 +27,10 @@ import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 internal class PrivateThirdPartyEndpointTest {
 
     private lateinit var storage: StorageImpl
+
+    @Rule
+    @JvmField
+    val expectedException: ExpectedException = ExpectedException.none()
 
     @Before
     fun setUp() {
@@ -121,8 +128,8 @@ internal class PrivateThirdPartyEndpointTest {
         PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 
-    @Test(expected = InvalidAuthorizationException::class)
-    fun importAuthorization_invalidAuthorization() = runBlockingTest {
+    @Test
+    fun importAuthorization_wrongAuthorizationIssuer() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any()))
             .thenReturn(firstPartyEndpoint.identityCertificate)
@@ -141,7 +148,28 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
+        expectedException.expect(InvalidAuthorizationException::class.java)
+        expectedException.expectMessage("PDA was not issued by third-party endpoint")
         PrivateThirdPartyEndpoint.importAuthorization(authorization, unrelatedCertificate)
+    }
+
+    @Test
+    fun importAuthorization_invalidAuthorization() = runBlockingTest {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        whenever(storage.identityCertificate.get(any()))
+            .thenReturn(firstPartyEndpoint.identityCertificate)
+
+        val authorization = issueDeliveryAuthorization(
+            firstPartyEndpoint.keyPair.public,
+            KeyPairSet.PRIVATE_ENDPOINT.private,
+            validityEndDate = ZonedDateTime.now().minusDays(1),
+            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT,
+            validityStartDate = ZonedDateTime.now().minusDays(2)
+        )
+
+        expectedException.expect(InvalidAuthorizationException::class.java)
+        expectedException.expectMessage("PDA is invalid")
+        PrivateThirdPartyEndpoint.importAuthorization(authorization, PDACertPath.PRIVATE_ENDPOINT)
     }
 
     @Test(expected = PersistenceException::class)

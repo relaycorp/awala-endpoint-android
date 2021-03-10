@@ -6,6 +6,7 @@ import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
 import org.bson.BsonBinaryWriter
 import org.bson.io.BasicOutputBuffer
+import tech.relaycorp.relaydroid.RelaydroidException
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
@@ -54,7 +55,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
         @Throws(
             PersistenceException::class,
-            UnknownFirstPartyEndpointException::class
+            UnknownFirstPartyEndpointException::class,
+            InvalidAuthorizationException::class
         )
         public suspend fun importAuthorization(
             pda: Certificate,
@@ -67,6 +69,11 @@ public class PrivateThirdPartyEndpoint internal constructor(
                     "First party endpoint $firstPartyAddress not registered"
                 )
 
+            try {
+                pda.validate()
+            } catch (exc: CertificateException) {
+                throw InvalidAuthorizationException("PDA is invalid", exc)
+            }
             try {
                 pda.getCertificationPath(emptyList(), listOf(identityCertificate))
             } catch (e: CertificateException) {
@@ -100,13 +107,17 @@ public class PublicThirdPartyEndpoint internal constructor(
 
         @Throws(
             PersistenceException::class,
-            CertificateException::class
+            InvalidThirdPartyEndpoint::class
         )
         public suspend fun import(
             publicAddress: String,
             identityCertificate: Certificate
         ): PublicThirdPartyEndpoint {
-            identityCertificate.validate()
+            try {
+                identityCertificate.validate()
+            } catch (exc: CertificateException) {
+                throw InvalidThirdPartyEndpoint("Invalid identity certificate")
+            }
             val thirdPartyAddress = identityCertificate.subjectPrivateAddress
             Storage.publicThirdPartyCertificate.set(
                 thirdPartyAddress,
@@ -166,5 +177,6 @@ public class PublicThirdPartyEndpoint internal constructor(
 
 public class UnknownThirdPartyEndpointException(message: String) : RelaynetException(message, null)
 public class UnknownFirstPartyEndpointException(message: String) : RelaynetException(message, null)
+public class InvalidThirdPartyEndpoint(message: String) : RelaydroidException(message)
 public class InvalidAuthorizationException(message: String, cause: Throwable) :
     RelaynetException(message, cause)

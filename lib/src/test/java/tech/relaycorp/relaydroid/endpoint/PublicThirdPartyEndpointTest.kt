@@ -9,18 +9,23 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.ExpectedException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
 internal class PublicThirdPartyEndpointTest {
 
     private lateinit var storage: StorageImpl
+
+    @Rule
+    @JvmField
+    val expectedException: ExpectedException = ExpectedException.none()
 
     @Before
     fun setUp() {
@@ -65,13 +70,17 @@ internal class PublicThirdPartyEndpointTest {
         )
     }
 
-    @Test(expected = CertificateException::class)
+    @Test
     fun import_invalidCertificate() = runBlockingTest {
         val cert = issueEndpointCertificate(
             subjectPublicKey = KeyPairSet.PRIVATE_GW.public,
             issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
+            validityStartDate = ZonedDateTime.now().minusDays(2),
             validityEndDate = ZonedDateTime.now().minusDays(1)
         )
+
+        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
+        expectedException.expectMessage("Invalid identity certificate")
 
         PublicThirdPartyEndpoint.import("example.org", cert)
     }
