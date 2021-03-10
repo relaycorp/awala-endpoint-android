@@ -1,21 +1,21 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import java.security.KeyPair
+import java.security.PublicKey
+import java.time.ZonedDateTime
 import tech.relaycorp.relaydroid.GatewayClient
 import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.RegistrationFailedException
+import tech.relaycorp.relaydroid.RelaydroidException
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
+import tech.relaycorp.relaynet.wrappers.KeyException
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
-import java.security.KeyPair
-import java.security.PublicKey
-import java.time.ZonedDateTime
-import tech.relaycorp.relaydroid.RelaydroidException
-import tech.relaycorp.relaynet.wrappers.KeyException
-import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 public class FirstPartyEndpoint
 internal constructor(

@@ -75,14 +75,15 @@ private constructor(
         )
     }
 
-    private suspend fun getParcelDeliveryAuthorization(recipientEndpoint: PrivateThirdPartyEndpoint)
-        : Certificate {
+    private suspend fun getParcelDeliveryAuthorization(
+        recipientEndpoint: PrivateThirdPartyEndpoint
+    ): Certificate {
         TODO("Not yet implemented")
     }
 
     private suspend fun getSenderCertificateChain(): Set<Certificate> =
         when (recipientEndpoint) {
             is PublicThirdPartyEndpoint -> emptySet()
-            is PrivateThirdPartyEndpoint -> TODO("Not implemented yet") // + senderEndpoint.gatewayCertificate
+            is PrivateThirdPartyEndpoint -> TODO("Include senderEndpoint.gatewayCertificate")
         }
 }

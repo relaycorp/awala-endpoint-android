@@ -18,5 +18,5 @@ internal interface Persistence {
     suspend fun list(locationPrefix: String = ""): List<String>
 }
 
-public class PersistenceException(message: String, cause: Throwable? = null)
-    : RelaynetException(message, cause)
+public class PersistenceException(message: String, cause: Throwable? = null) :
+    RelaynetException(message, cause)

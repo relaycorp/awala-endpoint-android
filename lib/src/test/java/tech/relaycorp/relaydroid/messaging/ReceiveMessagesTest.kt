@@ -2,6 +2,8 @@ package tech.relaycorp.relaydroid.messaging
 
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.whenever
+import java.time.ZonedDateTime
+import java.util.UUID
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
@@ -19,15 +21,13 @@ import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerBindingException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.messages.payloads.CargoMessageSet
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.testing.pdc.CollectParcelsCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
-import java.time.ZonedDateTime
-import java.util.UUID
-import tech.relaycorp.relaynet.messages.payloads.CargoMessageSet
-import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 internal class ReceiveMessagesTest {
 
@@ -175,7 +175,7 @@ internal class ReceiveMessagesTest {
     }
 
     @Test
-    fun receiveValidParcel_invalidServiceMessage()= runBlockingTest {
+    fun receiveValidParcel_invalidServiceMessage() = runBlockingTest {
         val invalidServiceMessage = CargoMessageSet(emptyArray())
         val parcel = Parcel(
             recipientAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,

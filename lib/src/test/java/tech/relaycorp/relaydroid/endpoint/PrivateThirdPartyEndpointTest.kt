@@ -3,6 +3,8 @@ package tech.relaycorp.relaydroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.time.ZonedDateTime
+import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -18,8 +20,6 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
-import java.time.ZonedDateTime
-import java.util.UUID
 
 internal class PrivateThirdPartyEndpointTest {
 
@@ -65,7 +65,8 @@ internal class PrivateThirdPartyEndpointTest {
     fun importAuthorization_successful() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val firstPartyAddress = firstPartyEndpoint.identityCertificate.subjectPrivateAddress
-        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.identityCertificate)
+        whenever(storage.identityCertificate.get(any()))
+            .thenReturn(firstPartyEndpoint.identityCertificate)
 
         val thirdPartyAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress
         val authorization = issueDeliveryAuthorization(
@@ -123,7 +124,8 @@ internal class PrivateThirdPartyEndpointTest {
     @Test(expected = InvalidAuthorizationException::class)
     fun importAuthorization_invalidAuthorization() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        whenever(storage.identityCertificate.get(any())).thenReturn(firstPartyEndpoint.identityCertificate)
+        whenever(storage.identityCertificate.get(any()))
+            .thenReturn(firstPartyEndpoint.identityCertificate)
 
         val unrelatedKeyPair = generateRSAKeyPair()
         val unrelatedCertificate = issueEndpointCertificate(

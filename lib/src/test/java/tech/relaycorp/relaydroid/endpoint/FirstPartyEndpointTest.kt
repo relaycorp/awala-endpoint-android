@@ -66,10 +66,12 @@ internal class FirstPartyEndpointTest {
 
     @Test
     fun register() = runBlockingTest {
-        whenever(gateway.registerEndpoint(any())).thenReturn(PrivateNodeRegistration(
-            PDACertPath.PRIVATE_ENDPOINT,
-            PDACertPath.PRIVATE_GW
-        ))
+        whenever(gateway.registerEndpoint(any())).thenReturn(
+            PrivateNodeRegistration(
+                PDACertPath.PRIVATE_ENDPOINT,
+                PDACertPath.PRIVATE_GW
+            )
+        )
 
         val endpoint = FirstPartyEndpoint.register()
 

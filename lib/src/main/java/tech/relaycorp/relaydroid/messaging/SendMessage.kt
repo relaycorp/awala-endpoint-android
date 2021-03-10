@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.messaging
 
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.relaycorp.poweb.PoWebClient
@@ -11,7 +12,6 @@ import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
-import kotlin.coroutines.CoroutineContext
 
 internal class SendMessage(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) },
@@ -48,8 +48,8 @@ internal class SendMessage(
     }
 }
 
-public class SendMessageException(message: String, cause: Throwable? = null)
-    : GatewayException(message, cause)
+public class SendMessageException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)
 
-public class RejectedMessageException(message: String, cause: Throwable? = null)
-    : GatewayException(message, cause)
+public class RejectedMessageException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)

@@ -1,5 +1,11 @@
 package tech.relaycorp.relaydroid
 
+import java.security.KeyPair
+import java.util.logging.Level
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.delay
@@ -24,12 +30,6 @@ import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
-import java.security.KeyPair
-import java.util.logging.Level
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 public class GatewayClientImpl
 internal constructor(
@@ -91,7 +91,6 @@ internal constructor(
                 return@withContext pdcClientBuilder().use {
                     it.registerNode(requestSerialized)
                 }
-
             } catch (exp: ServiceInteractor.BindFailedException) {
                 throw RegistrationFailedException("Failed binding to gateway", exp)
             } catch (exp: ServiceInteractor.SendFailedException) {
@@ -161,7 +160,11 @@ internal constructor(
                 try {
                     bind()
                 } catch (exp: GatewayBindingException) {
-                    logger.log(Level.SEVERE, "Could not bind to gateway to receive new messages", exp)
+                    logger.log(
+                        Level.SEVERE,
+                        "Could not bind to gateway to receive new messages",
+                        exp
+                    )
                     return@withContext
                 }
             }
@@ -189,16 +192,16 @@ internal constructor(
 }
 
 // General class for all exceptions deriving from interactions with the Gateway
-public open class GatewayException(message: String, cause: Throwable? = null)
-    : RelaynetException(message, cause)
+public open class GatewayException(message: String, cause: Throwable? = null) :
+    RelaynetException(message, cause)
 
 // Non-recoverable protocol-level discrepancies when interacting with the Gateway
-public open class GatewayProtocolException(message: String, cause: Throwable? = null)
-    : GatewayException(message, cause)
+public open class GatewayProtocolException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)
 
 // Not bound or unable to bind to the Gateway
-public class GatewayBindingException(message: String, cause: Throwable? = null)
-    : GatewayException(message, cause)
+public class GatewayBindingException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)
 
-public class RegistrationFailedException(message: String, cause: Throwable? = null)
-    : GatewayException(message, cause)
+public class RegistrationFailedException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)

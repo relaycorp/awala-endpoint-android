@@ -1,10 +1,10 @@
 package tech.relaycorp.relaydroid.test
 
+import java.util.UUID
 import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import java.util.UUID
 
 internal object ThirdPartyEndpointFactory {
     fun build(type: RecipientAddressType) =

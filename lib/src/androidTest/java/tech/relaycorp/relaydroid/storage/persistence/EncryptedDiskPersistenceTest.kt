@@ -3,6 +3,8 @@ package tech.relaycorp.relaydroid.storage.persistence
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
+import java.nio.charset.Charset
 import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
@@ -14,8 +16,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
-import java.nio.charset.Charset
 
 @RunWith(AndroidJUnit4::class)
 internal class EncryptedDiskPersistenceTest {

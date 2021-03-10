@@ -1,11 +1,11 @@
 package tech.relaycorp.relaydroid.storage
 
+import java.security.KeyPair
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.storage.persistence.Persistence
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import java.security.KeyPair
 
 // TODO: Test
 internal class StorageImpl

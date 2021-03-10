@@ -4,6 +4,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -11,12 +12,10 @@ import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.mockStorage
-import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import java.util.UUID
-import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 
 internal class IncomingMessageTest {
 
@@ -24,8 +23,10 @@ internal class IncomingMessageTest {
     fun setUp() {
         runBlockingTest {
             Relaynet.storage = mockStorage()
-            whenever(Relaynet.storage.identityCertificate.get(any())).thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-            whenever(Relaynet.storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.identityCertificate.get(any()))
+                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.identityKeyPair.get(any()))
+                .thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(Relaynet.storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
             whenever(Relaynet.storage.thirdPartyAuthorization.get(any()))
                 .thenReturn(PDACertPath.PRIVATE_ENDPOINT)

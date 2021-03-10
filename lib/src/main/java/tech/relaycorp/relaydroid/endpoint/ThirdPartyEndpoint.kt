@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import java.nio.ByteBuffer
 import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
@@ -10,19 +11,18 @@ import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
-import java.nio.ByteBuffer
-
 
 public sealed class ThirdPartyEndpoint(
     internal val identityCertificate: Certificate
 ) : Endpoint {
 
-    public val privateAddress : String get() = identityCertificate.subjectPrivateAddress
+    public val privateAddress: String get() = identityCertificate.subjectPrivateAddress
 
     internal companion object {
         @Throws(PersistenceException::class)
         internal suspend fun load(
-            firstPartyAddress: String, thirdPartyPrivateAddress: String
+            firstPartyAddress: String,
+            thirdPartyPrivateAddress: String
         ): ThirdPartyEndpoint? =
             PublicThirdPartyEndpoint.load(thirdPartyPrivateAddress)
                 ?: PrivateThirdPartyEndpoint.load(firstPartyAddress, thirdPartyPrivateAddress)
@@ -41,7 +41,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
         @Throws(PersistenceException::class)
         public suspend fun load(
-            firstPartyAddress: String, thirdPartyAddress: String
+            firstPartyAddress: String,
+            thirdPartyAddress: String
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
             return Storage.thirdPartyAuthorization.get(key)?.let { auth ->
@@ -56,7 +57,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
             UnknownFirstPartyEndpointException::class
         )
         public suspend fun importAuthorization(
-            pda: Certificate, identityCertificate: Certificate
+            pda: Certificate,
+            identityCertificate: Certificate
         ): PrivateThirdPartyEndpoint {
             val firstPartyAddress = pda.subjectPrivateAddress
 
@@ -115,7 +117,8 @@ public class PublicThirdPartyEndpoint internal constructor(
     }
 
     internal data class StoredData(
-        val publicAddress: String, val identityCertificate: Certificate
+        val publicAddress: String,
+        val identityCertificate: Certificate
     ) {
         @Throws(PersistenceException::class)
         fun serialize(): ByteArray {
@@ -124,7 +127,10 @@ public class PublicThirdPartyEndpoint internal constructor(
                 BsonBinaryWriter(output).use {
                     it.writeStartDocument()
                     it.writeString("public_address", publicAddress)
-                    it.writeBinaryData("identity_certificate", BsonBinary(identityCertificate.serialize()))
+                    it.writeBinaryData(
+                        "identity_certificate",
+                        BsonBinary(identityCertificate.serialize())
+                    )
                     it.writeEndDocument()
                 }
                 return output.toByteArray()
@@ -157,5 +163,5 @@ public class PublicThirdPartyEndpoint internal constructor(
 
 public class UnknownThirdPartyEndpointException(message: String) : RelaynetException(message, null)
 public class UnknownFirstPartyEndpointException(message: String) : RelaynetException(message, null)
-public class InvalidAuthorizationException(message: String, cause: Throwable)
-    : RelaynetException(message, cause)
+public class InvalidAuthorizationException(message: String, cause: Throwable) :
+    RelaynetException(message, cause)

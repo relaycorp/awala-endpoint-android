@@ -3,6 +3,7 @@ plugins {
   id 'kotlin-android'
   id 'kotlin-kapt'
   id 'maven-publish'
+  id 'org.jlleitschuh.gradle.ktlint' version "10.0.0"
 }
 
 apply from: 'jacoco.gradle'
@@ -102,6 +103,11 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
       '-Xuse-experimental=io.ktor.util.KtorExperimentalAPI'
     ]
   }
+}
+
+ktlint {
+  verbose = true
+  android = true
 }
 
 afterEvaluate {

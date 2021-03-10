@@ -10,10 +10,10 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
-import tech.relaycorp.relaydroid.common.Logging.logger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
+import tech.relaycorp.relaydroid.common.Logging.logger
 
 internal class ServiceInteractor(
     private val context: Context

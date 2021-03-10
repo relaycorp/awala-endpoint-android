@@ -16,7 +16,6 @@ buildscript {
 plugins {
     id("org.jetbrains.kotlin.jvm") version "$kotlinVersion"
     id("org.jetbrains.dokka") version "1.4.20"
-    id("com.diffplug.spotless") version "5.11.0"
     id('idea')
 }
 
@@ -40,19 +39,6 @@ dokkaHtml.configure {
             reportUndocumented.set(true)
             includes.from("api-docs.md")
         }
-    }
-}
-
-spotless {
-    def ktlintUserData = [
-            "max_line_length": "100",
-            "disabled_rules" : "import-ordering"
-    ]
-    kotlin {
-        ktlint("0.36.0").userData(ktlintUserData)
-    }
-    kotlinGradle {
-        ktlint().userData(ktlintUserData)
     }
 }
 

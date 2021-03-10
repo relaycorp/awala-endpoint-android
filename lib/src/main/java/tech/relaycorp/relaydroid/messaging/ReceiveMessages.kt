@@ -106,5 +106,5 @@ private suspend fun ParcelCollection.disregard(reason: String, exc: Throwable) {
     ack()
 }
 
-public class ReceiveMessagesException(message: String, throwable: Throwable? = null)
-    : GatewayException(message, throwable)
+public class ReceiveMessagesException(message: String, throwable: Throwable? = null) :
+    GatewayException(message, throwable)
