@@ -13,6 +13,9 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 import java.security.KeyPair
 import java.security.PublicKey
 import java.time.ZonedDateTime
+import tech.relaycorp.relaydroid.RelaydroidException
+import tech.relaycorp.relaynet.wrappers.KeyException
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 public class FirstPartyEndpoint
 internal constructor(
@@ -25,18 +28,46 @@ internal constructor(
 
     public val publicKey: PublicKey get() = keyPair.public
 
+    internal val pdaChain: List<Certificate> get() = listOf(identityCertificate, gatewayCertificate)
+
     @Throws(CertificateException::class)
     public fun issueAuthorization(
-        privateThirdPartyPublicKey: PublicKey,
+        thirdPartyEndpoint: PublicThirdPartyEndpoint,
+        expiryDate: ZonedDateTime
+    ): AuthorizationBundle {
+        return issueAuthorization(
+            thirdPartyEndpoint.identityCertificate.subjectPublicKey,
+            expiryDate
+        )
+    }
+
+    @Throws(CertificateException::class)
+    public fun issueAuthorization(
+        thirdPartyEndpointPublicKeySerialized: ByteArray,
+        expiryDate: ZonedDateTime
+    ): AuthorizationBundle {
+        val thirdPartyEndpointPublicKey = try {
+            thirdPartyEndpointPublicKeySerialized.deserializeRSAPublicKey()
+        } catch (exc: KeyException) {
+            throw AuthorizationIssuanceException(
+                "PDA grantee public key is not a valid RSA public key",
+                exc
+            )
+        }
+        return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
+    }
+
+    @Throws(CertificateException::class)
+    private fun issueAuthorization(
+        thirdPartyEndpointPublicKey: PublicKey,
         expiryDate: ZonedDateTime
     ): AuthorizationBundle {
         val pda = issueDeliveryAuthorization(
-            subjectPublicKey = privateThirdPartyPublicKey,
+            subjectPublicKey = thirdPartyEndpointPublicKey,
             issuerPrivateKey = keyPair.private,
             validityEndDate = expiryDate,
             issuerCertificate = identityCertificate
         )
-        val pdaChain = listOf(identityCertificate, gatewayCertificate)
         return AuthorizationBundle(
             pda.serialize(),
             pdaChain.map { it.serialize() }
@@ -90,3 +121,6 @@ internal constructor(
         }
     }
 }
+
+public class AuthorizationIssuanceException(message: String, cause: Throwable) :
+    RelaydroidException(message, cause)

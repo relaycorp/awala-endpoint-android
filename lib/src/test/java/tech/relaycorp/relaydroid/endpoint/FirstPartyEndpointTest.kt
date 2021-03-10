@@ -23,6 +23,7 @@ import tech.relaycorp.relaydroid.RegistrationFailedException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
@@ -53,6 +54,14 @@ internal class FirstPartyEndpointTest {
     fun publicKey() {
         val endpoint = FirstPartyEndpointFactory.build()
         assertEquals(endpoint.keyPair.public, endpoint.publicKey)
+    }
+
+    @Test
+    fun pdaChain() {
+        val endpoint = FirstPartyEndpointFactory.build()
+
+        assertTrue(endpoint.identityCertificate in endpoint.pdaChain)
+        assertTrue(PDACertPath.PRIVATE_GW in endpoint.pdaChain)
     }
 
     @Test
@@ -118,37 +127,64 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test
-    fun issueAuthorization() {
-        val endpoint = FirstPartyEndpointFactory.build()
+    fun issueAuthorization_thirdPartyEndpoint() {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
-        val authorization = endpoint.issueAuthorization(
-            KeyPairSet.PDA_GRANTEE.public,
+        val authorization = firstPartyEndpoint.issueAuthorization(thirdPartyEndpoint, expiryDate)
+
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+    }
+
+    @Test
+    fun issueAuthorization_publicKey_valid() {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = firstPartyEndpoint.issueAuthorization(
+            KeyPairSet.PDA_GRANTEE.public.encoded,
             expiryDate
         )
 
-        // PDA
-        val pda = Certificate.deserialize(authorization.pdaSerialized)
-        assertEquals(
-            KeyPairSet.PDA_GRANTEE.public.encoded.asList(),
-            pda.subjectPublicKey.encoded.asList()
-        )
-        assertEquals(
-            2,
-            pda.getCertificationPath(emptyList(), listOf(PDACertPath.PRIVATE_ENDPOINT)).size
-        )
-        assertSameDateTime(
-            expiryDate,
-            pda.expiryDate
-        )
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+    }
 
-        // PDA chain
-        val pdaChainSerialized = authorization.pdaChainSerialized.map { it.asList() }
-        assertTrue(
-            pdaChainSerialized.contains(PDACertPath.PRIVATE_ENDPOINT.serialize().asList())
-        )
-        assertTrue(
-            pdaChainSerialized.contains(PDACertPath.PRIVATE_GW.serialize().asList())
+    @Test(expected = AuthorizationIssuanceException::class)
+    fun issueAuthorization_publicKey_invalid() {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        firstPartyEndpoint.issueAuthorization(
+            "This is not a public key".toByteArray(),
+            expiryDate
         )
     }
+}
+
+private fun validateAuthorization(
+    authorization: AuthorizationBundle,
+    firstPartyEndpoint: FirstPartyEndpoint,
+    expiryDate: ZonedDateTime
+) {
+    // PDA
+    val pda = Certificate.deserialize(authorization.pdaSerialized)
+    assertEquals(
+        KeyPairSet.PDA_GRANTEE.public.encoded.asList(),
+        pda.subjectPublicKey.encoded.asList()
+    )
+    assertEquals(
+        2,
+        pda.getCertificationPath(emptyList(), listOf(PDACertPath.PRIVATE_ENDPOINT)).size
+    )
+    assertSameDateTime(
+        expiryDate,
+        pda.expiryDate
+    )
+
+    // PDA chain
+    assertEquals(
+        firstPartyEndpoint.pdaChain.map { it.serialize().asList() },
+        authorization.pdaChainSerialized.map { it.asList() }
+    )
 }
