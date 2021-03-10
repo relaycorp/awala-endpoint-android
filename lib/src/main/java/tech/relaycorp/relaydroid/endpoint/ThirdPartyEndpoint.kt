@@ -9,7 +9,6 @@ import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.relaydroid.RelaydroidException
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
@@ -175,8 +174,8 @@ public class PublicThirdPartyEndpoint internal constructor(
     }
 }
 
-public class UnknownThirdPartyEndpointException(message: String) : RelaynetException(message, null)
-public class UnknownFirstPartyEndpointException(message: String) : RelaynetException(message, null)
+public class UnknownThirdPartyEndpointException(message: String) : RelaydroidException(message)
+public class UnknownFirstPartyEndpointException(message: String) : RelaydroidException(message)
 public class InvalidThirdPartyEndpoint(message: String) : RelaydroidException(message)
 public class InvalidAuthorizationException(message: String, cause: Throwable) :
-    RelaynetException(message, cause)
+    RelaydroidException(message, cause)

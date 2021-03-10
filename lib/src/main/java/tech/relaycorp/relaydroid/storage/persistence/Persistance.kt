@@ -1,6 +1,6 @@
 package tech.relaycorp.relaydroid.storage.persistence
 
-import tech.relaycorp.relaynet.RelaynetException
+import tech.relaycorp.relaydroid.RelaydroidException
 
 internal interface Persistence {
 
@@ -19,4 +19,4 @@ internal interface Persistence {
 }
 
 public class PersistenceException(message: String, cause: Throwable? = null) :
-    RelaynetException(message, cause)
+    RelaydroidException(message, cause)

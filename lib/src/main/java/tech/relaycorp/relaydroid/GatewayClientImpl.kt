@@ -24,7 +24,6 @@ import tech.relaycorp.relaydroid.messaging.RejectedMessageException
 import tech.relaycorp.relaydroid.messaging.SendMessage
 import tech.relaycorp.relaydroid.messaging.SendMessageException
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.RelaynetException
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
@@ -193,7 +192,7 @@ internal constructor(
 
 // General class for all exceptions deriving from interactions with the Gateway
 public open class GatewayException(message: String, cause: Throwable? = null) :
-    RelaynetException(message, cause)
+    RelaydroidException(message, cause)
 
 // Non-recoverable protocol-level discrepancies when interacting with the Gateway
 public open class GatewayProtocolException(message: String, cause: Throwable? = null) :
