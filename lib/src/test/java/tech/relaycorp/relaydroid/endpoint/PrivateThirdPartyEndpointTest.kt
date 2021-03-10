@@ -42,7 +42,7 @@ internal class PrivateThirdPartyEndpointTest {
         with(PrivateThirdPartyEndpoint.load(firstAddress, thirdAddress)!!) {
             assertEquals(firstAddress, firstPartyAddress)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress, address)
-            assertEquals(PDACertPath.PRIVATE_ENDPOINT, authorization)
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, pda)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificate)
         }
 
@@ -89,7 +89,7 @@ internal class PrivateThirdPartyEndpointTest {
         )
         assertEquals(
             authorization,
-            endpoint.authorization
+            endpoint.pda
         )
         assertEquals(
             PDACertPath.PRIVATE_ENDPOINT,

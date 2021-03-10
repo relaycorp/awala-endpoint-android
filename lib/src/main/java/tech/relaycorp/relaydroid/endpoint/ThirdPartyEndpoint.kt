@@ -14,7 +14,7 @@ import java.nio.ByteBuffer
 
 
 public sealed class ThirdPartyEndpoint(
-    public val identityCertificate: Certificate
+    internal val identityCertificate: Certificate
 ) : Endpoint {
 
     public val privateAddress : String get() = identityCertificate.subjectPrivateAddress
@@ -31,7 +31,7 @@ public sealed class ThirdPartyEndpoint(
 
 public class PrivateThirdPartyEndpoint internal constructor(
     public val firstPartyAddress: String,
-    public val authorization: Certificate,
+    internal val pda: Certificate,
     identityCertificate: Certificate
 ) : ThirdPartyEndpoint(identityCertificate) {
 
