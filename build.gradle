@@ -15,7 +15,6 @@ buildscript {
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "$kotlinVersion"
-    id("org.jetbrains.dokka") version "1.4.20"
     id('idea')
 }
 
@@ -31,15 +30,6 @@ group = "tech.relaycorp"
 java {
     withJavadocJar()
     withSourcesJar()
-}
-
-dokkaHtml.configure {
-    dokkaSourceSets {
-        configureEach {
-            reportUndocumented.set(true)
-            includes.from("api-docs.md")
-        }
-    }
 }
 
 gradleEnterprise {

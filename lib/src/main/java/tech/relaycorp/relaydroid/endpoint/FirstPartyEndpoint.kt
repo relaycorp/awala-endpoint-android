@@ -17,6 +17,9 @@ import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
+/**
+ * An endpoint owned by the current instance of the app.
+ */
 public class FirstPartyEndpoint
 internal constructor(
     internal val keyPair: KeyPair,
@@ -26,10 +29,16 @@ internal constructor(
 
     public override val address: String get() = keyPair.public.privateAddress
 
+    /**
+     * The RSA public key of the endpoint.
+     */
     public val publicKey: PublicKey get() = keyPair.public
 
     internal val pdaChain: List<Certificate> get() = listOf(identityCertificate, gatewayCertificate)
 
+    /**
+     * Issue a PDA for a third-party endpoint.
+     */
     @Throws(CertificateException::class)
     public fun issueAuthorization(
         thirdPartyEndpoint: PublicThirdPartyEndpoint,
@@ -41,6 +50,9 @@ internal constructor(
         )
     }
 
+    /**
+     * Issue a PDA for a third-party endpoint using its public key.
+     */
     @Throws(CertificateException::class)
     public fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
@@ -88,6 +100,9 @@ internal constructor(
     }
 
     public companion object {
+        /**
+         * Generate endpoint and register it with the private gateway.
+         */
         @Throws(
             RegistrationFailedException::class,
             GatewayProtocolException::class,
@@ -105,10 +120,13 @@ internal constructor(
             return endpoint
         }
 
+        /**
+         * Load an endpoint by its address.
+         */
         @Throws(PersistenceException::class)
-        public suspend fun load(address: String): FirstPartyEndpoint? {
-            return Storage.identityKeyPair.get(address)?.let { keyPair ->
-                Storage.identityCertificate.get(address)?.let { certificate ->
+        public suspend fun load(privateAddress: String): FirstPartyEndpoint? {
+            return Storage.identityKeyPair.get(privateAddress)?.let { keyPair ->
+                Storage.identityCertificate.get(privateAddress)?.let { certificate ->
                     Storage.gatewayCertificate.get()?.let { gwCertificate ->
                         FirstPartyEndpoint(
                             keyPair,
