@@ -5,7 +5,7 @@ package tech.relaycorp.relaydroid.endpoint
  */
 public interface Endpoint {
     /**
-     * The private or public address of the endpoint, depending on whether it's public/private.
+     * The private or public address of a private or public endpoint, respectively.
      */
     public val address: String
 }

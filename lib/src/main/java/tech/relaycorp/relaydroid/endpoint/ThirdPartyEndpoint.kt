@@ -71,7 +71,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
             UnknownFirstPartyEndpointException::class,
             InvalidAuthorizationException::class
         )
-        public suspend fun importAuthorization(
+        public suspend fun import(
             pda: Certificate,
             identityCertificate: Certificate
         ): PrivateThirdPartyEndpoint {
