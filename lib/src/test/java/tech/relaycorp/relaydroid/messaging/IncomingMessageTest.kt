@@ -51,7 +51,5 @@ internal class IncomingMessageTest {
         assertEquals(serviceMessage.type, message.type)
         assertArrayEquals(serviceMessage.content, message.content)
         assertEquals(parcel.id, message.id.value)
-        assertSameDateTime(parcel.creationDate, message.creationDate)
-        assertSameDateTime(parcel.expiryDate, message.expiryDate)
     }
 }

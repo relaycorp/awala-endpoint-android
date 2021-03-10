@@ -6,7 +6,6 @@ import tech.relaycorp.relaydroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.relaydroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.messages.Parcel
-import java.time.ZonedDateTime
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
@@ -16,12 +15,8 @@ public class IncomingMessage internal constructor(
     public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
-    creationDate: ZonedDateTime,
-    expiryDate: ZonedDateTime,
     public val ack: suspend () -> Unit
-) : Message(
-    id, senderEndpoint, recipientEndpoint, creationDate, expiryDate
-) {
+) : Message(id) {
 
     internal companion object {
         @Throws(
@@ -53,8 +48,6 @@ public class IncomingMessage internal constructor(
                 content = serviceMessage.content,
                 senderEndpoint = sender,
                 recipientEndpoint = recipientEndpoint,
-                creationDate = parcel.creationDate,
-                expiryDate = parcel.expiryDate,
                 ack = ack
             )
         }

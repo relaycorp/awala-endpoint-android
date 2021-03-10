@@ -5,7 +5,6 @@ import tech.relaycorp.relaydroid.messaging.MessageId
 import tech.relaycorp.relaydroid.messaging.OutgoingMessage
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
-import java.time.ZonedDateTime
 import java.util.UUID
 
 internal object MessageFactory {
@@ -23,9 +22,6 @@ internal object MessageFactory {
         type = serviceMessage.type,
         content = serviceMessage.content,
         senderEndpoint = ThirdPartyEndpointFactory.buildPublic(),
-        recipientEndpoint = FirstPartyEndpointFactory.build(),
-        creationDate = ZonedDateTime.now(),
-        expiryDate = ZonedDateTime.now().plusDays(1),
-        ack = {}
-    )
+        recipientEndpoint = FirstPartyEndpointFactory.build()
+    ) {}
 }

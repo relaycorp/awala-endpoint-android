@@ -1,50 +1,43 @@
 package tech.relaycorp.relaydroid.messaging
 
+import java.time.Duration
+import java.time.ZonedDateTime
 import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
-import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
-import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import java.time.ZonedDateTime
 
 public class OutgoingMessage
 private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
-    creationDate: ZonedDateTime = ZonedDateTime.now(),
-    expiryDate: ZonedDateTime = maxExpiryDate(),
-    id: MessageId = MessageId.generate()
-) : Message(
-    id, senderEndpoint, recipientEndpoint, creationDate, expiryDate
-) {
+    public val expiryDate: ZonedDateTime = maxExpiryDate(),
+    id: MessageId,
+    internal val creationDate: ZonedDateTime = ZonedDateTime.now()
+) : Message(id) {
 
     internal lateinit var parcel: Parcel
         private set
 
+    internal val ttl get() = Duration.between(creationDate, expiryDate).seconds.toInt()
+
     public companion object {
+        internal fun maxExpiryDate() = ZonedDateTime.now().plusDays(30)
+
         public suspend fun build(
             type: String,
             content: ByteArray,
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
-            creationDate: ZonedDateTime = ZonedDateTime.now(),
             expiryDate: ZonedDateTime = maxExpiryDate(),
             id: MessageId = MessageId.generate()
         ): OutgoingMessage {
-            val message = OutgoingMessage(
-                senderEndpoint, recipientEndpoint, creationDate, expiryDate, id
-            )
+            val message = OutgoingMessage(senderEndpoint, recipientEndpoint, expiryDate, id)
             message.parcel = message.buildParcel(type, content)
-            try {
-                message.parcel.validate(null)
-            } catch (exp: RAMFException) {
-                throw InvalidMessageException("Invalid outgoing message", exp)
-            }
             return message
         }
     }

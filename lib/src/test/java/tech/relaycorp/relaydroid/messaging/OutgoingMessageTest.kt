@@ -1,33 +1,20 @@
 package tech.relaycorp.relaydroid.messaging
 
+import java.time.ZonedDateTime
+import kotlin.random.Random
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.MessageFactory
 import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.assertSameDateTime
-import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
-import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import java.time.ZonedDateTime
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 
 internal class OutgoingMessageTest {
-
-    @Test(expected = InvalidMessageException::class)
-    internal fun buildInvalidMessage() = runBlockingTest {
-        OutgoingMessage.build(
-            "the type",
-            ByteArray(0),
-            FirstPartyEndpointFactory.build(),
-            ThirdPartyEndpointFactory.buildPublic(),
-            creationDate = ZonedDateTime.now().plusDays(1)
-        )
-    }
 
     @Test
     fun buildForPublicRecipient_checkBaseValues() = runBlockingTest {
@@ -38,6 +25,23 @@ internal class OutgoingMessageTest {
         assertEquals(message.id.value, parcel.id)
         assertSameDateTime(message.creationDate, parcel.creationDate)
         assertEquals(message.ttl, parcel.ttl)
+    }
+
+    @Test
+    fun buildForPublicRecipient_checkTTL() = runBlockingTest {
+        val senderEndpoint = FirstPartyEndpointFactory.build()
+        val recipientEndpoint = ThirdPartyEndpointFactory.buildPublic()
+
+        val message = OutgoingMessage.build(
+            "the type",
+            Random.Default.nextBytes(10),
+            senderEndpoint = senderEndpoint,
+            recipientEndpoint = recipientEndpoint,
+            expiryDate = ZonedDateTime.now().plusMinutes(1)
+        )
+
+        assertTrue(58 < message.ttl)
+        assertTrue(message.ttl <= 60)
     }
 
     @Test
