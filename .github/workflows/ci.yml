@@ -85,6 +85,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3.6.1
         with:
           publish_branch: gh-pages
-          publish_dir: ./build/dokka/html/lib
+          publish_dir: ./lib/build/dokka/html/lib
           allow_empty_commit: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
