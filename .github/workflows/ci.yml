@@ -54,7 +54,7 @@ jobs:
           find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../images/;images/;g'
           find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../scripts/;scripts/;g'
           find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;pathToRoot = "../;pathToRoot = ";g'
-          sed -i 's;href="relaydroid/;href=";g' ./relaydroid/navigation.html
+          sed -i 's;href="lib/;href=";g' ./lib/navigation.html
 
       - name: Release
         run: npx semantic-release
@@ -67,6 +67,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3.6.1
         with:
           publish_branch: gh-pages
-          publish_dir: ./build/dokka/html/relaydroid
+          publish_dir: ./build/dokka/html/lib
           allow_empty_commit: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
