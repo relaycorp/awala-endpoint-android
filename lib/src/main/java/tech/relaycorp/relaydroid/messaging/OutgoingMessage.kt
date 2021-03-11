@@ -1,7 +1,5 @@
 package tech.relaycorp.relaydroid.messaging
 
-import java.time.Duration
-import java.time.ZonedDateTime
 import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
@@ -10,6 +8,8 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import java.time.Duration
+import java.time.ZonedDateTime
 
 /**
  * An outgoing service message.
@@ -81,32 +81,23 @@ private constructor(
         )
     }
 
-    private suspend fun getSenderCertificate() =
+    private fun getSenderCertificate(): Certificate =
         when (recipientEndpoint) {
-            is PublicThirdPartyEndpoint ->
-                getSelfSignedSenderCertificate()
-            is PrivateThirdPartyEndpoint ->
-                getParcelDeliveryAuthorization(recipientEndpoint)
+            is PublicThirdPartyEndpoint -> getSelfSignedSenderCertificate()
+            is PrivateThirdPartyEndpoint -> recipientEndpoint.pda
         }
 
-    private fun getSelfSignedSenderCertificate(): Certificate {
-        return issueEndpointCertificate(
+    private fun getSelfSignedSenderCertificate(): Certificate =
+        issueEndpointCertificate(
             senderEndpoint.keyPair.public,
             senderEndpoint.keyPair.private,
             validityStartDate = parcelCreationDate,
             validityEndDate = parcelExpiryDate
         )
-    }
 
-    private suspend fun getParcelDeliveryAuthorization(
-        recipientEndpoint: PrivateThirdPartyEndpoint
-    ): Certificate {
-        TODO("Not yet implemented")
-    }
-
-    private suspend fun getSenderCertificateChain(): Set<Certificate> =
+    private fun getSenderCertificateChain(): Set<Certificate> =
         when (recipientEndpoint) {
             is PublicThirdPartyEndpoint -> emptySet()
-            is PrivateThirdPartyEndpoint -> TODO("Include senderEndpoint.gatewayCertificate")
+            is PrivateThirdPartyEndpoint -> recipientEndpoint.pdaChain.toSet()
         }
 }

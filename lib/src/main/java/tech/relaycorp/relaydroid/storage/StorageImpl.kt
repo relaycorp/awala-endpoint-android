@@ -1,11 +1,12 @@
 package tech.relaycorp.relaydroid.storage
 
-import java.security.KeyPair
-import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpointData
+import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.relaydroid.storage.persistence.Persistence
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import java.security.KeyPair
 
 // TODO: Test
 internal class StorageImpl
@@ -34,25 +35,18 @@ constructor(
         deserializer = Certificate::deserialize
     )
 
-    internal val publicThirdPartyCertificate: Module<PublicThirdPartyEndpoint.StoredData> = Module(
+    internal val publicThirdParty: Module<PublicThirdPartyEndpointData> = Module(
         persistence = persistence,
         prefix = "public_third_party_",
-        serializer = PublicThirdPartyEndpoint.StoredData::serialize,
-        deserializer = PublicThirdPartyEndpoint.StoredData::deserialize
+        serializer = PublicThirdPartyEndpointData::serialize,
+        deserializer = PublicThirdPartyEndpointData::deserialize
     )
 
-    internal val thirdPartyAuthorization: Module<Certificate> = Module(
+    internal val privateThirdParty: Module<PrivateThirdPartyEndpointData> = Module(
         persistence = persistence,
-        prefix = "third_party_authorization_",
-        serializer = Certificate::serialize,
-        deserializer = Certificate::deserialize
-    )
-
-    internal val thirdPartyIdentityCertificate: Module<Certificate> = Module(
-        persistence = persistence,
-        prefix = "third_party_identity_",
-        serializer = Certificate::serialize,
-        deserializer = Certificate::deserialize
+        prefix = "private_third_party_",
+        serializer = PrivateThirdPartyEndpointData::serialize,
+        deserializer = PrivateThirdPartyEndpointData::deserialize
     )
 
     internal open class Module<T>(

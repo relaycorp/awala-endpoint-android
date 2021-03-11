@@ -14,6 +14,8 @@ import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.Relaynet
+import tech.relaycorp.relaydroid.endpoint.AuthorizationBundle
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
@@ -46,10 +48,12 @@ internal class ReceiveMessagesTest {
                 .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
             whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
-            whenever(storage.thirdPartyAuthorization.get(any()))
-                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-            whenever(Relaynet.storage.thirdPartyIdentityCertificate.get(any()))
-                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+            whenever(Relaynet.storage.privateThirdParty.get(any())).thenReturn(
+                PrivateThirdPartyEndpointData(
+                    PDACertPath.PRIVATE_ENDPOINT,
+                    AuthorizationBundle(PDACertPath.PRIVATE_ENDPOINT.serialize(), emptyList())
+                )
+            )
         }
     }
 

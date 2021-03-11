@@ -3,9 +3,8 @@ package tech.relaycorp.relaydroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
-import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -22,6 +21,9 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
+import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import java.time.ZonedDateTime
+import java.util.UUID
 
 internal class PrivateThirdPartyEndpointTest {
 
@@ -38,10 +40,15 @@ internal class PrivateThirdPartyEndpointTest {
 
     @Test
     fun load_successful() = runBlockingTest {
-        whenever(storage.thirdPartyAuthorization.get(any()))
-            .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-        whenever(storage.thirdPartyIdentityCertificate.get(any()))
-            .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+        whenever(storage.privateThirdParty.get(any())).thenReturn(
+            PrivateThirdPartyEndpointData(
+                PDACertPath.PRIVATE_ENDPOINT,
+                AuthorizationBundle(
+                    PDACertPath.PRIVATE_ENDPOINT.serialize(),
+                    listOf(PDACertPath.PRIVATE_GW.serialize())
+                )
+            )
+        )
         val firstAddress = UUID.randomUUID().toString()
         val thirdAddress = UUID.randomUUID().toString()
 
@@ -49,15 +56,15 @@ internal class PrivateThirdPartyEndpointTest {
             assertEquals(firstAddress, firstPartyEndpointAddress)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress, address)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, pda)
-            assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificate)
+            assertEquals(listOf(PDACertPath.PRIVATE_GW), pdaChain)
         }
 
-        verify(storage.thirdPartyAuthorization).get("${firstAddress}_$thirdAddress")
+        verify(storage.privateThirdParty).get("${firstAddress}_$thirdAddress")
     }
 
     @Test
     fun load_nonExistent() = runBlockingTest {
-        whenever(storage.thirdPartyAuthorization.get(any())).thenReturn(null)
+        whenever(storage.privateThirdParty.get(any())).thenReturn(null)
 
         assertNull(
             PrivateThirdPartyEndpoint.load(
@@ -82,9 +89,11 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        val endpoint = PrivateThirdPartyEndpoint.import(
-            authorization, PDACertPath.PRIVATE_ENDPOINT
+        val authBundle = AuthorizationBundle(
+            authorization.serialize(),
+            listOf(PDACertPath.PRIVATE_ENDPOINT.serialize())
         )
+        val endpoint = PrivateThirdPartyEndpoint.import(PDACertPath.PRIVATE_ENDPOINT, authBundle)
 
         assertEquals(
             firstPartyAddress,
@@ -95,22 +104,25 @@ internal class PrivateThirdPartyEndpointTest {
             endpoint.address
         )
         assertEquals(
-            authorization,
-            endpoint.pda
-        )
-        assertEquals(
             PDACertPath.PRIVATE_ENDPOINT,
             endpoint.identityCertificate
         )
+        assertEquals(
+            authorization,
+            endpoint.pda
+        )
+        assertArrayEquals(
+            arrayOf(PDACertPath.PRIVATE_ENDPOINT),
+            endpoint.pdaChain.toTypedArray()
+        )
 
         verify(storage.identityCertificate).get(firstPartyAddress)
-        verify(storage.thirdPartyAuthorization).set(
+        verify(storage.privateThirdParty).set(
             "${firstPartyAddress}_$thirdPartyAddress",
-            authorization
-        )
-        verify(storage.thirdPartyIdentityCertificate).set(
-            "${firstPartyAddress}_$thirdPartyAddress",
-            PDACertPath.PRIVATE_ENDPOINT
+            PrivateThirdPartyEndpointData(
+                PDACertPath.PRIVATE_ENDPOINT,
+                authBundle
+            )
         )
     }
 
@@ -124,7 +136,10 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(
+            PDACertPath.PRIVATE_ENDPOINT,
+            AuthorizationBundle(authorization.serialize(), emptyList())
+        )
     }
 
     @Test
@@ -149,7 +164,13 @@ internal class PrivateThirdPartyEndpointTest {
 
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA was not issued by third-party endpoint")
-        PrivateThirdPartyEndpoint.import(authorization, unrelatedCertificate)
+        PrivateThirdPartyEndpoint.import(
+            PDACertPath.PRIVATE_ENDPOINT,
+            AuthorizationBundle(
+                authorization.serialize(),
+                listOf(unrelatedCertificate.serialize())
+            )
+        )
     }
 
     @Test
@@ -168,7 +189,10 @@ internal class PrivateThirdPartyEndpointTest {
 
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA is invalid")
-        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(
+            PDACertPath.PRIVATE_ENDPOINT,
+            AuthorizationBundle(authorization.serialize(), emptyList())
+        )
     }
 
     @Test(expected = PersistenceException::class)
@@ -183,6 +207,29 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
-        PrivateThirdPartyEndpoint.import(authorization, PDACertPath.PRIVATE_ENDPOINT)
+        PrivateThirdPartyEndpoint.import(
+            PDACertPath.PRIVATE_ENDPOINT,
+            AuthorizationBundle(authorization.serialize(), emptyList())
+        )
+    }
+
+    @Test
+    fun dataSerialization() {
+        val pda = PDACertPath.PDA
+        val dataSerialized = PrivateThirdPartyEndpointData(
+            PDACertPath.PRIVATE_ENDPOINT,
+            AuthorizationBundle(
+                pda.serialize(),
+                listOf(PDACertPath.PRIVATE_GW.serialize(), PDACertPath.PUBLIC_GW.serialize())
+            )
+        ).serialize()
+        val data = PrivateThirdPartyEndpointData.deserialize(dataSerialized)
+
+        assertEquals(PDACertPath.PRIVATE_ENDPOINT, data.identityCertificate)
+        assertEquals(pda, Certificate.deserialize(data.authBundle.pdaSerialized))
+        assertArrayEquals(
+            arrayOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW),
+            data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }.toTypedArray()
+        )
     }
 }
