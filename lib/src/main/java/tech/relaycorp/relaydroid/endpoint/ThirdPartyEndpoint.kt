@@ -1,11 +1,5 @@
 package tech.relaycorp.relaydroid.endpoint
 
-import java.nio.ByteBuffer
-import org.bson.BSONException
-import org.bson.BsonBinary
-import org.bson.BsonBinaryReader
-import org.bson.BsonBinaryWriter
-import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.relaydroid.RelaydroidException
 import tech.relaycorp.relaydroid.Storage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
@@ -37,8 +31,9 @@ public sealed class ThirdPartyEndpoint(
  */
 public class PrivateThirdPartyEndpoint internal constructor(
     public val firstPartyEndpointAddress: String,
+    identityCertificate: Certificate,
     internal val pda: Certificate,
-    identityCertificate: Certificate
+    internal val pdaChain: List<Certificate>
 ) : ThirdPartyEndpoint(identityCertificate) {
 
     override val address: String get() = privateAddress
@@ -53,10 +48,13 @@ public class PrivateThirdPartyEndpoint internal constructor(
             firstPartyAddress: String
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
-            return Storage.thirdPartyAuthorization.get(key)?.let { auth ->
-                Storage.thirdPartyIdentityCertificate.get(key)?.let { id ->
-                    PrivateThirdPartyEndpoint(firstPartyAddress, auth, id)
-                }
+            return Storage.privateThirdParty.get(key)?.let { data ->
+                PrivateThirdPartyEndpoint(
+                    firstPartyAddress,
+                    data.identityCertificate,
+                    Certificate.deserialize(data.authBundle.pdaSerialized),
+                    data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
+                )
             }
         }
 
@@ -69,9 +67,12 @@ public class PrivateThirdPartyEndpoint internal constructor(
             InvalidAuthorizationException::class
         )
         public suspend fun import(
-            pda: Certificate,
-            identityCertificate: Certificate
+            identityCertificate: Certificate,
+            authBundle: AuthorizationBundle
         ): PrivateThirdPartyEndpoint {
+            val pda = Certificate.deserialize(authBundle.pdaSerialized)
+            val pdaChain = authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
+
             val firstPartyAddress = pda.subjectPrivateAddress
 
             Storage.identityCertificate.get(firstPartyAddress)
@@ -85,7 +86,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 throw InvalidAuthorizationException("PDA is invalid", exc)
             }
             try {
-                pda.getCertificationPath(emptyList(), listOf(identityCertificate))
+                pda.getCertificationPath(emptyList(), pdaChain)
             } catch (e: CertificateException) {
                 throw InvalidAuthorizationException("PDA was not issued by third-party endpoint", e)
             }
@@ -93,10 +94,12 @@ public class PrivateThirdPartyEndpoint internal constructor(
             val thirdPartyAddress = identityCertificate.subjectPrivateAddress
 
             val key = "${firstPartyAddress}_$thirdPartyAddress"
-            Storage.thirdPartyAuthorization.set(key, pda)
-            Storage.thirdPartyIdentityCertificate.set(key, identityCertificate)
+            Storage.privateThirdParty.set(
+                key,
+                PrivateThirdPartyEndpointData(identityCertificate, authBundle)
+            )
 
-            return PrivateThirdPartyEndpoint(firstPartyAddress, pda, identityCertificate)
+            return PrivateThirdPartyEndpoint(firstPartyAddress, identityCertificate, pda, pdaChain)
         }
     }
 }
@@ -119,7 +122,7 @@ public class PublicThirdPartyEndpoint internal constructor(
          */
         @Throws(PersistenceException::class)
         public suspend fun load(publicAddress: String): PublicThirdPartyEndpoint? =
-            Storage.publicThirdPartyCertificate.get(publicAddress)?.let {
+            Storage.publicThirdParty.get(publicAddress)?.let {
                 PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
             }
 
@@ -143,58 +146,11 @@ public class PublicThirdPartyEndpoint internal constructor(
                 throw InvalidThirdPartyEndpoint("Invalid identity certificate")
             }
             val thirdPartyAddress = identityCertificate.subjectPrivateAddress
-            Storage.publicThirdPartyCertificate.set(
+            Storage.publicThirdParty.set(
                 thirdPartyAddress,
-                StoredData(publicAddress, identityCertificate)
+                PublicThirdPartyEndpointData(publicAddress, identityCertificate)
             )
             return PublicThirdPartyEndpoint(publicAddress, identityCertificate)
-        }
-    }
-
-    internal data class StoredData(
-        val publicAddress: String,
-        val identityCertificate: Certificate
-    ) {
-        @Throws(PersistenceException::class)
-        fun serialize(): ByteArray {
-            try {
-                val output = BasicOutputBuffer()
-                BsonBinaryWriter(output).use {
-                    it.writeStartDocument()
-                    it.writeString("public_address", publicAddress)
-                    it.writeBinaryData(
-                        "identity_certificate",
-                        BsonBinary(identityCertificate.serialize())
-                    )
-                    it.writeEndDocument()
-                }
-                return output.toByteArray()
-            } catch (exp: BSONException) {
-                throw PersistenceException("Could not serialize PublicThirdPartyEndpoint", exp)
-            }
-        }
-
-        companion object {
-            @Throws(PersistenceException::class)
-            fun deserialize(byteArray: ByteArray): StoredData =
-                try {
-                    BsonBinaryReader(ByteBuffer.wrap(byteArray)).use { reader ->
-                        reader.readStartDocument()
-                        StoredData(
-                            reader.readString("public_address"),
-                            Certificate.deserialize(
-                                reader.readBinaryData("identity_certificate").data
-                            )
-                        ).also {
-                            reader.readEndDocument()
-                        }
-                    }
-                } catch (exp: BSONException) {
-                    throw PersistenceException(
-                        "Could not deserialize PublicThirdPartyEndpoint",
-                        exp
-                    )
-                }
         }
     }
 }

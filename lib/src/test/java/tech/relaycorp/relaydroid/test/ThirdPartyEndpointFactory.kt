@@ -21,6 +21,7 @@ internal object ThirdPartyEndpointFactory {
     private fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
         UUID.randomUUID().toString(),
         PDACertPath.PRIVATE_ENDPOINT,
-        PDACertPath.PRIVATE_ENDPOINT
+        PDACertPath.PRIVATE_ENDPOINT,
+        listOf(PDACertPath.PRIVATE_GW)
     )
 }

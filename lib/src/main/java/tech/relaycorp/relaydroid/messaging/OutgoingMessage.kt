@@ -81,32 +81,23 @@ private constructor(
         )
     }
 
-    private suspend fun getSenderCertificate() =
+    private fun getSenderCertificate(): Certificate =
         when (recipientEndpoint) {
-            is PublicThirdPartyEndpoint ->
-                getSelfSignedSenderCertificate()
-            is PrivateThirdPartyEndpoint ->
-                getParcelDeliveryAuthorization(recipientEndpoint)
+            is PublicThirdPartyEndpoint -> getSelfSignedSenderCertificate()
+            is PrivateThirdPartyEndpoint -> recipientEndpoint.pda
         }
 
-    private fun getSelfSignedSenderCertificate(): Certificate {
-        return issueEndpointCertificate(
+    private fun getSelfSignedSenderCertificate(): Certificate =
+        issueEndpointCertificate(
             senderEndpoint.keyPair.public,
             senderEndpoint.keyPair.private,
             validityStartDate = parcelCreationDate,
             validityEndDate = parcelExpiryDate
         )
-    }
 
-    private suspend fun getParcelDeliveryAuthorization(
-        recipientEndpoint: PrivateThirdPartyEndpoint
-    ): Certificate {
-        TODO("Not yet implemented")
-    }
-
-    private suspend fun getSenderCertificateChain(): Set<Certificate> =
+    private fun getSenderCertificateChain(): Set<Certificate> =
         when (recipientEndpoint) {
             is PublicThirdPartyEndpoint -> emptySet()
-            is PrivateThirdPartyEndpoint -> TODO("Include senderEndpoint.gatewayCertificate")
+            is PrivateThirdPartyEndpoint -> recipientEndpoint.pdaChain.toSet()
         }
 }

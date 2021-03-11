@@ -7,6 +7,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.MessageFactory
 import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
@@ -15,6 +16,8 @@ import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 
 internal class OutgoingMessageTest {
+
+    // Public Recipient
 
     @Test
     fun buildForPublicRecipient_checkBaseValues() = runBlockingTest {
@@ -72,5 +75,38 @@ internal class OutgoingMessageTest {
         val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
 
         assertTrue(message.parcel.senderCertificateChain.isEmpty())
+    }
+
+    // Private Recipient
+
+    @Test
+    fun buildForPrivateRecipient_checkBaseValues() = runBlockingTest {
+        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
+        val parcel = message.parcel
+
+        assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
+        assertEquals(message.parcelId.value, parcel.id)
+        assertSameDateTime(message.parcelCreationDate, parcel.creationDate)
+        assertEquals(message.ttl, parcel.ttl)
+    }
+
+    @Test
+    internal fun buildForPrivateRecipient_checkSenderCertificate() = runBlockingTest {
+        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
+
+        assertEquals(
+            (message.recipientEndpoint as PrivateThirdPartyEndpoint).pda,
+            message.parcel.senderCertificate
+        )
+    }
+
+    @Test
+    internal fun buildForPrivateRecipient_checkSenderCertificateChain() = runBlockingTest {
+        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
+
+        assertArrayEquals(
+            (message.recipientEndpoint as PrivateThirdPartyEndpoint).pdaChain.toTypedArray(),
+            message.parcel.senderCertificateChain.toTypedArray()
+        )
     }
 }

@@ -13,7 +13,6 @@ import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
-import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
@@ -43,12 +42,11 @@ internal constructor(
     public fun issueAuthorization(
         thirdPartyEndpoint: ThirdPartyEndpoint,
         expiryDate: ZonedDateTime
-    ): AuthorizationBundle {
-        return issueAuthorization(
+    ): AuthorizationBundle =
+        issueAuthorization(
             thirdPartyEndpoint.identityCertificate.subjectPublicKey,
             expiryDate
         )
-    }
 
     /**
      * Issue a PDA for a third-party endpoint using its public key.

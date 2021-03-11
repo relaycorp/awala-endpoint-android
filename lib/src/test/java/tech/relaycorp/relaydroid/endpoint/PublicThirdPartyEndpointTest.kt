@@ -36,8 +36,8 @@ internal class PublicThirdPartyEndpointTest {
     fun load_successful() = runBlockingTest {
         val privateAddress = UUID.randomUUID().toString()
         val publicAddress = "example.org"
-        whenever(storage.publicThirdPartyCertificate.get(any()))
-            .thenReturn(PublicThirdPartyEndpoint.StoredData(publicAddress, PDACertPath.PDA))
+        whenever(storage.publicThirdParty.get(any()))
+            .thenReturn(PublicThirdPartyEndpointData(publicAddress, PDACertPath.PDA))
 
         val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
         assertEquals(publicAddress, endpoint.publicAddress)
@@ -47,7 +47,7 @@ internal class PublicThirdPartyEndpointTest {
 
     @Test
     fun load_nonExistent() = runBlockingTest {
-        whenever(storage.publicThirdPartyCertificate.get(any())).thenReturn(null)
+        whenever(storage.publicThirdParty.get(any())).thenReturn(null)
 
         assertNull(PublicThirdPartyEndpoint.load(UUID.randomUUID().toString()))
     }
@@ -61,9 +61,9 @@ internal class PublicThirdPartyEndpointTest {
             assertEquals("https://$publicAddress", this.address)
         }
 
-        verify(storage.publicThirdPartyCertificate).set(
+        verify(storage.publicThirdParty).set(
             PDACertPath.PDA.subjectPrivateAddress,
-            PublicThirdPartyEndpoint.StoredData(
+            PublicThirdPartyEndpointData(
                 publicAddress,
                 PDACertPath.PDA
             )
@@ -86,13 +86,12 @@ internal class PublicThirdPartyEndpointTest {
     }
 
     @Test
-    fun storedDataSerialization() {
+    fun dataSerialization() {
         val publicAddress = "example.org"
         val certificate = PDACertPath.PDA
 
-        val dataSerialized =
-            PublicThirdPartyEndpoint.StoredData(publicAddress, certificate).serialize()
-        val data = PublicThirdPartyEndpoint.StoredData.deserialize(dataSerialized)
+        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, certificate).serialize()
+        val data = PublicThirdPartyEndpointData.deserialize(dataSerialized)
 
         assertEquals(publicAddress, data.publicAddress)
         assertEquals(certificate, data.identityCertificate)
