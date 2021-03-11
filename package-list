@@ -1,5 +1,8 @@
 $dokka.format:html-v1
 $dokka.linkExtension:html
 
-
+tech.relaycorp.relaydroid
+tech.relaycorp.relaydroid.endpoint
+tech.relaycorp.relaydroid.messaging
+tech.relaycorp.relaydroid.storage.persistence
 
