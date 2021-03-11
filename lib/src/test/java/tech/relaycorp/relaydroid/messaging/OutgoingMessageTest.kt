@@ -1,5 +1,7 @@
 package tech.relaycorp.relaydroid.messaging
 
+import java.time.ZonedDateTime
+import kotlin.random.Random
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -12,8 +14,6 @@ import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaydroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
-import java.time.ZonedDateTime
-import kotlin.random.Random
 
 internal class OutgoingMessageTest {
 

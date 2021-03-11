@@ -4,6 +4,7 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -17,7 +18,6 @@ import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import java.util.UUID
 
 internal class IncomingMessageTest {
 

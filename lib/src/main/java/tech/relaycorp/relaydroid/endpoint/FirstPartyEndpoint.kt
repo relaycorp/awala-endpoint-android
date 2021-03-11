@@ -1,5 +1,8 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import java.security.KeyPair
+import java.security.PublicKey
+import java.time.ZonedDateTime
 import tech.relaycorp.relaydroid.GatewayClient
 import tech.relaycorp.relaydroid.GatewayProtocolException
 import tech.relaycorp.relaydroid.RegistrationFailedException
@@ -12,9 +15,6 @@ import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
-import java.security.KeyPair
-import java.security.PublicKey
-import java.time.ZonedDateTime
 
 /**
  * An endpoint owned by the current instance of the app.

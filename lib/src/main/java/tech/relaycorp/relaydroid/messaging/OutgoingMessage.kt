@@ -1,5 +1,7 @@
 package tech.relaycorp.relaydroid.messaging
 
+import java.time.Duration
+import java.time.ZonedDateTime
 import tech.relaycorp.relaydroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
@@ -8,8 +10,6 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import java.time.Duration
-import java.time.ZonedDateTime
 
 /**
  * An outgoing service message.

@@ -3,6 +3,8 @@ package tech.relaycorp.relaydroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.time.ZonedDateTime
+import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -22,8 +24,6 @@ import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import java.time.ZonedDateTime
-import java.util.UUID
 
 internal class PrivateThirdPartyEndpointTest {
 

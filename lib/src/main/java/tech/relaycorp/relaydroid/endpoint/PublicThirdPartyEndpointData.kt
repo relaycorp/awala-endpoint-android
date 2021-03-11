@@ -1,5 +1,6 @@
 package tech.relaycorp.relaydroid.endpoint
 
+import java.nio.ByteBuffer
 import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
@@ -7,7 +8,6 @@ import org.bson.BsonBinaryWriter
 import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import java.nio.ByteBuffer
 
 internal data class PublicThirdPartyEndpointData(
     val publicAddress: String,
