@@ -12,6 +12,13 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 public sealed class ThirdPartyEndpoint(
     identityCertificate: Certificate
 ) : Endpoint(identityCertificate) {
+
+    /**
+     * Delete the endpoint.
+     */
+    @Throws(PersistenceException::class)
+    public abstract suspend fun delete()
+
     internal companion object {
         @Throws(PersistenceException::class)
         internal suspend fun load(
@@ -37,6 +44,12 @@ public class PrivateThirdPartyEndpoint internal constructor(
 ) : ThirdPartyEndpoint(identityCertificate) {
 
     override val address: String get() = privateAddress
+    private val storageKey = "${firstPartyEndpointAddress}_$privateAddress"
+
+    @Throws(PersistenceException::class)
+    override suspend fun delete() {
+        Storage.privateThirdParty.delete(storageKey)
+    }
 
     public companion object {
         /**
@@ -91,15 +104,15 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 throw InvalidAuthorizationException("PDA was not issued by third-party endpoint", e)
             }
 
-            val thirdPartyAddress = identityCertificate.subjectPrivateAddress
+            val endpoint =
+                PrivateThirdPartyEndpoint(firstPartyAddress, identityCertificate, pda, pdaChain)
 
-            val key = "${firstPartyAddress}_$thirdPartyAddress"
             Storage.privateThirdParty.set(
-                key,
+                endpoint.storageKey,
                 PrivateThirdPartyEndpointData(identityCertificate, authBundle)
             )
 
-            return PrivateThirdPartyEndpoint(firstPartyAddress, identityCertificate, pda, pdaChain)
+            return endpoint
         }
     }
 }
@@ -115,6 +128,11 @@ public class PublicThirdPartyEndpoint internal constructor(
 ) : ThirdPartyEndpoint(identityCertificate) {
 
     override val address: String get() = "https://$publicAddress"
+
+    @Throws(PersistenceException::class)
+    override suspend fun delete() {
+        Storage.publicThirdParty.delete(privateAddress)
+    }
 
     public companion object {
         /**

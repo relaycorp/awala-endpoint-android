@@ -18,6 +18,7 @@ import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
 import tech.relaycorp.relaydroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaydroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
@@ -231,5 +232,13 @@ internal class PrivateThirdPartyEndpointTest {
             arrayOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW),
             data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }.toTypedArray()
         )
+    }
+
+    @Test
+    fun delete() = runBlockingTest {
+        val endpoint = ThirdPartyEndpointFactory.buildPrivate()
+        endpoint.delete()
+        verify(storage.privateThirdParty)
+            .delete("${endpoint.pda.subjectPrivateAddress}_${endpoint.privateAddress}")
     }
 }
