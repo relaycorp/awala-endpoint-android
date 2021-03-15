@@ -8,8 +8,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.Awala
+import tech.relaycorp.awaladroid.GatewayClientImpl
 
 @RunWith(RobolectricTestRunner::class)
 internal class NotificationBroadcastReceiverTest {

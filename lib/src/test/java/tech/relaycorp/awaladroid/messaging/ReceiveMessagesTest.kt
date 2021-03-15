@@ -12,8 +12,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.Awala
+import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.storage.mockStorage

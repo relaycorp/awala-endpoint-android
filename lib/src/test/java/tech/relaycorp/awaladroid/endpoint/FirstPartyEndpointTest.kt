@@ -17,10 +17,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
-import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory

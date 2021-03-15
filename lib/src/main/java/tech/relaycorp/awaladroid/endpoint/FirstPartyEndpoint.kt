@@ -3,10 +3,10 @@ package tech.relaycorp.awaladroid.endpoint
 import java.security.KeyPair
 import java.security.PublicKey
 import java.time.ZonedDateTime
+import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.GatewayClient
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
-import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
