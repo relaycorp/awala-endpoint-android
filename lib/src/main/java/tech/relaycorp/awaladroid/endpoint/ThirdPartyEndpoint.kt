@@ -148,7 +148,8 @@ public class PublicThirdPartyEndpoint internal constructor(
          * Import the public endpoint at [publicAddress].
          *
          * @param publicAddress The public address of the endpoint (e.g., `ping.awala.services`).
-         * @param identityCertificate The identity certificate of the endpoint.
+         * @param identityCertificateSerialized The DER serialization of identity certificate of the
+         * endpoint.
          */
         @Throws(
             PersistenceException::class,
@@ -156,12 +157,17 @@ public class PublicThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             publicAddress: String,
-            identityCertificate: Certificate
+            identityCertificateSerialized: ByteArray
         ): PublicThirdPartyEndpoint {
+            val identityCertificate = try {
+                Certificate.deserialize(identityCertificateSerialized)
+            } catch (exc: CertificateException) {
+                throw InvalidThirdPartyEndpoint("Malformed identity certificate", exc)
+            }
             try {
                 identityCertificate.validate()
             } catch (exc: CertificateException) {
-                throw InvalidThirdPartyEndpoint("Invalid identity certificate")
+                throw InvalidThirdPartyEndpoint("Invalid identity certificate", exc)
             }
             val thirdPartyAddress = identityCertificate.subjectPrivateAddress
             Storage.publicThirdParty.set(
@@ -175,6 +181,7 @@ public class PublicThirdPartyEndpoint internal constructor(
 
 public class UnknownThirdPartyEndpointException(message: String) : AwaladroidException(message)
 public class UnknownFirstPartyEndpointException(message: String) : AwaladroidException(message)
-public class InvalidThirdPartyEndpoint(message: String) : AwaladroidException(message)
+public class InvalidThirdPartyEndpoint(message: String, cause: Throwable? = null) :
+    AwaladroidException(message, cause)
 public class InvalidAuthorizationException(message: String, cause: Throwable) :
     AwaladroidException(message, cause)
