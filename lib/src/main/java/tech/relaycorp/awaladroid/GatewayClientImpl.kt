@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
-import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.awaladroid.background.ServiceInteractor
 import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.messaging.IncomingMessage
@@ -24,6 +23,7 @@ import tech.relaycorp.awaladroid.messaging.RejectedMessageException
 import tech.relaycorp.awaladroid.messaging.SendMessage
 import tech.relaycorp.awaladroid.messaging.SendMessageException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.ServerException

@@ -3,10 +3,10 @@ package tech.relaycorp.awaladroid.messaging
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
