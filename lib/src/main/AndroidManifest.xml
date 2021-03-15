@@ -9,7 +9,7 @@
 
   <application>
     <receiver
-        android:name="tech.relaycorp.awaladroid.background.NotificationBroadcastReceiver"
+        android:name=".background.NotificationBroadcastReceiver"
         tools:ignore="ExportedReceiver">
       <intent-filter>
         <action android:name="tech.relaycorp.endpoint.NOTIFY" />
