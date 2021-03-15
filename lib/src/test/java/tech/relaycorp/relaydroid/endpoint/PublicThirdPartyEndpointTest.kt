@@ -15,6 +15,7 @@ import org.junit.rules.ExpectedException
 import tech.relaycorp.relaydroid.Relaynet
 import tech.relaycorp.relaydroid.storage.StorageImpl
 import tech.relaycorp.relaydroid.storage.mockStorage
+import tech.relaycorp.relaydroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
@@ -95,5 +96,12 @@ internal class PublicThirdPartyEndpointTest {
 
         assertEquals(publicAddress, data.publicAddress)
         assertEquals(certificate, data.identityCertificate)
+    }
+
+    @Test
+    fun delete() = runBlockingTest {
+        val endpoint = ThirdPartyEndpointFactory.buildPublic()
+        endpoint.delete()
+        verify(storage.publicThirdParty).delete(endpoint.privateAddress)
     }
 }

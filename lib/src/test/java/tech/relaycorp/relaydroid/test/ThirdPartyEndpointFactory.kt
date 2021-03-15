@@ -1,6 +1,5 @@
 package tech.relaycorp.relaydroid.test
 
-import java.util.UUID
 import tech.relaycorp.relaydroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.relaydroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
@@ -18,10 +17,10 @@ internal object ThirdPartyEndpointFactory {
         PDACertPath.PDA
     )
 
-    private fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
-        UUID.randomUUID().toString(),
+    fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
+        PDACertPath.PDA.subjectPrivateAddress,
         PDACertPath.PRIVATE_ENDPOINT,
-        PDACertPath.PRIVATE_ENDPOINT,
+        PDACertPath.PDA,
         listOf(PDACertPath.PRIVATE_GW)
     )
 }
