@@ -6,7 +6,7 @@ import java.time.ZonedDateTime
 import tech.relaycorp.awaladroid.GatewayClient
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
-import tech.relaycorp.awaladroid.RelaydroidException
+import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
@@ -145,4 +145,4 @@ internal constructor(
  * Failure to issue a PDA.
  */
 public class AuthorizationIssuanceException(message: String, cause: Throwable) :
-    RelaydroidException(message, cause)
+    AwaladroidException(message, cause)

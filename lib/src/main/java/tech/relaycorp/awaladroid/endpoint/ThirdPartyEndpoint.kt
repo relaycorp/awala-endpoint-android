@@ -1,6 +1,6 @@
 package tech.relaycorp.awaladroid.endpoint
 
-import tech.relaycorp.awaladroid.RelaydroidException
+import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
@@ -173,8 +173,8 @@ public class PublicThirdPartyEndpoint internal constructor(
     }
 }
 
-public class UnknownThirdPartyEndpointException(message: String) : RelaydroidException(message)
-public class UnknownFirstPartyEndpointException(message: String) : RelaydroidException(message)
-public class InvalidThirdPartyEndpoint(message: String) : RelaydroidException(message)
+public class UnknownThirdPartyEndpointException(message: String) : AwaladroidException(message)
+public class UnknownFirstPartyEndpointException(message: String) : AwaladroidException(message)
+public class InvalidThirdPartyEndpoint(message: String) : AwaladroidException(message)
 public class InvalidAuthorizationException(message: String, cause: Throwable) :
-    RelaydroidException(message, cause)
+    AwaladroidException(message, cause)

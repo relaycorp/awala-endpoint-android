@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
@@ -25,7 +25,7 @@ import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
 internal class ReceiveMessages(
-    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) }
+    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
 ) {
 
     @Throws(

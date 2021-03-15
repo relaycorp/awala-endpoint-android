@@ -13,7 +13,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
@@ -36,7 +36,7 @@ internal class PrivateThirdPartyEndpointTest {
 
     @Before
     fun setUp() {
-        storage = mockStorage().also { Relaynet.storage = it }
+        storage = mockStorage().also { Awala.storage = it }
     }
 
     @Test

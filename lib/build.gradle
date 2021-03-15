@@ -63,7 +63,7 @@ dependencies {
   // Kotlin
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
 
-  // Relaynet
+  // Awala
   api 'tech.relaycorp:relaynet:[1.48.0,2.0.0)'
   implementation 'tech.relaycorp:poweb:1.5.15'
 
@@ -133,7 +133,7 @@ afterEvaluate {
 
         pom {
           name.set(rootProject.name)
-          description.set("High-level library for Android apps implementing Relaynet endpoints")
+          description.set("High-level library for Android apps implementing Awala endpoints")
           url.set("https://github.com/relaycorp/relaynet-endpoint-android")
           developers {
             developer {

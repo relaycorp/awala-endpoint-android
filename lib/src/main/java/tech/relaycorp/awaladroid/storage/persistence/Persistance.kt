@@ -1,6 +1,6 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
-import tech.relaycorp.awaladroid.RelaydroidException
+import tech.relaycorp.awaladroid.AwaladroidException
 
 internal interface Persistence {
 
@@ -19,4 +19,4 @@ internal interface Persistence {
 }
 
 public class PersistenceException(message: String, cause: Throwable? = null) :
-    RelaydroidException(message, cause)
+    AwaladroidException(message, cause)

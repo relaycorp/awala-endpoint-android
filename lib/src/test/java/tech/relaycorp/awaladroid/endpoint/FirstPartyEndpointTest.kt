@@ -20,7 +20,7 @@ import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
@@ -39,8 +39,8 @@ internal class FirstPartyEndpointTest {
     @Before
     fun setUp() {
         runBlockingTest {
-            Relaynet.storage = storage
-            Relaynet.gatewayClientImpl = gateway
+            Awala.storage = storage
+            Awala.gatewayClientImpl = gateway
         }
     }
 

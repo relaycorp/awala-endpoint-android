@@ -9,16 +9,16 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.awaladroid.GatewayClientImpl
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 
 @RunWith(RobolectricTestRunner::class)
 internal class NotificationBroadcastReceiverTest {
     @Test
     fun name() = runBlockingTest {
         val context = RuntimeEnvironment.systemContext
-        Relaynet.setup(context)
+        Awala.setup(context)
         val gatewayClient = mock<GatewayClientImpl>()
-        Relaynet.gatewayClientImpl = gatewayClient
+        Awala.gatewayClientImpl = gatewayClient
 
         val receiver = NotificationBroadcastReceiver()
         receiver.coroutineContext = coroutineContext

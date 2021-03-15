@@ -5,7 +5,7 @@ import tech.relaycorp.awaladroid.background.ServiceInteractor
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.persistence.EncryptedDiskPersistence
 
-public object Relaynet {
+public object Awala {
     internal const val POWEB_PORT = 13276
     internal const val GATEWAY_PACKAGE = "tech.relaycorp.gateway"
     internal const val GATEWAY_PRE_REGISTER_COMPONENT =
@@ -30,6 +30,6 @@ public object Relaynet {
 /**
  * Private gateway client.
  */
-public val GatewayClient: GatewayClientImpl get() = Relaynet.gatewayClientImpl
+public val GatewayClient: GatewayClientImpl get() = Awala.gatewayClientImpl
 
-internal val Storage get() = Relaynet.storage
+internal val Storage get() = Awala.storage

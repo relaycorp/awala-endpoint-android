@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayProtocolException
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.storage.mockStorage
@@ -42,13 +42,13 @@ internal class ReceiveMessagesTest {
     @Before
     fun setUp() {
         runBlockingTest {
-            Relaynet.storage = storage
+            Awala.storage = storage
             whenever(storage.identityCertificate.list()).thenReturn(listOf("1234"))
             whenever(storage.identityCertificate.get(any()))
                 .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
             whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
             whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
-            whenever(Relaynet.storage.privateThirdParty.get(any())).thenReturn(
+            whenever(Awala.storage.privateThirdParty.get(any())).thenReturn(
                 PrivateThirdPartyEndpointData(
                     PDACertPath.PRIVATE_ENDPOINT,
                     AuthorizationBundle(PDACertPath.PRIVATE_ENDPOINT.serialize(), emptyList())

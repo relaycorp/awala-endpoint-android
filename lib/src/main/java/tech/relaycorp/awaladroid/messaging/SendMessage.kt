@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
-import tech.relaycorp.awaladroid.Relaynet
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.PDCClient
@@ -14,7 +14,7 @@ import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 
 internal class SendMessage(
-    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Relaynet.POWEB_PORT) },
+    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) {
 

@@ -3,7 +3,7 @@ package tech.relaycorp.awaladroid.endpoint
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 /**
- * Relaynet endpoint.
+ * Awala endpoint.
  */
 public abstract class Endpoint(
     internal val identityCertificate: Certificate

@@ -38,7 +38,7 @@ internal constructor(
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
     private val serviceInteractorBuilder: () -> ServiceInteractor,
     private val pdcClientBuilder: () -> PDCClient =
-        { PoWebClient.initLocal(port = Relaynet.POWEB_PORT) },
+        { PoWebClient.initLocal(port = Awala.POWEB_PORT) },
     private val sendMessage: SendMessage = SendMessage(),
     private val receiveMessages: ReceiveMessages = ReceiveMessages()
 ) {
@@ -58,12 +58,12 @@ internal constructor(
             gwServiceInteractor = serviceInteractorBuilder().apply {
                 try {
                     bind(
-                        Relaynet.GATEWAY_PACKAGE,
-                        Relaynet.GATEWAY_SYNC_COMPONENT
+                        Awala.GATEWAY_PACKAGE,
+                        Awala.GATEWAY_SYNC_COMPONENT
                     )
                 } catch (exp: ServiceInteractor.BindFailedException) {
                     throw GatewayBindingException(
-                        "Failed binding to Relaynet Gateway for registration",
+                        "Failed binding to Awala Gateway for registration",
                         exp
                     )
                 }
@@ -122,8 +122,8 @@ internal constructor(
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
             bind(
-                Relaynet.GATEWAY_PACKAGE,
-                Relaynet.GATEWAY_PRE_REGISTER_COMPONENT
+                Awala.GATEWAY_PACKAGE,
+                Awala.GATEWAY_PRE_REGISTER_COMPONENT
             )
         }
 
@@ -209,7 +209,7 @@ internal constructor(
  * General class for all exceptions deriving from interactions with the gateway.
  */
 public open class GatewayException(message: String, cause: Throwable? = null) :
-    RelaydroidException(message, cause)
+    AwaladroidException(message, cause)
 
 /**
  * Non-recoverable, protocol-level discrepancies when interacting with the gateway.
