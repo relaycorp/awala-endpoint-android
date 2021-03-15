@@ -56,7 +56,7 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun import_successful() = runBlockingTest {
         val publicAddress = "example.org"
-        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PDA)) {
+        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PDA.serialize())) {
             assertEquals(publicAddress, this.publicAddress)
             assertEquals(PDACertPath.PDA, identityCertificate)
             assertEquals("https://$publicAddress", this.address)
@@ -72,6 +72,14 @@ internal class PublicThirdPartyEndpointTest {
     }
 
     @Test
+    fun import_malformedCertificate() = runBlockingTest {
+        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
+        expectedException.expectMessage("Malformed identity certificate")
+
+        PublicThirdPartyEndpoint.import("example.org", "malformed".toByteArray())
+    }
+
+    @Test
     fun import_invalidCertificate() = runBlockingTest {
         val cert = issueEndpointCertificate(
             subjectPublicKey = KeyPairSet.PRIVATE_GW.public,
@@ -83,7 +91,7 @@ internal class PublicThirdPartyEndpointTest {
         expectedException.expect(InvalidThirdPartyEndpoint::class.java)
         expectedException.expectMessage("Invalid identity certificate")
 
-        PublicThirdPartyEndpoint.import("example.org", cert)
+        PublicThirdPartyEndpoint.import("example.org", cert.serialize())
     }
 
     @Test
