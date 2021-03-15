@@ -63,8 +63,8 @@ dependencies {
   // Kotlin
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
 
-  // Relaynet
-  api 'tech.relaycorp:relaynet:[1.47.1,2.0.0)'
+  // Awala
+  api 'tech.relaycorp:relaynet:[1.48.0,2.0.0)'
   implementation 'tech.relaycorp:poweb:1.5.15'
 
   // Security
@@ -129,11 +129,11 @@ afterEvaluate {
         from components.release
 
         groupId = 'tech.relaycorp'
-        artifactId = 'relaydroid'
+        artifactId = 'awaladroid'
 
         pom {
           name.set(rootProject.name)
-          description.set("High-level library for Android apps implementing Relaynet endpoints")
+          description.set("High-level library for Android apps implementing Awala endpoints")
           url.set("https://github.com/relaycorp/relaynet-endpoint-android")
           developers {
             developer {
@@ -161,7 +161,7 @@ afterEvaluate {
       maven {
         // publish=1 automatically publishes the version
         url = uri(
-          "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.relaydroid/;publish=1"
+          "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.awaladroid/;publish=1"
         )
         credentials {
           username = System.getenv("BINTRAY_USERNAME")
