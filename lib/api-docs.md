@@ -1,5 +1,7 @@
 # Module lib
 
+This is the high-level library for Android apps implementing Awala endpoints. [Go to GitHub repository](https://github.com/relaycorp/awala-endpoint-android).
+
 # Package tech.relaycorp.awaladroid
 
 Root package for the endpoint library.
