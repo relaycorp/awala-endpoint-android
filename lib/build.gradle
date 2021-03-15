@@ -129,7 +129,7 @@ afterEvaluate {
         from components.release
 
         groupId = 'tech.relaycorp'
-        artifactId = 'relaydroid'
+        artifactId = 'awaladroid'
 
         pom {
           name.set(rootProject.name)
@@ -161,7 +161,7 @@ afterEvaluate {
       maven {
         // publish=1 automatically publishes the version
         url = uri(
-          "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.relaydroid/;publish=1"
+          "https://api.bintray.com/maven/relaycorp/maven/tech.relaycorp.awaladroid/;publish=1"
         )
         credentials {
           username = System.getenv("BINTRAY_USERNAME")

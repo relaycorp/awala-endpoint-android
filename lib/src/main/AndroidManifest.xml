@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="tech.relaycorp.relaydroid"
+    package="tech.relaycorp.awaladroid"
     >
 
   <uses-permission android:name="android.permission.INTERNET" />
@@ -9,7 +9,7 @@
 
   <application>
     <receiver
-        android:name=".background.NotificationBroadcastReceiver"
+        android:name="tech.relaycorp.awaladroid.background.NotificationBroadcastReceiver"
         tools:ignore="ExportedReceiver">
       <intent-filter>
         <action android:name="tech.relaycorp.endpoint.NOTIFY" />
