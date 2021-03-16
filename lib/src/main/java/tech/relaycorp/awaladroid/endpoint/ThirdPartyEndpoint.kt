@@ -80,9 +80,16 @@ public class PrivateThirdPartyEndpoint internal constructor(
             InvalidAuthorizationException::class
         )
         public suspend fun import(
-            identityCertificate: Certificate,
+            identityCertificate: ByteArray,
             authBundle: AuthorizationBundle
         ): PrivateThirdPartyEndpoint {
+
+            val identityCertificateDeserialized = try {
+                Certificate.deserialize(identityCertificate)
+            } catch (exp: CertificateException) {
+                throw InvalidAuthorizationException("Invalid identity certificate", exp)
+            }
+
             val pda = Certificate.deserialize(authBundle.pdaSerialized)
             val pdaChain = authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
 
@@ -104,12 +111,16 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 throw InvalidAuthorizationException("PDA was not issued by third-party endpoint", e)
             }
 
-            val endpoint =
-                PrivateThirdPartyEndpoint(firstPartyAddress, identityCertificate, pda, pdaChain)
+            val endpoint = PrivateThirdPartyEndpoint(
+                firstPartyAddress,
+                identityCertificateDeserialized,
+                pda,
+                pdaChain
+            )
 
             Storage.privateThirdParty.set(
                 endpoint.storageKey,
-                PrivateThirdPartyEndpointData(identityCertificate, authBundle)
+                PrivateThirdPartyEndpointData(identityCertificateDeserialized, authBundle)
             )
 
             return endpoint
@@ -183,5 +194,6 @@ public class UnknownThirdPartyEndpointException(message: String) : AwaladroidExc
 public class UnknownFirstPartyEndpointException(message: String) : AwaladroidException(message)
 public class InvalidThirdPartyEndpoint(message: String, cause: Throwable? = null) :
     AwaladroidException(message, cause)
+
 public class InvalidAuthorizationException(message: String, cause: Throwable) :
     AwaladroidException(message, cause)

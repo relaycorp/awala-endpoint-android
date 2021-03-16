@@ -94,7 +94,10 @@ internal class PrivateThirdPartyEndpointTest {
             authorization.serialize(),
             listOf(PDACertPath.PRIVATE_ENDPOINT.serialize())
         )
-        val endpoint = PrivateThirdPartyEndpoint.import(PDACertPath.PRIVATE_ENDPOINT, authBundle)
+        val endpoint = PrivateThirdPartyEndpoint.import(
+            PDACertPath.PRIVATE_ENDPOINT.serialize(),
+            authBundle
+        )
 
         assertEquals(
             firstPartyAddress,
@@ -127,7 +130,25 @@ internal class PrivateThirdPartyEndpointTest {
         )
     }
 
-    @Test(expected = UnknownFirstPartyEndpointException::class)
+    @Test
+    fun import_invalidIdentityCertificate() = runBlockingTest {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val authorization = issueDeliveryAuthorization(
+            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
+            validityEndDate = ZonedDateTime.now().plusDays(1),
+            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
+        )
+
+        expectedException.expect(InvalidAuthorizationException::class.java)
+        expectedException.expectMessage("Invalid identity certificate")
+        PrivateThirdPartyEndpoint.import(
+            "123456".toByteArray(),
+            AuthorizationBundle(authorization.serialize(), emptyList())
+        )
+    }
+
+    @Test
     fun import_invalidFirstParty() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val authorization = issueDeliveryAuthorization(
@@ -137,8 +158,12 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
+        expectedException.expect(UnknownFirstPartyEndpointException::class.java)
+        expectedException.expectMessage(
+            "First party endpoint ${authorization.subjectPrivateAddress} not registered"
+        )
         PrivateThirdPartyEndpoint.import(
-            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_ENDPOINT.serialize(),
             AuthorizationBundle(authorization.serialize(), emptyList())
         )
     }
@@ -166,7 +191,7 @@ internal class PrivateThirdPartyEndpointTest {
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA was not issued by third-party endpoint")
         PrivateThirdPartyEndpoint.import(
-            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_ENDPOINT.serialize(),
             AuthorizationBundle(
                 authorization.serialize(),
                 listOf(unrelatedCertificate.serialize())
@@ -191,12 +216,12 @@ internal class PrivateThirdPartyEndpointTest {
         expectedException.expect(InvalidAuthorizationException::class.java)
         expectedException.expectMessage("PDA is invalid")
         PrivateThirdPartyEndpoint.import(
-            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_ENDPOINT.serialize(),
             AuthorizationBundle(authorization.serialize(), emptyList())
         )
     }
 
-    @Test(expected = PersistenceException::class)
+    @Test
     fun import_persistenceException() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         whenever(storage.identityCertificate.get(any())).thenThrow(PersistenceException(""))
@@ -208,8 +233,9 @@ internal class PrivateThirdPartyEndpointTest {
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
 
+        expectedException.expect(PersistenceException::class.java)
         PrivateThirdPartyEndpoint.import(
-            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_ENDPOINT.serialize(),
             AuthorizationBundle(authorization.serialize(), emptyList())
         )
     }
