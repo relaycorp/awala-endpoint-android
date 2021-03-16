@@ -1,6 +1,8 @@
 package tech.relaycorp.awaladroid.messaging
 
+import java.time.Duration
 import java.time.ZonedDateTime
+import kotlin.math.abs
 import kotlin.random.Random
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
@@ -45,6 +47,23 @@ internal class OutgoingMessageTest {
 
         assertTrue(58 < message.ttl)
         assertTrue(message.ttl <= 60)
+    }
+
+    @Test
+    fun buildForPublicRecipient_expiryDateDefaultsToMax() = runBlockingTest {
+        val senderEndpoint = FirstPartyEndpointFactory.build()
+        val recipientEndpoint = ThirdPartyEndpointFactory.buildPublic()
+
+        val message = OutgoingMessage.build(
+            "the type",
+            Random.Default.nextBytes(10),
+            senderEndpoint = senderEndpoint,
+            recipientEndpoint = recipientEndpoint,
+        )
+
+        val ttlExpected =
+            Duration.between(ZonedDateTime.now(), OutgoingMessage.maxExpiryDate()).seconds
+        assertTrue(abs(ttlExpected - message.ttl) < 2)
     }
 
     @Test

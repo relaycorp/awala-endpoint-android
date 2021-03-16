@@ -34,7 +34,7 @@ private constructor(
     internal val ttl get() = Duration.between(parcelCreationDate, parcelExpiryDate).seconds.toInt()
 
     public companion object {
-        internal fun maxExpiryDate() = ZonedDateTime.now().plusDays(30)
+        internal fun maxExpiryDate() = ZonedDateTime.now().plusDays(180)
 
         /**
          * Create an outgoing service message (but don't send it).
