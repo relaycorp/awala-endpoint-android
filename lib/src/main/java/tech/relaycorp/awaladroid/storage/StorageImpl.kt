@@ -1,5 +1,6 @@
 package tech.relaycorp.awaladroid.storage
 
+import androidx.annotation.VisibleForTesting
 import java.security.KeyPair
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
@@ -51,7 +52,8 @@ constructor(
 
     internal open class Module<T>(
         private val persistence: Persistence,
-        private val prefix: String,
+        @VisibleForTesting
+        internal val prefix: String,
         private val serializer: (T) -> ByteArray,
         private val deserializer: (ByteArray) -> T
     ) {
