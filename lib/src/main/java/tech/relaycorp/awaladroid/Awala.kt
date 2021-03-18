@@ -24,12 +24,16 @@ public object Awala {
     }
 
     internal lateinit var storage: StorageImpl
-    internal lateinit var gatewayClientImpl: GatewayClientImpl
+    internal var gatewayClientImpl: GatewayClientImpl? = null
 }
 
 /**
  * Private gateway client.
  */
-public val GatewayClient: GatewayClientImpl get() = Awala.gatewayClientImpl
+public val GatewayClient: GatewayClientImpl
+    get() = Awala.gatewayClientImpl ?: throw SetupPendingException()
 
 internal val Storage get() = Awala.storage
+
+public class SetupPendingException :
+    AwaladroidException("Please call Awala.setup before using with the GatewayClient")
