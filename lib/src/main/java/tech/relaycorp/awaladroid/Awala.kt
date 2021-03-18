@@ -36,4 +36,4 @@ public val GatewayClient: GatewayClientImpl
 internal val Storage get() = Awala.storage
 
 public class SetupPendingException :
-    AwaladroidException("Please call Awala.setup before using with the GatewayClient")
+    AwaladroidException("Call Awala.setup before using the GatewayClient")
