@@ -1,6 +1,6 @@
 # awaladroid: High-level library for Android apps implementing Awala endpoints
 
-Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=android) to learn how to use this library.
+Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=android) to learn how to use this library. The reference documentation is available on [docs.relaycorp.tech](https://docs.relaycorp.tech/awala-endpoint-android/).
 
 ## Install
 
