@@ -147,11 +147,11 @@ public class PublicThirdPartyEndpoint internal constructor(
 
     public companion object {
         /**
-         * Load an endpoint by its [publicAddress].
+         * Load an endpoint by its [privateAddress].
          */
         @Throws(PersistenceException::class)
-        public suspend fun load(publicAddress: String): PublicThirdPartyEndpoint? =
-            Storage.publicThirdParty.get(publicAddress)?.let {
+        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? =
+            Storage.publicThirdParty.get(privateAddress)?.let {
                 PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
             }
 
