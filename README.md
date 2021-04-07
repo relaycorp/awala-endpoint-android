@@ -17,3 +17,5 @@ This library needs the following Android permissions:
 
 - `android.permission.INTERNET`: To be able to communicate with the private gateway on `127.0.0.1:13276`. **This library does not communicate with the Internet**.
 - `tech.relaycorp.gateway.SYNC`: To be able to bind to the private gateway.
+
+They will be automatically added on your behalf, so you don't need to include them in your `AndroidManifest.xml`.
