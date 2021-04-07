@@ -10,3 +10,10 @@ Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=andro
 # Workaround for https://issuetracker.google.com/issues/159151549
 android.jetifier.blacklist = bcprov-jdk15on-1.*.jar
 ```
+
+## Permissions
+
+This library needs the following Android permissions:
+
+- `android.permission.INTERNET`: To be able to communicate with the private gateway on `127.0.0.1:13276`. **This library does not communicate with the Internet**.
+- `tech.relaycorp.gateway.SYNC`: To be able to bind to the private gateway.
