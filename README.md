@@ -4,7 +4,9 @@ Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=andro
 
 ## Install
 
-[Due to a bug in Android](https://issuetracker.google.com/issues/159151549), you'll have to exclude Bouncy Castle from Jetifier transformations by adding the following to `gradle.properties`:
+[Get the latest version from JitPack](https://jitpack.io/#relaycorp/awala-endpoint-android). We'll release it to Maven Central [eventually](https://github.com/relaycorp/awala-endpoint-android/issues/80).
+
+[Due to a bug in Android](https://issuetracker.google.com/issues/159151549), you'll also have to exclude Bouncy Castle from Jetifier transformations by adding the following to `gradle.properties`:
 
 ```
 # Workaround for https://issuetracker.google.com/issues/159151549
