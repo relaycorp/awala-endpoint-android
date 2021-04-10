@@ -13,7 +13,19 @@ Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=andro
 android.jetifier.blacklist = bcprov-jdk15on-1.*.jar
 ```
 
-## Permissions
+## Security and privacy considerations
+
+The items below summarize the security and privacy considerations specific to this app. For a more general overview of the security considerations in Awala, please refer to [RS-019](https://specs.awala.network/RS-019).
+
+### No encryption at rest on Android 5
+
+We use the [Android Keystore system](https://developer.android.com/training/articles/keystore) to protect sensitive cryptographic material, such as long-term and ephemeral keys. Unfortunately, [Android 5 doesn't actually encrypt anything at rest](https://github.com/relaycorp/relaynet-gateway-android/issues/247).
+
+### External communication
+
+This library exclusively communicates with the private gateway installed on the device. It does not communicate with other apps or any Internet host.
+
+### Android permissions
 
 This library needs the following Android permissions:
 
@@ -21,3 +33,11 @@ This library needs the following Android permissions:
 - `tech.relaycorp.gateway.SYNC`: To be able to bind to the private gateway.
 
 They will be automatically added on your behalf, so you don't need to include them in your `AndroidManifest.xml`.
+
+## Development
+
+The project requires [Android Studio](https://developer.android.com/studio/) 4+.
+
+## Contributing
+
+We love contributions! If you haven't contributed to a Relaycorp project before, please take a minute to [read our guidelines](https://github.com/relaycorp/.github/blob/master/CONTRIBUTING.md) first.
