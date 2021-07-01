@@ -7,24 +7,3 @@ updates:
     time: "08:00"
     timezone: Etc/UCT
   open-pull-requests-limit: 99
-  ignore:
-  - dependency-name: org.jetbrains.kotlinx:kotlinx-coroutines-test
-    versions:
-    - 1.4.2-native-mt
-    - 1.4.3-native-mt
-  - dependency-name: org.jetbrains.kotlinx:kotlinx-coroutines-core
-    versions:
-    - 1.4.2-native-mt
-    - 1.4.3-native-mt
-  - dependency-name: org.jetbrains.kotlin.jvm
-    versions:
-    - 1.4.30
-  - dependency-name: org.jetbrains.kotlin:kotlin-stdlib-jdk8
-    versions:
-    - 1.4.30
-  - dependency-name: org.junit.jupiter:junit-jupiter
-    versions:
-    - 5.7.1
-  - dependency-name: org.junit.jupiter:junit-jupiter-params
-    versions:
-    - 5.7.1
