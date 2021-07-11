@@ -62,17 +62,19 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: dokkaHtml
-      # Ridiculous workaround for https://github.com/Kotlin/dokka/issues/163
+
+        # Ridiculous workaround for https://github.com/Kotlin/dokka/issues/163
       - name: Move Dokka's assets into a sensible place
         run: |
-          set -x -o nounset -o errexit -o pipefail
-          cd ./lib/build/dokka/html
-          mv ./styles ./images ./scripts index.html navigation.html ./lib/
-          find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../styles/;styles/;g'
-          find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../images/;images/;g'
-          find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../scripts/;scripts/;g'
-          find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;pathToRoot = "../;pathToRoot = ";g'
-          sed -i 's;href="lib/;href=";g' ./lib/navigation.html
+            set -x -o nounset -o errexit -o pipefail
+            cd ./lib/build/dokka/html
+            mv ./styles ./images ./scripts navigation.html index.html ./lib/
+            find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../styles/;styles/;g'
+            find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../images/;images/;g'
+            find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;../scripts/;scripts/;g'
+            find ./lib/ -name '*.html' -print0 | xargs -0 sed -i 's;pathToRoot = "../;pathToRoot = ";g'
+            sed -i 's;href="lib/;href=";g' ./lib/navigation.html
+            sed -i 's;href="lib/;href=";g' ./lib/index.html
 
       - name: Release
         run: npx semantic-release
