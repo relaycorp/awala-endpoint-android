@@ -28,7 +28,7 @@ jobs:
       - name: Build project
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build dokkaHtml --scan
+          arguments: build publishToMavenLocal dokkaHtml --scan
       # - uses: eskatos/gradle-command-action@v1
       #   with:
       #     arguments: jacocoTestCoverageVerification
