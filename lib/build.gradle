@@ -121,3 +121,41 @@ ktlint {
   verbose = true
   android = true
 }
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+
+                groupId = 'tech.relaycorp'
+                artifactId = 'awaladroid'
+
+                pom {
+                    name.set(rootProject.name)
+                    description.set("High-level library for Android apps implementing Awala endpoints")
+                    url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+                    developers {
+                        developer {
+                            id.set("relaycorp")
+                            name.set("Relaycorp, Inc.")
+                            email.set("no-reply@relaycorp.tech")
+                        }
+                    }
+                    licenses {
+                        license {
+                            name.set("Apache-2.0")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git")
+                        developerConnection.set(
+                            "scm:git:https://github.com/relaycorp/relaynet-endpoint-android.git"
+                        )
+                        url.set("https://github.com/relaycorp/relaynet-endpoint-android")
+                    }
+                }
+            }
+        }
+    }
+}
