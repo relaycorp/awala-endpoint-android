@@ -1,8 +1,7 @@
 apply plugin: 'jacoco'
 
 jacoco {
-    // Need this specific version due to https://stackoverflow.com/questions/59378618/kotlin-jacoco-no-coverage-illegalclassformatexception-please-supply-orig
-    toolVersion = "0.7.9"
+    toolVersion = "0.8.7"
 }
 
 def jacocoConfig = {
