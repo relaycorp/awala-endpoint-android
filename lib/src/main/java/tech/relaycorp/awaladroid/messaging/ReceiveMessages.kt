@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onCompletion
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
@@ -36,16 +37,19 @@ internal class ReceiveMessages(
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
             .flatMapLatest { nonceSigners ->
-                pdcClientBuilder().use {
-                    try {
-                        collectParcels(it, nonceSigners)
-                    } catch (exp: ServerException) {
-                        throw ReceiveMessageException("Server error", exp)
-                    } catch (exp: ClientBindingException) {
-                        throw GatewayProtocolException("Client error", exp)
-                    } catch (exp: NonceSignerException) {
-                        throw GatewayProtocolException("Client signing error", exp)
-                    }
+                val pdcClient = pdcClientBuilder()
+                try {
+                    collectParcels(pdcClient, nonceSigners)
+                        .onCompletion {
+                            @Suppress("BlockingMethodInNonBlockingContext")
+                            pdcClient.close()
+                        }
+                } catch (exp: ServerException) {
+                    throw ReceiveMessageException("Server error", exp)
+                } catch (exp: ClientBindingException) {
+                    throw GatewayProtocolException("Client error", exp)
+                } catch (exp: NonceSignerException) {
+                    throw GatewayProtocolException("Client signing error", exp)
                 }
             }
 
