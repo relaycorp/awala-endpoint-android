@@ -57,7 +57,7 @@ internal class GatewayClientImplTest {
     fun bind_successful() = coroutineScope.runBlockingTest {
         subject.bind()
 
-        verify(serviceInteractor).bind(Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
+        verify(serviceInteractor).bind(Awala.GATEWAY_SYNC_ACTION,Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
     }
 
     @Test
@@ -66,7 +66,7 @@ internal class GatewayClientImplTest {
         subject.bind()
 
         verify(serviceInteractor, times(1))
-            .bind(Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
+            .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
     }
 
     @Test
@@ -76,12 +76,12 @@ internal class GatewayClientImplTest {
         subject.bind()
 
         verify(serviceInteractor, times(2))
-            .bind(Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
+            .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
     }
 
     @Test(expected = GatewayBindingException::class)
     fun bind_unsuccessful() = coroutineScope.runBlockingTest {
-        whenever(serviceInteractor.bind(any(), any()))
+        whenever(serviceInteractor.bind(any(), any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
 
         subject.bind()
@@ -102,9 +102,9 @@ internal class GatewayClientImplTest {
         val result = subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
 
         verify(serviceInteractor)
-            .bind(Awala.GATEWAY_PACKAGE, Awala.GATEWAY_PRE_REGISTER_COMPONENT)
+            .bind(Awala.GATEWAY_PRE_REGISTER_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_PRE_REGISTER_COMPONENT)
         verify(serviceInteractor)
-            .bind(Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
+            .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
 
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, result.privateNodeCertificate)
         assertEquals(PDACertPath.PRIVATE_GW, result.gatewayCertificate)
@@ -217,7 +217,7 @@ internal class GatewayClientImplTest {
         subject.checkForNewMessages()
 
         verify(serviceInteractor)
-            .bind(eq(Awala.GATEWAY_PACKAGE), eq(Awala.GATEWAY_SYNC_COMPONENT))
+            .bind(eq(Awala.GATEWAY_SYNC_ACTION), eq(Awala.GATEWAY_PACKAGE), eq(Awala.GATEWAY_SYNC_COMPONENT))
         verify(serviceInteractor)
             .unbind()
     }
@@ -229,7 +229,7 @@ internal class GatewayClientImplTest {
         subject.bind()
         subject.checkForNewMessages()
 
-        verify(serviceInteractor, times(1)).bind(any(), any())
+        verify(serviceInteractor, times(1)).bind(any(), any(), any())
     }
 
     @Test
