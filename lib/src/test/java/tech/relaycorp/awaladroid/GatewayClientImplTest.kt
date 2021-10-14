@@ -57,7 +57,11 @@ internal class GatewayClientImplTest {
     fun bind_successful() = coroutineScope.runBlockingTest {
         subject.bind()
 
-        verify(serviceInteractor).bind(Awala.GATEWAY_SYNC_ACTION,Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
+        verify(serviceInteractor).bind(
+            Awala.GATEWAY_SYNC_ACTION,
+            Awala.GATEWAY_PACKAGE,
+            Awala.GATEWAY_SYNC_COMPONENT
+        )
     }
 
     @Test
@@ -102,7 +106,11 @@ internal class GatewayClientImplTest {
         val result = subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
 
         verify(serviceInteractor)
-            .bind(Awala.GATEWAY_PRE_REGISTER_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_PRE_REGISTER_COMPONENT)
+            .bind(
+                Awala.GATEWAY_PRE_REGISTER_ACTION,
+                Awala.GATEWAY_PACKAGE,
+                Awala.GATEWAY_PRE_REGISTER_COMPONENT
+            )
         verify(serviceInteractor)
             .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
 
@@ -217,7 +225,11 @@ internal class GatewayClientImplTest {
         subject.checkForNewMessages()
 
         verify(serviceInteractor)
-            .bind(eq(Awala.GATEWAY_SYNC_ACTION), eq(Awala.GATEWAY_PACKAGE), eq(Awala.GATEWAY_SYNC_COMPONENT))
+            .bind(
+                eq(Awala.GATEWAY_SYNC_ACTION),
+                eq(Awala.GATEWAY_PACKAGE),
+                eq(Awala.GATEWAY_SYNC_COMPONENT)
+            )
         verify(serviceInteractor)
             .unbind()
     }
