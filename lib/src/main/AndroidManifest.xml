@@ -7,15 +7,6 @@
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="tech.relaycorp.gateway.SYNC" />
 
-    <queries>
-        <intent>
-            <action android:name="tech.relaycorp.gateway.SYNC"/>
-        </intent>
-        <intent>
-            <action android:name="tech.relaycorp.gateway.ENDPOINT_PRE_REGISTRATION"/>
-        </intent>
-    </queries>
-
   <application
       android:networkSecurityConfig="@xml/network_security_config"
       tools:ignore="UnusedAttribute"
@@ -29,4 +20,14 @@
       </intent-filter>
     </receiver>
   </application>
+
+    <queries>
+        <intent>
+            <action android:name="tech.relaycorp.gateway.SYNC"/>
+        </intent>
+        <intent>
+            <action android:name="tech.relaycorp.gateway.ENDPOINT_PRE_REGISTRATION"/>
+        </intent>
+    </queries>
+
 </manifest>
