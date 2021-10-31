@@ -13,10 +13,21 @@
       >
     <receiver
         android:name=".background.NotificationBroadcastReceiver"
-        tools:ignore="ExportedReceiver">
+        tools:ignore="ExportedReceiver"
+        android:exported="true">
       <intent-filter>
         <action android:name="tech.relaycorp.endpoint.NOTIFY" />
       </intent-filter>
     </receiver>
   </application>
+
+    <queries>
+        <intent>
+            <action android:name="tech.relaycorp.gateway.SYNC"/>
+        </intent>
+        <intent>
+            <action android:name="tech.relaycorp.gateway.ENDPOINT_PRE_REGISTRATION"/>
+        </intent>
+    </queries>
+
 </manifest>
