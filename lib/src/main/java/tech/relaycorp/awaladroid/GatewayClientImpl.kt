@@ -58,6 +58,7 @@ internal constructor(
             gwServiceInteractor = serviceInteractorBuilder().apply {
                 try {
                     bind(
+                        Awala.GATEWAY_SYNC_ACTION,
                         Awala.GATEWAY_PACKAGE,
                         Awala.GATEWAY_SYNC_COMPONENT
                     )
@@ -122,6 +123,7 @@ internal constructor(
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
             bind(
+                Awala.GATEWAY_PRE_REGISTER_ACTION,
                 Awala.GATEWAY_PACKAGE,
                 Awala.GATEWAY_PRE_REGISTER_COMPONENT
             )
