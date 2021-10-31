@@ -23,7 +23,7 @@ internal class ServiceInteractor(
     private var binder: IBinder? = null
 
     @Throws(BindFailedException::class)
-    suspend fun bind(packageName: String, componentName: String) =
+    suspend fun bind(action: String, packageName: String, componentName: String) =
         suspendCoroutine<Unit> { cont ->
             var isResumed = false
 
@@ -63,8 +63,15 @@ internal class ServiceInteractor(
                 }
             }
 
+            val intent = Intent(action).apply {
+                component = ComponentName(
+                    packageName,
+                    componentName
+                )
+            }
+
             val bindWasSuccessful = context.bindService(
-                Intent().setComponent(ComponentName(packageName, componentName)),
+                intent,
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
             )
