@@ -65,7 +65,7 @@ dependencies {
 
   // Awala
   implementation 'tech.relaycorp:awala:1.50.0'
-  implementation 'tech.relaycorp:poweb:1.5.22'
+  implementation 'tech.relaycorp:poweb:1.5.24'
 
   // Security
   implementation 'androidx.security:security-crypto:1.1.0-alpha03'
