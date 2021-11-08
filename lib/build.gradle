@@ -72,7 +72,7 @@ dependencies {
   implementation "org.bouncycastle:bcpkix-jdk15on:1.69"
 
   // Serialization
-  implementation 'org.mongodb:bson:4.3.3'
+  implementation 'org.mongodb:bson:4.3.4'
 
   // Testing
   testImplementation 'junit:junit:4.13.2'
