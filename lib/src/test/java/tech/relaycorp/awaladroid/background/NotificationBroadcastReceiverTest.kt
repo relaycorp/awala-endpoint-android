@@ -16,7 +16,7 @@ internal class NotificationBroadcastReceiverTest {
     @Test
     fun name() = runBlockingTest {
         val context = RuntimeEnvironment.systemContext
-        Awala.setup(context)
+        Awala.setUp(context)
         val gatewayClient = mock<GatewayClientImpl>()
         Awala.gatewayClientImpl = gatewayClient
 
