@@ -174,6 +174,23 @@ public class FirstPartyEndpointTest {
             expiryDate
         )
     }
+
+    @Test
+    public fun delete(): Unit = runBlockingTest {
+        privateKeyStore.saveIdentityKey(
+            KeyPairSet.PRIVATE_ENDPOINT.private,
+            PDACertPath.PRIVATE_ENDPOINT
+        )
+        val endpoint = FirstPartyEndpoint(
+            KeyPairSet.PRIVATE_ENDPOINT.private,
+            PDACertPath.PRIVATE_ENDPOINT,
+            PDACertPath.PRIVATE_GW,
+        )
+
+        endpoint.delete()
+
+        assertEquals(0, privateKeyStore.identityKeys.size)
+    }
 }
 
 private fun validateAuthorization(

@@ -90,9 +90,8 @@ internal constructor(
      */
     @Throws(PersistenceException::class, SetupPendingException::class)
     public suspend fun delete() {
-        val storage = Awala.getContextOrThrow().storage
-        storage.identityKeyPair.delete(address)
-        storage.identityCertificate.delete(address)
+        val context = Awala.getContextOrThrow()
+        context.privateKeyStore.deleteKeys(privateAddress)
     }
 
     public companion object {
