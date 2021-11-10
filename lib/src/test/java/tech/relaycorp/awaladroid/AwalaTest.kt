@@ -12,23 +12,24 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
+import tech.relaycorp.awaladroid.test.unsetAwalaContext
 
 @RunWith(RobolectricTestRunner::class)
 public class AwalaTest {
     @Before
     @After
-    public fun tearDownAwala(): Unit = Awala.tearDown()
+    public fun tearDownAwala(): Unit = unsetAwalaContext()
 
     @Test
     public fun useBeforeSetup() {
-        assertThrows(SetupPendingException::class.java) { Awala.getContext() }
+        assertThrows(SetupPendingException::class.java) { Awala.getContextOrThrow() }
     }
 
     @Test
     public fun useAfterSetup(): Unit = runBlockingTest {
         Awala.setUp(RuntimeEnvironment.getApplication())
 
-        Awala.getContext()
+        Awala.getContextOrThrow()
     }
 
     @Test
@@ -36,7 +37,7 @@ public class AwalaTest {
         val androidContext = RuntimeEnvironment.getApplication()
         Awala.setUp(androidContext)
 
-        val context = Awala.getContext()
+        val context = Awala.getContextOrThrow()
 
         assertTrue(context.privateKeyStore is AndroidPrivateKeyStore)
         assertTrue(context.sessionPublicKeyStore is FileSessionPublicKeystore)

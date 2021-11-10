@@ -1,23 +1,19 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.argumentCaptor
-import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
-import java.security.KeyPair
 import java.time.ZonedDateTime
-import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import tech.relaycorp.awaladroid.Awala
+import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
@@ -25,39 +21,59 @@ import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.assertSameDateTime
+import tech.relaycorp.awaladroid.test.setAwalaContext
+import tech.relaycorp.awaladroid.test.unsetAwalaContext
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
+import tech.relaycorp.relaynet.nodes.EndpointManager
+import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
+import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
-internal class FirstPartyEndpointTest {
-
+public class FirstPartyEndpointTest {
     private val gateway = mock<GatewayClientImpl>()
     private val storage = mockStorage()
+    private val privateKeyStore = MockPrivateKeyStore()
+    private val sessionPublicKeystore = MockSessionPublicKeyStore()
 
     @Before
-    fun setUp() {
-        runBlockingTest {
-            Awala.storage = storage
-            Awala.gatewayClientImpl = gateway
-        }
+    public fun setMockContext() {
+        setAwalaContext(
+            AwalaContext(
+                storage,
+                gateway,
+                EndpointManager(privateKeyStore, sessionPublicKeystore),
+                privateKeyStore,
+                sessionPublicKeystore,
+            )
+        )
     }
 
+    @Before
+    public fun resetKeystores() {
+        privateKeyStore.clear()
+        sessionPublicKeystore.clear()
+    }
+
+    @After
+    public fun unsetContext(): Unit = unsetAwalaContext()
+
     @Test
-    fun address() {
+    public fun address() {
         val endpoint = FirstPartyEndpointFactory.build()
-        assertEquals(endpoint.keyPair.public.privateAddress, endpoint.address)
+        assertEquals(endpoint.identityCertificate.subjectPrivateAddress, endpoint.address)
     }
 
     @Test
-    fun publicKey() {
+    public fun publicKey() {
         val endpoint = FirstPartyEndpointFactory.build()
-        assertEquals(endpoint.keyPair.public, endpoint.publicKey)
+        assertEquals(endpoint.identityCertificate.subjectPublicKey, endpoint.publicKey)
     }
 
     @Test
-    fun pdaChain() {
+    public fun pdaChain() {
         val endpoint = FirstPartyEndpointFactory.build()
 
         assertTrue(endpoint.identityCertificate in endpoint.pdaChain)
@@ -65,7 +81,7 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test
-    fun register() = runBlockingTest {
+    public fun register(): Unit = runBlockingTest {
         whenever(gateway.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -75,61 +91,57 @@ internal class FirstPartyEndpointTest {
 
         val endpoint = FirstPartyEndpoint.register()
 
-        val keyPairCaptor = argumentCaptor<KeyPair>()
-        verify(gateway)
-            .registerEndpoint(keyPairCaptor.capture())
-        verify(storage.identityKeyPair)
-            .set(eq(endpoint.address), eq(keyPairCaptor.firstValue))
-        verify(storage.identityCertificate)
-            .set(eq(endpoint.address), eq(PDACertPath.PRIVATE_ENDPOINT))
-        verify(storage.gatewayCertificate)
-            .set(eq(PDACertPath.PRIVATE_GW))
+        val identityKeyPair =
+            privateKeyStore.retrieveIdentityKey(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress)
+        assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityKeyPair.certificate)
+        assertEquals(endpoint.identityPrivateKey, identityKeyPair.privateKey)
     }
 
     @Test(expected = RegistrationFailedException::class)
-    fun register_failed() = runBlockingTest {
+    public fun register_failed(): Unit = runBlockingTest {
         whenever(gateway.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
 
         FirstPartyEndpoint.register()
 
         verifyZeroInteractions(storage)
+        assertEquals(0, privateKeyStore.identityKeys.size)
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun register_failedDueToProtocol() = runBlockingTest {
+    public fun register_failedDueToProtocol(): Unit = runBlockingTest {
         whenever(gateway.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
 
         FirstPartyEndpoint.register()
 
         verifyZeroInteractions(storage)
+        assertEquals(0, privateKeyStore.identityKeys.size)
     }
 
     @Test
-    fun load_nonExistent() = runBlockingTest {
+    public fun load_nonExistent(): Unit = runBlockingTest {
         assertNull(FirstPartyEndpoint.load("non-existent"))
     }
 
     @Test
-    fun load_withResult() = runBlockingTest {
-        val address = UUID.randomUUID().toString()
-
-        whenever(storage.identityKeyPair.get(eq(address)))
-            .thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
-        whenever(storage.identityCertificate.get(eq(address)))
-            .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
+    public fun load_withResult(): Unit = runBlockingTest {
+        privateKeyStore.saveIdentityKey(
+            KeyPairSet.PRIVATE_ENDPOINT.private,
+            PDACertPath.PRIVATE_ENDPOINT
+        )
         whenever(storage.gatewayCertificate.get())
             .thenReturn(PDACertPath.PRIVATE_GW)
 
-        with(FirstPartyEndpoint.load(address)) {
+        val privateAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress
+        with(FirstPartyEndpoint.load(privateAddress)) {
             assertNotNull(this)
-            assertEquals(KeyPairSet.PRIVATE_ENDPOINT, this?.keyPair)
+            assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
             assertEquals(PDACertPath.PRIVATE_GW, this?.gatewayCertificate)
         }
     }
 
     @Test
-    fun issueAuthorization_thirdPartyEndpoint() {
+    public fun issueAuthorization_thirdPartyEndpoint() {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
@@ -140,7 +152,7 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test
-    fun issueAuthorization_publicKey_valid() {
+    public fun issueAuthorization_publicKey_valid() {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -153,7 +165,7 @@ internal class FirstPartyEndpointTest {
     }
 
     @Test(expected = AuthorizationIssuanceException::class)
-    fun issueAuthorization_publicKey_invalid() {
+    public fun issueAuthorization_publicKey_invalid() {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 

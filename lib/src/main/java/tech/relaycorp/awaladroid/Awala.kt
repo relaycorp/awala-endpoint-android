@@ -44,15 +44,11 @@ public object Awala {
         gatewayClientImpl = this.context!!.gatewayClient
     }
 
-    internal fun tearDown() {
-        context = null
-    }
-
     internal lateinit var storage: StorageImpl
     internal var gatewayClientImpl: GatewayClientImpl? = null
 
-    private var context: AwalaContext? = null
-    internal fun getContext(): AwalaContext = context ?: throw SetupPendingException()
+    internal var context: AwalaContext? = null
+    internal fun getContextOrThrow(): AwalaContext = context ?: throw SetupPendingException()
 }
 
 /**

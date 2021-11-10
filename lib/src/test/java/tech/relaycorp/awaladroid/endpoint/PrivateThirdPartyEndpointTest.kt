@@ -87,7 +87,7 @@ internal class PrivateThirdPartyEndpointTest {
 
         val thirdPartyAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress
         val authorization = issueDeliveryAuthorization(
-            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
@@ -137,7 +137,7 @@ internal class PrivateThirdPartyEndpointTest {
     fun import_invalidIdentityCertificate() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val authorization = issueDeliveryAuthorization(
-            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
@@ -155,7 +155,7 @@ internal class PrivateThirdPartyEndpointTest {
     fun import_invalidFirstParty() = runBlockingTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val authorization = issueDeliveryAuthorization(
-            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
@@ -185,7 +185,7 @@ internal class PrivateThirdPartyEndpointTest {
         )
 
         val authorization = issueDeliveryAuthorization(
-            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
@@ -209,7 +209,7 @@ internal class PrivateThirdPartyEndpointTest {
             .thenReturn(firstPartyEndpoint.identityCertificate)
 
         val authorization = issueDeliveryAuthorization(
-            firstPartyEndpoint.keyPair.public,
+            firstPartyEndpoint.identityCertificate.subjectPublicKey,
             KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().minusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT,
@@ -230,7 +230,7 @@ internal class PrivateThirdPartyEndpointTest {
         whenever(storage.identityCertificate.get(any())).thenThrow(PersistenceException(""))
 
         val authorization = issueDeliveryAuthorization(
-            subjectPublicKey = firstPartyEndpoint.keyPair.public,
+            subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT

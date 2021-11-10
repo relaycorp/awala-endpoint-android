@@ -83,7 +83,10 @@ internal class OutgoingMessageTest {
 
         parcel.senderCertificate.let { cert ->
             cert.validate()
-            assertEquals(message.senderEndpoint.keyPair.public, cert.subjectPublicKey)
+            assertEquals(
+                message.senderEndpoint.identityCertificate.subjectPublicKey,
+                cert.subjectPublicKey,
+            )
             assertSameDateTime(message.parcelCreationDate, cert.startDate)
             assertSameDateTime(message.parcelExpiryDate, cert.expiryDate)
         }

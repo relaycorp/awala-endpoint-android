@@ -89,8 +89,8 @@ private constructor(
 
     private fun getSelfSignedSenderCertificate(): Certificate =
         issueEndpointCertificate(
-            senderEndpoint.keyPair.public,
-            senderEndpoint.keyPair.private,
+            senderEndpoint.identityCertificate.subjectPublicKey,
+            senderEndpoint.identityPrivateKey,
             validityStartDate = parcelCreationDate,
             validityEndDate = parcelExpiryDate
         )
