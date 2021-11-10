@@ -7,30 +7,14 @@ import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Before
-import org.junit.Rule
+import org.junit.Assert.assertThrows
 import org.junit.Test
-import org.junit.rules.ExpectedException
-import tech.relaycorp.awaladroid.Awala
-import tech.relaycorp.awaladroid.storage.StorageImpl
-import tech.relaycorp.awaladroid.storage.mockStorage
+import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
-internal class PublicThirdPartyEndpointTest {
-
-    private lateinit var storage: StorageImpl
-
-    @Rule
-    @JvmField
-    val expectedException: ExpectedException = ExpectedException.none()
-
-    @Before
-    fun setUp() {
-        storage = mockStorage().also { Awala.storage = it }
-    }
-
+internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     @Test
     fun load_successful() = runBlockingTest {
         val privateAddress = UUID.randomUUID().toString()
@@ -72,10 +56,16 @@ internal class PublicThirdPartyEndpointTest {
 
     @Test
     fun import_malformedCertificate() = runBlockingTest {
-        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
-        expectedException.expectMessage("Identity key is not a well-formed RSA public key")
+        val exception = assertThrows(InvalidThirdPartyEndpoint::class.java) {
+            runBlockingTest {
+                PublicThirdPartyEndpoint.import(
+                    "example.org",
+                    "malformed".toByteArray()
+                )
+            }
+        }
 
-        PublicThirdPartyEndpoint.import("example.org", "malformed".toByteArray())
+        assertEquals("Identity key is not a well-formed RSA public key", exception.message)
     }
 
     @Test
@@ -93,7 +83,10 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun delete() = runBlockingTest {
         val endpoint = ThirdPartyEndpointFactory.buildPublic()
+
         endpoint.delete()
+
         verify(storage.publicThirdParty).delete(endpoint.privateAddress)
+        TODO("CHECK session keys deletion")
     }
 }

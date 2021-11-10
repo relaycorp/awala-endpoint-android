@@ -1,9 +1,11 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import java.security.PublicKey
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
-import tech.relaycorp.awaladroid.Storage
+import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.privateAddress
@@ -50,22 +52,26 @@ public class PrivateThirdPartyEndpoint internal constructor(
     override val address: String get() = privateAddress
     private val storageKey = "${firstPartyEndpointAddress}_$privateAddress"
 
-    @Throws(PersistenceException::class)
+    @Throws(PersistenceException::class, SetupPendingException::class)
     override suspend fun delete() {
-        Storage.privateThirdParty.delete(storageKey)
+        val context = Awala.getContextOrThrow()
+        context.storage.privateThirdParty.delete(storageKey)
+        context.privateKeyStore.deleteSessionKeysForPeer(privateAddress)
+        context.sessionPublicKeyStore.delete(privateAddress)
     }
 
     public companion object {
         /**
          * Load an endpoint.
          */
-        @Throws(PersistenceException::class)
+        @Throws(PersistenceException::class, SetupPendingException::class)
         public suspend fun load(
             thirdPartyAddress: String,
             firstPartyAddress: String
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
-            return Storage.privateThirdParty.get(key)?.let { data ->
+            val storage = Awala.getContextOrThrow().storage
+            return storage.privateThirdParty.get(key)?.let { data ->
                 PrivateThirdPartyEndpoint(
                     firstPartyAddress,
                     data.identityKey,
@@ -82,12 +88,14 @@ public class PrivateThirdPartyEndpoint internal constructor(
             PersistenceException::class,
             UnknownFirstPartyEndpointException::class,
             InvalidAuthorizationException::class,
-            InvalidThirdPartyEndpoint::class
+            InvalidThirdPartyEndpoint::class,
+            SetupPendingException::class,
         )
         public suspend fun import(
             identityKeySerialized: ByteArray,
             authBundle: AuthorizationBundle
         ): PrivateThirdPartyEndpoint {
+            val context = Awala.getContextOrThrow()
 
             val identityKey = try {
                 identityKeySerialized.deserializeRSAPublicKey()
@@ -102,11 +110,13 @@ public class PrivateThirdPartyEndpoint internal constructor(
             val pdaChain = authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
 
             val firstPartyAddress = pda.subjectPrivateAddress
-
-            Storage.identityCertificate.get(firstPartyAddress)
-                ?: throw UnknownFirstPartyEndpointException(
-                    "First party endpoint $firstPartyAddress not registered"
+            try {
+                context.privateKeyStore.retrieveIdentityKey(firstPartyAddress)
+            } catch (exc: MissingKeyException) {
+                throw UnknownFirstPartyEndpointException(
+                    "First-party endpoint $firstPartyAddress is not registered"
                 )
+            }
 
             try {
                 pda.validate()
@@ -126,7 +136,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 pdaChain
             )
 
-            Storage.privateThirdParty.set(
+            context.storage.privateThirdParty.set(
                 endpoint.storageKey,
                 PrivateThirdPartyEndpointData(identityKey, authBundle)
             )
@@ -148,20 +158,23 @@ public class PublicThirdPartyEndpoint internal constructor(
 
     override val address: String get() = "https://$publicAddress"
 
-    @Throws(PersistenceException::class)
+    @Throws(PersistenceException::class, SetupPendingException::class)
     override suspend fun delete() {
-        Storage.publicThirdParty.delete(privateAddress)
+        val storage = Awala.getContextOrThrow().storage
+        storage.publicThirdParty.delete(privateAddress)
     }
 
     public companion object {
         /**
          * Load an endpoint by its [privateAddress].
          */
-        @Throws(PersistenceException::class)
-        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? =
-            Storage.publicThirdParty.get(privateAddress)?.let {
+        @Throws(PersistenceException::class, SetupPendingException::class)
+        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? {
+            val storage = Awala.getContextOrThrow().storage
+            return storage.publicThirdParty.get(privateAddress)?.let {
                 PublicThirdPartyEndpoint(it.publicAddress, it.identityKey)
             }
+        }
 
         /**
          * Import the public endpoint at [publicAddress].
@@ -171,12 +184,14 @@ public class PublicThirdPartyEndpoint internal constructor(
          */
         @Throws(
             PersistenceException::class,
-            InvalidThirdPartyEndpoint::class
+            InvalidThirdPartyEndpoint::class,
+            SetupPendingException::class,
         )
         public suspend fun import(
             publicAddress: String,
             identityKeySerialized: ByteArray
         ): PublicThirdPartyEndpoint {
+            val context = Awala.getContextOrThrow()
             val identityKey = try {
                 identityKeySerialized.deserializeRSAPublicKey()
             } catch (exc: KeyException) {
@@ -185,7 +200,7 @@ public class PublicThirdPartyEndpoint internal constructor(
                     exc,
                 )
             }
-            Storage.publicThirdParty.set(
+            context.storage.publicThirdParty.set(
                 identityKey.privateAddress,
                 PublicThirdPartyEndpointData(publicAddress, identityKey)
             )
