@@ -41,23 +41,14 @@ public object Awala {
         )
 
         storage = this.context!!.storage
-        gatewayClientImpl = this.context!!.gatewayClient
     }
 
     internal lateinit var storage: StorageImpl
-    internal var gatewayClientImpl: GatewayClientImpl? = null
 
     internal var context: AwalaContext? = null
     internal fun getContextOrThrow(): AwalaContext = context ?: throw SetupPendingException()
 }
 
-/**
- * Private gateway client.
- */
-public val GatewayClient: GatewayClientImpl
-    get() = Awala.gatewayClientImpl ?: throw SetupPendingException()
-
 internal val Storage get() = Awala.storage
 
-public class SetupPendingException :
-    AwaladroidException("Call Awala.setup before using the GatewayClient")
+public class SetupPendingException : AwaladroidException("Awala.setUp() has not been called")
