@@ -17,6 +17,6 @@ internal class NotificationBroadcastReceiverTest : MockContextTestCase() {
         receiver.coroutineContext = coroutineContext
         receiver.onReceive(RuntimeEnvironment.getApplication(), Intent())
 
-        verify(gateway).checkForNewMessages()
+        verify(gatewayClient).checkForNewMessages()
     }
 }

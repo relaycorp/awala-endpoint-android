@@ -7,12 +7,14 @@ import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
+import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
+import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
 
 internal abstract class MockContextTestCase {
-    protected val gateway: GatewayClientImpl = mock()
+    protected open val gatewayClient: GatewayClientImpl = mock()
     protected val storage: StorageImpl = mockStorage()
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
@@ -22,7 +24,7 @@ internal abstract class MockContextTestCase {
         setAwalaContext(
             AwalaContext(
                 storage,
-                gateway,
+                gatewayClient,
                 EndpointManager(privateKeyStore, sessionPublicKeystore),
                 privateKeyStore,
                 sessionPublicKeystore,
@@ -38,4 +40,37 @@ internal abstract class MockContextTestCase {
 
     @After
     fun unsetContext(): Unit = unsetAwalaContext()
+
+    protected suspend fun createEndpointChannel(
+        thirdPartyEndpointType: RecipientAddressType
+    ): EndpointChannel {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        privateKeyStore.saveIdentityKey(
+            firstPartyEndpoint.identityPrivateKey,
+            firstPartyEndpoint.identityCertificate,
+        )
+
+        val thirdPartyEndpoint = ThirdPartyEndpointFactory.build(thirdPartyEndpointType)
+
+        val firstPartySessionKeyPair = SessionKeyPair.generate()
+        privateKeyStore.saveSessionKey(
+            firstPartySessionKeyPair.privateKey,
+            firstPartySessionKeyPair.sessionKey.keyId,
+            firstPartyEndpoint.privateAddress,
+            thirdPartyEndpoint.privateAddress,
+        )
+
+        val thirdPartySessionKeyPair = SessionKeyPair.generate()
+        sessionPublicKeystore.save(
+            thirdPartySessionKeyPair.sessionKey,
+            thirdPartyEndpoint.privateAddress
+        )
+
+        return EndpointChannel(
+            firstPartyEndpoint,
+            thirdPartyEndpoint,
+            thirdPartySessionKeyPair,
+            firstPartySessionKeyPair,
+        )
+    }
 }

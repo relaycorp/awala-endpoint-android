@@ -45,7 +45,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun register(): Unit = runBlockingTest {
-        whenever(gateway.registerEndpoint(any())).thenReturn(
+        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW
@@ -62,7 +62,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test(expected = RegistrationFailedException::class)
     fun register_failed(): Unit = runBlockingTest {
-        whenever(gateway.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
+        whenever(gatewayClient.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
 
         FirstPartyEndpoint.register()
 
@@ -72,7 +72,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test(expected = GatewayProtocolException::class)
     fun register_failedDueToProtocol(): Unit = runBlockingTest {
-        whenever(gateway.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
+        whenever(gatewayClient.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
 
         FirstPartyEndpoint.register()
 
