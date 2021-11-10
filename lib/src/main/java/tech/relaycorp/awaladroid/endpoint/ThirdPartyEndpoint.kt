@@ -5,6 +5,8 @@ import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.InvalidNodeConnectionParams
+import tech.relaycorp.relaynet.PublicNodeConnectionParams
 import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
@@ -23,7 +25,11 @@ public sealed class ThirdPartyEndpoint(
      * Delete the endpoint.
      */
     @Throws(PersistenceException::class)
-    public abstract suspend fun delete()
+    public open suspend fun delete() {
+        val context = Awala.getContextOrThrow()
+        context.privateKeyStore.deleteSessionKeysForPeer(privateAddress)
+        context.sessionPublicKeyStore.delete(privateAddress)
+    }
 
     internal companion object {
         @Throws(PersistenceException::class)
@@ -56,8 +62,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
     override suspend fun delete() {
         val context = Awala.getContextOrThrow()
         context.storage.privateThirdParty.delete(storageKey)
-        context.privateKeyStore.deleteSessionKeysForPeer(privateAddress)
-        context.sessionPublicKeyStore.delete(privateAddress)
+        super.delete()
     }
 
     public companion object {
@@ -160,8 +165,9 @@ public class PublicThirdPartyEndpoint internal constructor(
 
     @Throws(PersistenceException::class, SetupPendingException::class)
     override suspend fun delete() {
-        val storage = Awala.getContextOrThrow().storage
-        storage.publicThirdParty.delete(privateAddress)
+        val context = Awala.getContextOrThrow()
+        context.storage.publicThirdParty.delete(privateAddress)
+        super.delete()
     }
 
     public companion object {
@@ -177,10 +183,9 @@ public class PublicThirdPartyEndpoint internal constructor(
         }
 
         /**
-         * Import the public endpoint at [publicAddress].
+         * Import the public endpoint using the specified [connectionParamsSerialized].
          *
-         * @param publicAddress The public address of the endpoint (e.g., `ping.awala.services`).
-         * @param identityKeySerialized The DER serialization of the identity key.
+         * @param connectionParamsSerialized The DER serialization of the connection parameters.
          */
         @Throws(
             PersistenceException::class,
@@ -188,23 +193,33 @@ public class PublicThirdPartyEndpoint internal constructor(
             SetupPendingException::class,
         )
         public suspend fun import(
-            publicAddress: String,
-            identityKeySerialized: ByteArray
+            connectionParamsSerialized: ByteArray
         ): PublicThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
-            val identityKey = try {
-                identityKeySerialized.deserializeRSAPublicKey()
-            } catch (exc: KeyException) {
+            val connectionParams = try {
+                PublicNodeConnectionParams.deserialize(connectionParamsSerialized)
+            } catch (exc: InvalidNodeConnectionParams) {
                 throw InvalidThirdPartyEndpoint(
-                    "Identity key is not a well-formed RSA public key",
+                    "Connection params serialization is malformed",
                     exc,
                 )
             }
+            val peerPrivateAddress = connectionParams.identityKey.privateAddress
             context.storage.publicThirdParty.set(
-                identityKey.privateAddress,
-                PublicThirdPartyEndpointData(publicAddress, identityKey)
+                peerPrivateAddress,
+                PublicThirdPartyEndpointData(
+                    connectionParams.publicAddress,
+                    connectionParams.identityKey
+                )
             )
-            return PublicThirdPartyEndpoint(publicAddress, identityKey)
+            context.sessionPublicKeyStore.save(
+                connectionParams.sessionKey,
+                peerPrivateAddress,
+            )
+            return PublicThirdPartyEndpoint(
+                connectionParams.publicAddress,
+                connectionParams.identityKey,
+            )
         }
     }
 }
