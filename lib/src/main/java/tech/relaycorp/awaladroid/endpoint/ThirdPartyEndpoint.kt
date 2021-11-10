@@ -7,6 +7,7 @@ import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.InvalidNodeConnectionParams
 import tech.relaycorp.relaynet.PublicNodeConnectionParams
+import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
@@ -98,7 +99,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             identityKeySerialized: ByteArray,
-            authBundle: AuthorizationBundle
+            authBundle: AuthorizationBundle,
+            sessionKey: SessionKey,
         ): PrivateThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
 
@@ -145,6 +147,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 endpoint.storageKey,
                 PrivateThirdPartyEndpointData(identityKey, authBundle)
             )
+
+            context.sessionPublicKeyStore.save(sessionKey, endpoint.privateAddress)
 
             return endpoint
         }

@@ -39,6 +39,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         issuerCertificate = thirdPartyEndpointCertificate,
     )
 
+    private val sessionKey = SessionKeyPair.generate().sessionKey
+
     @Test
     fun load_successful() = runBlockingTest {
         whenever(storage.privateThirdParty.get(any())).thenReturn(
@@ -91,7 +93,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
         val endpoint = PrivateThirdPartyEndpoint.import(
             thirdPartyEndpointKeyPair.public.encoded,
-            authBundle
+            authBundle,
+            sessionKey,
         )
 
         assertEquals(
@@ -119,6 +122,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 authBundle
             )
         )
+
+        assertEquals(sessionKey, sessionPublicKeystore.retrieve(endpoint.privateAddress))
     }
 
     @Test
@@ -127,7 +132,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     "123456".toByteArray(),
-                    AuthorizationBundle(thirdPartyEndpointCertificate.serialize(), emptyList())
+                    AuthorizationBundle(thirdPartyEndpointCertificate.serialize(), emptyList()),
+                    sessionKey,
                 )
             }
         }
@@ -143,8 +149,9 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                     thirdPartyEndpointKeyPair.public.encoded,
                     AuthorizationBundle(
                         firstPartyEndpoint.identityCertificate.serialize(),
-                        emptyList()
-                    )
+                        emptyList(),
+                    ),
+                    sessionKey,
                 )
             }
         }
@@ -183,7 +190,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                     AuthorizationBundle(
                         authorization.serialize(),
                         listOf(unrelatedCertificate.serialize())
-                    )
+                    ),
+                    sessionKey,
                 )
             }
         }
@@ -210,7 +218,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     thirdPartyEndpointKeyPair.public.encoded,
-                    AuthorizationBundle(authorization.serialize(), emptyList())
+                    AuthorizationBundle(authorization.serialize(), emptyList()),
+                    sessionKey,
                 )
             }
         }
