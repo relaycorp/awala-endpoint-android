@@ -3,7 +3,6 @@ package tech.relaycorp.awaladroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
 import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
@@ -16,7 +15,6 @@ import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
-import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
@@ -38,12 +36,12 @@ internal class PublicThirdPartyEndpointTest {
         val privateAddress = UUID.randomUUID().toString()
         val publicAddress = "example.org"
         whenever(storage.publicThirdParty.get(any()))
-            .thenReturn(PublicThirdPartyEndpointData(publicAddress, PDACertPath.PDA))
+            .thenReturn(PublicThirdPartyEndpointData(publicAddress, KeyPairSet.PDA_GRANTEE.public))
 
         val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
         assertEquals(publicAddress, endpoint.publicAddress)
         assertEquals("https://$publicAddress", endpoint.address)
-        assertEquals(PDACertPath.PDA, endpoint.identityCertificate)
+        assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
     }
 
     @Test
@@ -56,9 +54,10 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun import_successful() = runBlockingTest {
         val publicAddress = "example.org"
-        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PDA.serialize())) {
+        val identityKey = KeyPairSet.PDA_GRANTEE.public
+        with(PublicThirdPartyEndpoint.import(publicAddress, identityKey.encoded)) {
             assertEquals(publicAddress, this.publicAddress)
-            assertEquals(PDACertPath.PDA, identityCertificate)
+            assertEquals(identityKey, identityKey)
             assertEquals("https://$publicAddress", this.address)
         }
 
@@ -66,7 +65,7 @@ internal class PublicThirdPartyEndpointTest {
             PDACertPath.PDA.subjectPrivateAddress,
             PublicThirdPartyEndpointData(
                 publicAddress,
-                PDACertPath.PDA
+                identityKey
             )
         )
     }
@@ -74,36 +73,21 @@ internal class PublicThirdPartyEndpointTest {
     @Test
     fun import_malformedCertificate() = runBlockingTest {
         expectedException.expect(InvalidThirdPartyEndpoint::class.java)
-        expectedException.expectMessage("Malformed identity certificate")
+        expectedException.expectMessage("Identity key is not a well-formed RSA public key")
 
         PublicThirdPartyEndpoint.import("example.org", "malformed".toByteArray())
     }
 
     @Test
-    fun import_invalidCertificate() = runBlockingTest {
-        val cert = issueEndpointCertificate(
-            subjectPublicKey = KeyPairSet.PRIVATE_GW.public,
-            issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
-            validityStartDate = ZonedDateTime.now().minusDays(2),
-            validityEndDate = ZonedDateTime.now().minusDays(1)
-        )
-
-        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
-        expectedException.expectMessage("Invalid identity certificate")
-
-        PublicThirdPartyEndpoint.import("example.org", cert.serialize())
-    }
-
-    @Test
     fun dataSerialization() {
         val publicAddress = "example.org"
-        val certificate = PDACertPath.PDA
+        val identityKey = KeyPairSet.PDA_GRANTEE.public
 
-        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, certificate).serialize()
+        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, identityKey).serialize()
         val data = PublicThirdPartyEndpointData.deserialize(dataSerialized)
 
         assertEquals(publicAddress, data.publicAddress)
-        assertEquals(certificate, data.identityCertificate)
+        assertEquals(identityKey, data.identityKey)
     }
 
     @Test

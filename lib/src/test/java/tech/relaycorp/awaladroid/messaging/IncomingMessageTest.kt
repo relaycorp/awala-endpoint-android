@@ -32,7 +32,7 @@ internal class IncomingMessageTest {
             whenever(Awala.storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
             whenever(Awala.storage.privateThirdParty.get(any())).thenReturn(
                 PrivateThirdPartyEndpointData(
-                    PDACertPath.PRIVATE_ENDPOINT,
+                    KeyPairSet.PRIVATE_ENDPOINT.public,
                     AuthorizationBundle(PDACertPath.PRIVATE_ENDPOINT.serialize(), emptyList())
                 )
             )

@@ -3,6 +3,7 @@ package tech.relaycorp.awaladroid.test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
+import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
 internal object ThirdPartyEndpointFactory {
@@ -14,12 +15,12 @@ internal object ThirdPartyEndpointFactory {
 
     fun buildPublic(): PublicThirdPartyEndpoint = PublicThirdPartyEndpoint(
         "example.org",
-        PDACertPath.PDA
+        KeyPairSet.PDA_GRANTEE.public
     )
 
     fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
         PDACertPath.PDA.subjectPrivateAddress,
-        PDACertPath.PRIVATE_ENDPOINT,
+        KeyPairSet.PRIVATE_ENDPOINT.public,
         PDACertPath.PDA,
         listOf(PDACertPath.PRIVATE_GW)
     )

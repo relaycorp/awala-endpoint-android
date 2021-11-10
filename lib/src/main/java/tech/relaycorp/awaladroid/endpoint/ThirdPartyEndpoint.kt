@@ -1,8 +1,12 @@
 package tech.relaycorp.awaladroid.endpoint
 
+import java.security.PublicKey
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.wrappers.KeyException
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
+import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
@@ -10,8 +14,8 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
  * An endpoint owned by a different instance of this app, or a different app in the same service.
  */
 public sealed class ThirdPartyEndpoint(
-    identityCertificate: Certificate
-) : Endpoint(identityCertificate) {
+    internal val identityKey: PublicKey
+) : Endpoint(identityKey.privateAddress) {
 
     /**
      * Delete the endpoint.
@@ -38,10 +42,10 @@ public sealed class ThirdPartyEndpoint(
  */
 public class PrivateThirdPartyEndpoint internal constructor(
     public val firstPartyEndpointAddress: String,
-    identityCertificate: Certificate,
+    identityKey: PublicKey,
     internal val pda: Certificate,
     internal val pdaChain: List<Certificate>
-) : ThirdPartyEndpoint(identityCertificate) {
+) : ThirdPartyEndpoint(identityKey) {
 
     override val address: String get() = privateAddress
     private val storageKey = "${firstPartyEndpointAddress}_$privateAddress"
@@ -64,7 +68,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
             return Storage.privateThirdParty.get(key)?.let { data ->
                 PrivateThirdPartyEndpoint(
                     firstPartyAddress,
-                    data.identityCertificate,
+                    data.identityKey,
                     Certificate.deserialize(data.authBundle.pdaSerialized),
                     data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
                 )
@@ -77,17 +81,21 @@ public class PrivateThirdPartyEndpoint internal constructor(
         @Throws(
             PersistenceException::class,
             UnknownFirstPartyEndpointException::class,
-            InvalidAuthorizationException::class
+            InvalidAuthorizationException::class,
+            InvalidThirdPartyEndpoint::class
         )
         public suspend fun import(
-            identityCertificate: ByteArray,
+            identityKeySerialized: ByteArray,
             authBundle: AuthorizationBundle
         ): PrivateThirdPartyEndpoint {
 
-            val identityCertificateDeserialized = try {
-                Certificate.deserialize(identityCertificate)
-            } catch (exp: CertificateException) {
-                throw InvalidAuthorizationException("Invalid identity certificate", exp)
+            val identityKey = try {
+                identityKeySerialized.deserializeRSAPublicKey()
+            } catch (exp: KeyException) {
+                throw InvalidThirdPartyEndpoint(
+                    "Identity key is not a well-formed RSA public key",
+                    exp,
+                )
             }
 
             val pda = Certificate.deserialize(authBundle.pdaSerialized)
@@ -113,14 +121,14 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
             val endpoint = PrivateThirdPartyEndpoint(
                 firstPartyAddress,
-                identityCertificateDeserialized,
+                identityKey,
                 pda,
                 pdaChain
             )
 
             Storage.privateThirdParty.set(
                 endpoint.storageKey,
-                PrivateThirdPartyEndpointData(identityCertificateDeserialized, authBundle)
+                PrivateThirdPartyEndpointData(identityKey, authBundle)
             )
 
             return endpoint
@@ -135,8 +143,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
  */
 public class PublicThirdPartyEndpoint internal constructor(
     public val publicAddress: String,
-    identityCertificate: Certificate
-) : ThirdPartyEndpoint(identityCertificate) {
+    identityKey: PublicKey
+) : ThirdPartyEndpoint(identityKey) {
 
     override val address: String get() = "https://$publicAddress"
 
@@ -152,15 +160,14 @@ public class PublicThirdPartyEndpoint internal constructor(
         @Throws(PersistenceException::class)
         public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? =
             Storage.publicThirdParty.get(privateAddress)?.let {
-                PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
+                PublicThirdPartyEndpoint(it.publicAddress, it.identityKey)
             }
 
         /**
          * Import the public endpoint at [publicAddress].
          *
          * @param publicAddress The public address of the endpoint (e.g., `ping.awala.services`).
-         * @param identityCertificateSerialized The DER serialization of identity certificate of the
-         * endpoint.
+         * @param identityKeySerialized The DER serialization of the identity key.
          */
         @Throws(
             PersistenceException::class,
@@ -168,24 +175,21 @@ public class PublicThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             publicAddress: String,
-            identityCertificateSerialized: ByteArray
+            identityKeySerialized: ByteArray
         ): PublicThirdPartyEndpoint {
-            val identityCertificate = try {
-                Certificate.deserialize(identityCertificateSerialized)
-            } catch (exc: CertificateException) {
-                throw InvalidThirdPartyEndpoint("Malformed identity certificate", exc)
+            val identityKey = try {
+                identityKeySerialized.deserializeRSAPublicKey()
+            } catch (exc: KeyException) {
+                throw InvalidThirdPartyEndpoint(
+                    "Identity key is not a well-formed RSA public key",
+                    exc,
+                )
             }
-            try {
-                identityCertificate.validate()
-            } catch (exc: CertificateException) {
-                throw InvalidThirdPartyEndpoint("Invalid identity certificate", exc)
-            }
-            val thirdPartyAddress = identityCertificate.subjectPrivateAddress
             Storage.publicThirdParty.set(
-                thirdPartyAddress,
-                PublicThirdPartyEndpointData(publicAddress, identityCertificate)
+                identityKey.privateAddress,
+                PublicThirdPartyEndpointData(publicAddress, identityKey)
             )
-            return PublicThirdPartyEndpoint(publicAddress, identityCertificate)
+            return PublicThirdPartyEndpoint(publicAddress, identityKey)
         }
     }
 }

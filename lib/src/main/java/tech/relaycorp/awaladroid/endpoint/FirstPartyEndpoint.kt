@@ -22,9 +22,9 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 public class FirstPartyEndpoint
 internal constructor(
     internal val keyPair: KeyPair,
-    identityCertificate: Certificate,
+    internal val identityCertificate: Certificate,
     internal val gatewayCertificate: Certificate
-) : Endpoint(identityCertificate) {
+) : Endpoint(identityCertificate.subjectPrivateAddress) {
 
     public override val address: String get() = privateAddress
 
@@ -44,7 +44,7 @@ internal constructor(
         expiryDate: ZonedDateTime
     ): AuthorizationBundle =
         issueAuthorization(
-            thirdPartyEndpoint.identityCertificate.subjectPublicKey,
+            thirdPartyEndpoint.identityKey,
             expiryDate
         )
 

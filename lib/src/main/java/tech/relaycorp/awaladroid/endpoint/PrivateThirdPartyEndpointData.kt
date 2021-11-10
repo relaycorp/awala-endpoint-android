@@ -1,6 +1,7 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import java.nio.ByteBuffer
+import java.security.PublicKey
 import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
@@ -8,10 +9,10 @@ import org.bson.BsonBinaryWriter
 import org.bson.BsonType
 import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 internal data class PrivateThirdPartyEndpointData(
-    val identityCertificate: Certificate,
+    val identityKey: PublicKey,
     val authBundle: AuthorizationBundle
 ) {
     @Throws(PersistenceException::class)
@@ -21,8 +22,8 @@ internal data class PrivateThirdPartyEndpointData(
                 BsonBinaryWriter(output).use { w ->
                     w.writeStartDocument()
                     w.writeBinaryData(
-                        "identity_certificate",
-                        BsonBinary(identityCertificate.serialize())
+                        "identity_key",
+                        BsonBinary(identityKey.encoded)
                     )
                     w.writeBinaryData("pda", BsonBinary(authBundle.pdaSerialized))
                     w.writeStartArray("pda_chain")
@@ -45,9 +46,8 @@ internal data class PrivateThirdPartyEndpointData(
                 BsonBinaryReader(ByteBuffer.wrap(byteArray)).use { r ->
                     r.readStartDocument()
 
-                    val identityCertificate = Certificate.deserialize(
-                        r.readBinaryData("identity_certificate").data
-                    )
+                    val identityKey =
+                        r.readBinaryData("identity_key").data.deserializeRSAPublicKey()
                     val pdaSerialized = r.readBinaryData("pda").data
 
                     val pdaChainSerialized = mutableListOf<ByteArray>()
@@ -60,7 +60,7 @@ internal data class PrivateThirdPartyEndpointData(
 
                     r.readEndDocument()
                     PrivateThirdPartyEndpointData(
-                        identityCertificate,
+                        identityKey,
                         AuthorizationBundle(pdaSerialized, pdaChainSerialized)
                     )
                 }

@@ -68,7 +68,7 @@ internal class StorageImplTest {
     @Test
     fun privateThirdParty() = runBlockingTest {
         val data = PrivateThirdPartyEndpointData(
-            PDACertPath.PRIVATE_ENDPOINT,
+            KeyPairSet.PRIVATE_ENDPOINT.public,
             AuthorizationBundle(
                 PDACertPath.PDA.serialize(),
                 listOf(PDACertPath.PRIVATE_GW.serialize())
@@ -77,7 +77,7 @@ internal class StorageImplTest {
         val rawData = data.serialize()
 
         storage.privateThirdParty.testGet(rawData, data) { a, b ->
-            a.identityCertificate.subjectPublicKey == b.identityCertificate.subjectPublicKey &&
+            a.identityKey == b.identityKey &&
                 a.authBundle.pdaSerialized.contentEquals(b.authBundle.pdaSerialized) &&
                 a.authBundle.pdaChainSerialized.mapIndexed { index, bytes ->
                     bytes.contentEquals(b.authBundle.pdaChainSerialized[index])
@@ -93,7 +93,7 @@ internal class StorageImplTest {
     fun publicThirdParty() = runBlockingTest {
         val data = PublicThirdPartyEndpointData(
             "example.org",
-            PDACertPath.PUBLIC_GW
+            KeyPairSet.PUBLIC_GW.public
         )
         val rawData = data.serialize()
 
