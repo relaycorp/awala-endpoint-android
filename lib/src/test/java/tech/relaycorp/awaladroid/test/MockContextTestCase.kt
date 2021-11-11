@@ -15,7 +15,7 @@ import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
 
 internal abstract class MockContextTestCase {
     protected open val gatewayClient: GatewayClientImpl = mock()
-    protected val storage: StorageImpl = mockStorage()
+    protected open val storage: StorageImpl = mockStorage()
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
 
