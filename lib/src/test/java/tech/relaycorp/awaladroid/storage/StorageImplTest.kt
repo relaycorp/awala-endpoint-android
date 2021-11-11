@@ -23,36 +23,6 @@ internal class StorageImplTest {
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun identityKeyPair() = runBlockingTest {
-        storage.identityKeyPair.testGet(
-            KeyPairSet.PRIVATE_GW.private.encoded,
-            KeyPairSet.PRIVATE_GW
-        ) { a, b -> a.private == b.private && a.public == b.public }
-        storage.identityKeyPair.testSet(
-            KeyPairSet.PRIVATE_GW,
-            KeyPairSet.PRIVATE_GW.private.encoded
-        )
-        storage.identityKeyPair.testDelete()
-        storage.identityKeyPair.testDeleteAll()
-        storage.identityKeyPair.testList()
-    }
-
-    @Test
-    fun identityCertificate() = runBlockingTest {
-        storage.identityCertificate.testGet(
-            PDACertPath.PRIVATE_ENDPOINT.serialize(),
-            PDACertPath.PRIVATE_ENDPOINT
-        )
-        storage.identityCertificate.testSet(
-            PDACertPath.PRIVATE_ENDPOINT,
-            PDACertPath.PRIVATE_ENDPOINT.serialize()
-        )
-        storage.identityCertificate.testDelete()
-        storage.identityCertificate.testDeleteAll()
-        storage.identityCertificate.testList()
-    }
-
-    @Test
     fun gatewayCertificate() = runBlockingTest {
         storage.gatewayCertificate.testGet(
             PDACertPath.PRIVATE_ENDPOINT.serialize(),

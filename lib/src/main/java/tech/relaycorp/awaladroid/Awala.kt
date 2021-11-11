@@ -39,16 +39,10 @@ public object Awala {
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
         )
-
-        storage = this.context!!.storage
     }
-
-    internal lateinit var storage: StorageImpl
 
     internal var context: AwalaContext? = null
     internal fun getContextOrThrow(): AwalaContext = context ?: throw SetupPendingException()
 }
-
-internal val Storage get() = Awala.storage
 
 public class SetupPendingException : AwaladroidException("Awala.setUp() has not been called")
