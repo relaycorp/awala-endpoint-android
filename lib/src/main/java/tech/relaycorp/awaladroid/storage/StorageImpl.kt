@@ -1,12 +1,10 @@
 package tech.relaycorp.awaladroid.storage
 
 import androidx.annotation.VisibleForTesting
-import java.security.KeyPair
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.storage.persistence.Persistence
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.wrappers.deserializeRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 // TODO: Test
@@ -14,20 +12,6 @@ internal class StorageImpl
 constructor(
     persistence: Persistence
 ) {
-
-    internal val identityKeyPair: Module<KeyPair> = Module(
-        persistence = persistence,
-        prefix = "id_key_pair_",
-        serializer = { it.private.encoded },
-        deserializer = ByteArray::deserializeRSAKeyPair
-    )
-
-    internal val identityCertificate: Module<Certificate> = Module(
-        persistence = persistence,
-        prefix = "id_certificate_",
-        serializer = { it.serialize() },
-        deserializer = { Certificate.deserialize(it) }
-    )
 
     internal val gatewayCertificate: SingleModule<Certificate> = SingleModule(
         persistence = persistence,
