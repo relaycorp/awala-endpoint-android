@@ -65,8 +65,7 @@ dependencies {
 
   // Awala
   implementation 'tech.relaycorp:awala:1.58.0'
-//  implementation 'tech.relaycorp:awala-keystore-file:1.3.2'
-    implementation 'com.github.relaycorp:awala-keystore-file-jvm:privkeystore-no-flush-SNAPSHOT'
+  implementation 'tech.relaycorp:awala-keystore-file:1.3.2'
   implementation 'tech.relaycorp:poweb:1.5.24'
   testImplementation 'tech.relaycorp:awala-testing:1.3.2'
 
