@@ -11,9 +11,9 @@ internal class AndroidPrivateKeyStore(
     root: FileKeystoreRoot,
     private val context: Context
 ) : FilePrivateKeyStore(root) {
-    override fun makeEncryptedInputStream(file: File) = file.inputStream()
+    override fun makeEncryptedInputStream(file: File) = buildEncryptedFile(file).openFileInput()
 
-    override fun makeEncryptedOutputStream(file: File) = file.outputStream()
+    override fun makeEncryptedOutputStream(file: File) = buildEncryptedFile(file).openFileOutput()
 
     private fun buildEncryptedFile(file: File) =
         EncryptedFile.Builder(
