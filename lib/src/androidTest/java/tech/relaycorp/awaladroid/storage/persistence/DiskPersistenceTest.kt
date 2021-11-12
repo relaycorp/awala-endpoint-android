@@ -10,7 +10,6 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -18,12 +17,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-internal class EncryptedDiskPersistenceTest {
+internal class DiskPersistenceTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val coroutineScope = TestCoroutineScope()
     private val rootFolder = "relaydroid_test"
-    private val subject = EncryptedDiskPersistence(
+    private val subject = DiskPersistence(
         context,
         coroutineScope.coroutineContext,
         rootFolder
@@ -58,7 +57,7 @@ internal class EncryptedDiskPersistenceTest {
     }
 
     @Test
-    fun setEncryptsContent() = coroutineScope.runBlockingTest {
+    fun setContent() = coroutineScope.runBlockingTest {
         val location = "file"
         val data = "test"
         subject.set(location, data.toByteArray())
@@ -66,7 +65,7 @@ internal class EncryptedDiskPersistenceTest {
             File(context.filesDir, "$rootFolder${File.separator}$location")
                 .readBytes()
                 .toString(Charset.defaultCharset())
-        assertNotEquals(data, fileContent)
+        assertEquals(data, fileContent)
     }
 
     @Test
