@@ -3,47 +3,54 @@ package tech.relaycorp.awaladroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
 import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Before
-import org.junit.Rule
+import org.junit.Assert.assertThrows
 import org.junit.Test
-import org.junit.rules.ExpectedException
-import tech.relaycorp.awaladroid.Awala
-import tech.relaycorp.awaladroid.storage.StorageImpl
-import tech.relaycorp.awaladroid.storage.mockStorage
+import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
+import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
-import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.PublicNodeConnectionParams
+import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.wrappers.privateAddress
 
-internal class PublicThirdPartyEndpointTest {
+internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
+    private val publicAddress = "example.org"
 
-    private lateinit var storage: StorageImpl
+    @Test
+    fun privateAddress() {
+        val identityKey = KeyPairSet.PDA_GRANTEE.public
+        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
+            publicAddress,
+            identityKey,
+        )
 
-    @Rule
-    @JvmField
-    val expectedException: ExpectedException = ExpectedException.none()
+        assertEquals(identityKey.privateAddress, thirdPartyEndpoint.privateAddress)
+    }
 
-    @Before
-    fun setUp() {
-        storage = mockStorage().also { Awala.storage = it }
+    @Test
+    fun address() {
+        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
+            publicAddress,
+            KeyPairSet.PDA_GRANTEE.public,
+        )
+
+        assertEquals("https://$publicAddress", thirdPartyEndpoint.address)
     }
 
     @Test
     fun load_successful() = runBlockingTest {
         val privateAddress = UUID.randomUUID().toString()
-        val publicAddress = "example.org"
         whenever(storage.publicThirdParty.get(any()))
-            .thenReturn(PublicThirdPartyEndpointData(publicAddress, PDACertPath.PDA))
+            .thenReturn(PublicThirdPartyEndpointData(publicAddress, KeyPairSet.PDA_GRANTEE.public))
 
         val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
         assertEquals(publicAddress, endpoint.publicAddress)
-        assertEquals("https://$publicAddress", endpoint.address)
-        assertEquals(PDACertPath.PDA, endpoint.identityCertificate)
+        assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
     }
 
     @Test
@@ -54,62 +61,70 @@ internal class PublicThirdPartyEndpointTest {
     }
 
     @Test
-    fun import_successful() = runBlockingTest {
-        val publicAddress = "example.org"
-        with(PublicThirdPartyEndpoint.import(publicAddress, PDACertPath.PDA.serialize())) {
-            assertEquals(publicAddress, this.publicAddress)
-            assertEquals(PDACertPath.PDA, identityCertificate)
-            assertEquals("https://$publicAddress", this.address)
-        }
+    fun import_validConnectionParams() = runBlockingTest {
+        val connectionParams = PublicNodeConnectionParams(
+            publicAddress,
+            KeyPairSet.PDA_GRANTEE.public,
+            SessionKeyPair.generate().sessionKey
+        )
 
+        val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
+
+        assertEquals(connectionParams.publicAddress, thirdPartyEndpoint.publicAddress)
+        assertEquals(connectionParams.identityKey, thirdPartyEndpoint.identityKey)
         verify(storage.publicThirdParty).set(
             PDACertPath.PDA.subjectPrivateAddress,
             PublicThirdPartyEndpointData(
-                publicAddress,
-                PDACertPath.PDA
+                connectionParams.publicAddress,
+                connectionParams.identityKey
             )
         )
+        sessionPublicKeystore.retrieve(thirdPartyEndpoint.privateAddress)
     }
 
     @Test
-    fun import_malformedCertificate() = runBlockingTest {
-        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
-        expectedException.expectMessage("Malformed identity certificate")
+    fun import_invalidConnectionParams() = runBlockingTest {
+        val exception = assertThrows(InvalidThirdPartyEndpoint::class.java) {
+            runBlockingTest {
+                PublicThirdPartyEndpoint.import(
+                    "malformed".toByteArray()
+                )
+            }
+        }
 
-        PublicThirdPartyEndpoint.import("example.org", "malformed".toByteArray())
-    }
-
-    @Test
-    fun import_invalidCertificate() = runBlockingTest {
-        val cert = issueEndpointCertificate(
-            subjectPublicKey = KeyPairSet.PRIVATE_GW.public,
-            issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
-            validityStartDate = ZonedDateTime.now().minusDays(2),
-            validityEndDate = ZonedDateTime.now().minusDays(1)
-        )
-
-        expectedException.expect(InvalidThirdPartyEndpoint::class.java)
-        expectedException.expectMessage("Invalid identity certificate")
-
-        PublicThirdPartyEndpoint.import("example.org", cert.serialize())
+        assertEquals("Connection params serialization is malformed", exception.message)
+        assertEquals(0, sessionPublicKeystore.keys.size)
     }
 
     @Test
     fun dataSerialization() {
-        val publicAddress = "example.org"
-        val certificate = PDACertPath.PDA
+        val identityKey = KeyPairSet.PDA_GRANTEE.public
 
-        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, certificate).serialize()
+        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, identityKey).serialize()
         val data = PublicThirdPartyEndpointData.deserialize(dataSerialized)
 
         assertEquals(publicAddress, data.publicAddress)
-        assertEquals(certificate, data.identityCertificate)
+        assertEquals(identityKey, data.identityKey)
     }
 
     @Test
     fun delete() = runBlockingTest {
-        val endpoint = ThirdPartyEndpointFactory.buildPublic()
-        endpoint.delete()
-        verify(storage.publicThirdParty).delete(endpoint.privateAddress)
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+        val ownSessionKeyPair = SessionKeyPair.generate()
+        privateKeyStore.saveSessionKey(
+            ownSessionKeyPair.privateKey,
+            ownSessionKeyPair.sessionKey.keyId,
+            firstPartyEndpoint.privateAddress,
+            thirdPartyEndpoint.privateAddress
+        )
+        val peerSessionKey = SessionKeyPair.generate().sessionKey
+        sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.privateAddress)
+
+        thirdPartyEndpoint.delete()
+
+        verify(storage.publicThirdParty).delete(thirdPartyEndpoint.privateAddress)
+        assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.privateAddress]!!.size)
+        assertEquals(0, sessionPublicKeystore.keys.size)
     }
 }

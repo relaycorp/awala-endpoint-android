@@ -1,17 +1,18 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import java.nio.ByteBuffer
+import java.security.PublicKey
 import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
 import org.bson.BsonBinaryWriter
 import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 internal data class PublicThirdPartyEndpointData(
     val publicAddress: String,
-    val identityCertificate: Certificate
+    val identityKey: PublicKey,
 ) {
     @Throws(PersistenceException::class)
     fun serialize(): ByteArray =
@@ -21,8 +22,8 @@ internal data class PublicThirdPartyEndpointData(
                     w.writeStartDocument()
                     w.writeString("public_address", publicAddress)
                     w.writeBinaryData(
-                        "identity_certificate",
-                        BsonBinary(identityCertificate.serialize())
+                        "identity_key",
+                        BsonBinary(identityKey.encoded)
                     )
                     w.writeEndDocument()
                 }
@@ -40,9 +41,7 @@ internal data class PublicThirdPartyEndpointData(
                     r.readStartDocument()
                     PublicThirdPartyEndpointData(
                         r.readString("public_address"),
-                        Certificate.deserialize(
-                            r.readBinaryData("identity_certificate").data
-                        )
+                        r.readBinaryData("identity_key").data.deserializeRSAPublicKey()
                     ).also {
                         r.readEndDocument()
                     }

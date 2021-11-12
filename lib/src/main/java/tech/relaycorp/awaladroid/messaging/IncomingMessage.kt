@@ -1,5 +1,7 @@
 package tech.relaycorp.awaladroid.messaging
 
+import tech.relaycorp.awaladroid.Awala
+import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
@@ -32,7 +34,8 @@ public class IncomingMessage internal constructor(
             UnknownThirdPartyEndpointException::class,
             PersistenceException::class,
             EnvelopedDataException::class,
-            InvalidMessageException::class
+            InvalidMessageException::class,
+            SetupPendingException::class,
         )
         internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage {
             val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)
@@ -49,7 +52,8 @@ public class IncomingMessage internal constructor(
                     "for first party endpoint ${parcel.recipientAddress}"
             )
 
-            val serviceMessage = parcel.unwrapPayload(recipientEndpoint.keyPair.private)
+            val context = Awala.getContextOrThrow()
+            val serviceMessage = context.endpointManager.unwrapMessagePayload(parcel)
             return IncomingMessage(
                 type = serviceMessage.type,
                 content = serviceMessage.content,

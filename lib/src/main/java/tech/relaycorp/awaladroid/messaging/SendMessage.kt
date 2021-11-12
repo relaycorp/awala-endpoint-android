@@ -25,7 +25,7 @@ internal class SendMessage(
     )
     suspend fun send(message: OutgoingMessage) {
         withContext(coroutineContext) {
-            val senderPrivateKey = message.senderEndpoint.keyPair.private
+            val senderPrivateKey = message.senderEndpoint.identityPrivateKey
 
             return@withContext try {
                 pdcClientBuilder().use {

@@ -1,15 +1,17 @@
 package tech.relaycorp.awaladroid.endpoint
 
-import java.security.KeyPair
+import java.security.PrivateKey
 import java.security.PublicKey
 import java.time.ZonedDateTime
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
-import tech.relaycorp.awaladroid.GatewayClient
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
-import tech.relaycorp.awaladroid.Storage
+import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
+import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
+import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
@@ -21,17 +23,17 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
  */
 public class FirstPartyEndpoint
 internal constructor(
-    internal val keyPair: KeyPair,
-    identityCertificate: Certificate,
+    internal val identityPrivateKey: PrivateKey,
+    internal val identityCertificate: Certificate,
     internal val gatewayCertificate: Certificate
-) : Endpoint(identityCertificate) {
+) : Endpoint(identityCertificate.subjectPrivateAddress) {
 
     public override val address: String get() = privateAddress
 
     /**
      * The RSA public key of the endpoint.
      */
-    public val publicKey: PublicKey get() = keyPair.public
+    public val publicKey: PublicKey get() = identityCertificate.subjectPublicKey
 
     internal val pdaChain: List<Certificate> get() = listOf(identityCertificate, gatewayCertificate)
 
@@ -44,7 +46,7 @@ internal constructor(
         expiryDate: ZonedDateTime
     ): AuthorizationBundle =
         issueAuthorization(
-            thirdPartyEndpoint.identityCertificate.subjectPublicKey,
+            thirdPartyEndpoint.identityKey,
             expiryDate
         )
 
@@ -74,7 +76,7 @@ internal constructor(
     ): AuthorizationBundle {
         val pda = issueDeliveryAuthorization(
             subjectPublicKey = thirdPartyEndpointPublicKey,
-            issuerPrivateKey = keyPair.private,
+            issuerPrivateKey = identityPrivateKey,
             validityEndDate = expiryDate,
             issuerCertificate = identityCertificate
         )
@@ -87,17 +89,10 @@ internal constructor(
     /**
      * Delete the endpoint.
      */
-    @Throws(PersistenceException::class)
+    @Throws(PersistenceException::class, SetupPendingException::class)
     public suspend fun delete() {
-        Storage.identityKeyPair.delete(address)
-        Storage.identityCertificate.delete(address)
-    }
-
-    @Throws(PersistenceException::class)
-    private suspend fun store() {
-        Storage.identityKeyPair.set(address, keyPair)
-        Storage.identityCertificate.set(address, identityCertificate)
-        Storage.gatewayCertificate.set(gatewayCertificate)
+        val context = Awala.getContextOrThrow()
+        context.privateKeyStore.deleteKeys(privateAddress)
     }
 
     public companion object {
@@ -107,35 +102,53 @@ internal constructor(
         @Throws(
             RegistrationFailedException::class,
             GatewayProtocolException::class,
-            PersistenceException::class
+            PersistenceException::class,
+            SetupPendingException::class,
         )
         public suspend fun register(): FirstPartyEndpoint {
+            val context = Awala.getContextOrThrow()
             val keyPair = generateRSAKeyPair()
-            val registration = GatewayClient.registerEndpoint(keyPair)
+
+            val registration = context.gatewayClient.registerEndpoint(keyPair)
             val endpoint = FirstPartyEndpoint(
-                keyPair,
+                keyPair.private,
                 registration.privateNodeCertificate,
                 registration.gatewayCertificate
             )
-            endpoint.store()
+
+            try {
+                context.privateKeyStore.saveIdentityKey(
+                    keyPair.private,
+                    endpoint.identityCertificate,
+                )
+            } catch (exc: KeyStoreBackendException) {
+                throw PersistenceException("Failed to save identity key", exc)
+            }
+
+            context.storage.gatewayCertificate.set(endpoint.gatewayCertificate)
+
             return endpoint
         }
 
         /**
          * Load an endpoint by its address.
          */
-        @Throws(PersistenceException::class)
+        @Throws(PersistenceException::class, SetupPendingException::class)
         public suspend fun load(privateAddress: String): FirstPartyEndpoint? {
-            return Storage.identityKeyPair.get(privateAddress)?.let { keyPair ->
-                Storage.identityCertificate.get(privateAddress)?.let { certificate ->
-                    Storage.gatewayCertificate.get()?.let { gwCertificate ->
-                        FirstPartyEndpoint(
-                            keyPair,
-                            certificate,
-                            gwCertificate
-                        )
-                    }
-                }
+            val context = Awala.getContextOrThrow()
+            val identityKeyPair = try {
+                context.privateKeyStore.retrieveIdentityKey(privateAddress)
+            } catch (exc: MissingKeyException) {
+                return null
+            } catch (exc: KeyStoreBackendException) {
+                throw PersistenceException("Failed to load endpoint", exc)
+            }
+            return context.storage.gatewayCertificate.get()?.let { gwCertificate ->
+                FirstPartyEndpoint(
+                    identityKeyPair.privateKey,
+                    identityKeyPair.certificate,
+                    gwCertificate
+                )
             }
         }
     }

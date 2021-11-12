@@ -1,8 +1,17 @@
 package tech.relaycorp.awaladroid.endpoint
 
+import java.security.PublicKey
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
-import tech.relaycorp.awaladroid.Storage
+import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.InvalidNodeConnectionParams
+import tech.relaycorp.relaynet.PublicNodeConnectionParams
+import tech.relaycorp.relaynet.SessionKey
+import tech.relaycorp.relaynet.keystores.MissingKeyException
+import tech.relaycorp.relaynet.wrappers.KeyException
+import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
+import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
@@ -10,14 +19,18 @@ import tech.relaycorp.relaynet.wrappers.x509.CertificateException
  * An endpoint owned by a different instance of this app, or a different app in the same service.
  */
 public sealed class ThirdPartyEndpoint(
-    identityCertificate: Certificate
-) : Endpoint(identityCertificate) {
+    internal val identityKey: PublicKey
+) : Endpoint(identityKey.privateAddress) {
 
     /**
      * Delete the endpoint.
      */
     @Throws(PersistenceException::class)
-    public abstract suspend fun delete()
+    public open suspend fun delete() {
+        val context = Awala.getContextOrThrow()
+        context.privateKeyStore.deleteSessionKeysForPeer(privateAddress)
+        context.sessionPublicKeyStore.delete(privateAddress)
+    }
 
     internal companion object {
         @Throws(PersistenceException::class)
@@ -38,33 +51,36 @@ public sealed class ThirdPartyEndpoint(
  */
 public class PrivateThirdPartyEndpoint internal constructor(
     public val firstPartyEndpointAddress: String,
-    identityCertificate: Certificate,
+    identityKey: PublicKey,
     internal val pda: Certificate,
     internal val pdaChain: List<Certificate>
-) : ThirdPartyEndpoint(identityCertificate) {
+) : ThirdPartyEndpoint(identityKey) {
 
     override val address: String get() = privateAddress
     private val storageKey = "${firstPartyEndpointAddress}_$privateAddress"
 
-    @Throws(PersistenceException::class)
+    @Throws(PersistenceException::class, SetupPendingException::class)
     override suspend fun delete() {
-        Storage.privateThirdParty.delete(storageKey)
+        val context = Awala.getContextOrThrow()
+        context.storage.privateThirdParty.delete(storageKey)
+        super.delete()
     }
 
     public companion object {
         /**
          * Load an endpoint.
          */
-        @Throws(PersistenceException::class)
+        @Throws(PersistenceException::class, SetupPendingException::class)
         public suspend fun load(
             thirdPartyAddress: String,
             firstPartyAddress: String
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
-            return Storage.privateThirdParty.get(key)?.let { data ->
+            val storage = Awala.getContextOrThrow().storage
+            return storage.privateThirdParty.get(key)?.let { data ->
                 PrivateThirdPartyEndpoint(
                     firstPartyAddress,
-                    data.identityCertificate,
+                    data.identityKey,
                     Certificate.deserialize(data.authBundle.pdaSerialized),
                     data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
                 )
@@ -77,28 +93,37 @@ public class PrivateThirdPartyEndpoint internal constructor(
         @Throws(
             PersistenceException::class,
             UnknownFirstPartyEndpointException::class,
-            InvalidAuthorizationException::class
+            InvalidAuthorizationException::class,
+            InvalidThirdPartyEndpoint::class,
+            SetupPendingException::class,
         )
         public suspend fun import(
-            identityCertificate: ByteArray,
-            authBundle: AuthorizationBundle
+            identityKeySerialized: ByteArray,
+            authBundle: AuthorizationBundle,
+            sessionKey: SessionKey,
         ): PrivateThirdPartyEndpoint {
+            val context = Awala.getContextOrThrow()
 
-            val identityCertificateDeserialized = try {
-                Certificate.deserialize(identityCertificate)
-            } catch (exp: CertificateException) {
-                throw InvalidAuthorizationException("Invalid identity certificate", exp)
+            val identityKey = try {
+                identityKeySerialized.deserializeRSAPublicKey()
+            } catch (exp: KeyException) {
+                throw InvalidThirdPartyEndpoint(
+                    "Identity key is not a well-formed RSA public key",
+                    exp,
+                )
             }
 
             val pda = Certificate.deserialize(authBundle.pdaSerialized)
             val pdaChain = authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
 
             val firstPartyAddress = pda.subjectPrivateAddress
-
-            Storage.identityCertificate.get(firstPartyAddress)
-                ?: throw UnknownFirstPartyEndpointException(
-                    "First party endpoint $firstPartyAddress not registered"
+            try {
+                context.privateKeyStore.retrieveIdentityKey(firstPartyAddress)
+            } catch (exc: MissingKeyException) {
+                throw UnknownFirstPartyEndpointException(
+                    "First-party endpoint $firstPartyAddress is not registered"
                 )
+            }
 
             try {
                 pda.validate()
@@ -113,15 +138,17 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
             val endpoint = PrivateThirdPartyEndpoint(
                 firstPartyAddress,
-                identityCertificateDeserialized,
+                identityKey,
                 pda,
                 pdaChain
             )
 
-            Storage.privateThirdParty.set(
+            context.storage.privateThirdParty.set(
                 endpoint.storageKey,
-                PrivateThirdPartyEndpointData(identityCertificateDeserialized, authBundle)
+                PrivateThirdPartyEndpointData(identityKey, authBundle)
             )
+
+            context.sessionPublicKeyStore.save(sessionKey, endpoint.privateAddress)
 
             return endpoint
         }
@@ -135,57 +162,68 @@ public class PrivateThirdPartyEndpoint internal constructor(
  */
 public class PublicThirdPartyEndpoint internal constructor(
     public val publicAddress: String,
-    identityCertificate: Certificate
-) : ThirdPartyEndpoint(identityCertificate) {
+    identityKey: PublicKey
+) : ThirdPartyEndpoint(identityKey) {
 
     override val address: String get() = "https://$publicAddress"
 
-    @Throws(PersistenceException::class)
+    @Throws(PersistenceException::class, SetupPendingException::class)
     override suspend fun delete() {
-        Storage.publicThirdParty.delete(privateAddress)
+        val context = Awala.getContextOrThrow()
+        context.storage.publicThirdParty.delete(privateAddress)
+        super.delete()
     }
 
     public companion object {
         /**
          * Load an endpoint by its [privateAddress].
          */
-        @Throws(PersistenceException::class)
-        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? =
-            Storage.publicThirdParty.get(privateAddress)?.let {
-                PublicThirdPartyEndpoint(it.publicAddress, it.identityCertificate)
+        @Throws(PersistenceException::class, SetupPendingException::class)
+        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? {
+            val storage = Awala.getContextOrThrow().storage
+            return storage.publicThirdParty.get(privateAddress)?.let {
+                PublicThirdPartyEndpoint(it.publicAddress, it.identityKey)
             }
+        }
 
         /**
-         * Import the public endpoint at [publicAddress].
+         * Import the public endpoint using the specified [connectionParamsSerialized].
          *
-         * @param publicAddress The public address of the endpoint (e.g., `ping.awala.services`).
-         * @param identityCertificateSerialized The DER serialization of identity certificate of the
-         * endpoint.
+         * @param connectionParamsSerialized The DER serialization of the connection parameters.
          */
         @Throws(
             PersistenceException::class,
-            InvalidThirdPartyEndpoint::class
+            InvalidThirdPartyEndpoint::class,
+            SetupPendingException::class,
         )
         public suspend fun import(
-            publicAddress: String,
-            identityCertificateSerialized: ByteArray
+            connectionParamsSerialized: ByteArray
         ): PublicThirdPartyEndpoint {
-            val identityCertificate = try {
-                Certificate.deserialize(identityCertificateSerialized)
-            } catch (exc: CertificateException) {
-                throw InvalidThirdPartyEndpoint("Malformed identity certificate", exc)
+            val context = Awala.getContextOrThrow()
+            val connectionParams = try {
+                PublicNodeConnectionParams.deserialize(connectionParamsSerialized)
+            } catch (exc: InvalidNodeConnectionParams) {
+                throw InvalidThirdPartyEndpoint(
+                    "Connection params serialization is malformed",
+                    exc,
+                )
             }
-            try {
-                identityCertificate.validate()
-            } catch (exc: CertificateException) {
-                throw InvalidThirdPartyEndpoint("Invalid identity certificate", exc)
-            }
-            val thirdPartyAddress = identityCertificate.subjectPrivateAddress
-            Storage.publicThirdParty.set(
-                thirdPartyAddress,
-                PublicThirdPartyEndpointData(publicAddress, identityCertificate)
+            val peerPrivateAddress = connectionParams.identityKey.privateAddress
+            context.storage.publicThirdParty.set(
+                peerPrivateAddress,
+                PublicThirdPartyEndpointData(
+                    connectionParams.publicAddress,
+                    connectionParams.identityKey
+                )
             )
-            return PublicThirdPartyEndpoint(publicAddress, identityCertificate)
+            context.sessionPublicKeyStore.save(
+                connectionParams.sessionKey,
+                peerPrivateAddress,
+            )
+            return PublicThirdPartyEndpoint(
+                connectionParams.publicAddress,
+                connectionParams.identityKey,
+            )
         }
     }
 }

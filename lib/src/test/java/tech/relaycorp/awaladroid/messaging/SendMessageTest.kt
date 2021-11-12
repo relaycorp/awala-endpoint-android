@@ -7,6 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.test.MessageFactory
+import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerConnectionException
@@ -15,7 +16,7 @@ import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pdc.DeliverParcelCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 
-internal class SendMessageTest {
+internal class SendMessageTest : MockContextTestCase() {
 
     private lateinit var pdcClient: MockPDCClient
     private val coroutineScope = TestCoroutineScope()
@@ -25,7 +26,8 @@ internal class SendMessageTest {
     fun deliverParcelToPublicEndpoint() = coroutineScope.runBlockingTest {
         val deliverParcelCall = DeliverParcelCall()
         pdcClient = MockPDCClient(deliverParcelCall)
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
         subject.send(message)
 
@@ -38,7 +40,8 @@ internal class SendMessageTest {
     fun deliverParcelSigner() = coroutineScope.runBlockingTest {
         val deliverParcelCall = DeliverParcelCall()
         pdcClient = MockPDCClient(deliverParcelCall)
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
         subject.send(message)
 
@@ -55,7 +58,9 @@ internal class SendMessageTest {
         val deliverParcelCall = DeliverParcelCall(ServerConnectionException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
-        subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+        subject.send(message)
     }
 
     @Test(expected = GatewayProtocolException::class)
@@ -63,7 +68,9 @@ internal class SendMessageTest {
         val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
-        subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+        subject.send(message)
     }
 
     @Test(expected = RejectedMessageException::class)
@@ -71,6 +78,8 @@ internal class SendMessageTest {
         val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
-        subject.send(MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC))
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+        subject.send(message)
     }
 }

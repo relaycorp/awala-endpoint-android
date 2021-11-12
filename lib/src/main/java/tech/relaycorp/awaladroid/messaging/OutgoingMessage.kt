@@ -2,6 +2,7 @@ package tech.relaycorp.awaladroid.messaging
 
 import java.time.Duration
 import java.time.ZonedDateTime
+import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
@@ -70,9 +71,15 @@ private constructor(
         serviceMessageContent: ByteArray
     ): Parcel {
         val serviceMessage = ServiceMessage(serviceMessageType, serviceMessageContent)
+        val endpointManager = Awala.getContextOrThrow().endpointManager
+        val payload = endpointManager.wrapMessagePayload(
+            serviceMessage,
+            recipientEndpoint.privateAddress,
+            senderEndpoint.privateAddress,
+        )
         return Parcel(
             recipientAddress = recipientEndpoint.address,
-            payload = serviceMessage.encrypt(recipientEndpoint.identityCertificate),
+            payload = payload,
             senderCertificate = getSenderCertificate(),
             messageId = parcelId.value,
             creationDate = parcelCreationDate,
@@ -89,8 +96,8 @@ private constructor(
 
     private fun getSelfSignedSenderCertificate(): Certificate =
         issueEndpointCertificate(
-            senderEndpoint.keyPair.public,
-            senderEndpoint.keyPair.private,
+            senderEndpoint.identityCertificate.subjectPublicKey,
+            senderEndpoint.identityPrivateKey,
             validityStartDate = parcelCreationDate,
             validityEndDate = parcelExpiryDate
         )

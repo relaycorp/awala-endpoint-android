@@ -1,7 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
 import java.util.UUID
 import kotlinx.coroutines.flow.collect
@@ -12,11 +10,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayProtocolException
-import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
-import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
-import tech.relaycorp.awaladroid.storage.mockStorage
+import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
+import tech.relaycorp.awaladroid.storage.StorageImpl
+import tech.relaycorp.awaladroid.test.EndpointChannel
+import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.MockPersistence
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
@@ -25,41 +24,45 @@ import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.CargoMessageSet
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
+import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pdc.CollectParcelsCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import tech.relaycorp.relaynet.wrappers.generateECDHKeyPair
 import tech.relaycorp.relaynet.wrappers.privateAddress
 
-internal class ReceiveMessagesTest {
+internal class ReceiveMessagesTest : MockContextTestCase() {
 
     private lateinit var pdcClient: MockPDCClient
     private val subject = ReceiveMessages { pdcClient }
-    private val storage = mockStorage()
+
+    private val persistence = MockPersistence()
+    override val storage = StorageImpl(persistence)
 
     private val serviceMessage = ServiceMessage("type", "content".toByteArray())
 
     @Before
+    fun resetPersistence() = persistence.reset()
+
+    @Before
     fun setUp() {
         runBlockingTest {
-            Awala.storage = storage
-            whenever(storage.identityCertificate.list()).thenReturn(listOf("1234"))
-            whenever(storage.identityCertificate.get(any()))
-                .thenReturn(PDACertPath.PRIVATE_ENDPOINT)
-            whenever(storage.identityKeyPair.get(any())).thenReturn(KeyPairSet.PRIVATE_ENDPOINT)
-            whenever(storage.gatewayCertificate.get()).thenReturn(PDACertPath.PRIVATE_GW)
-            whenever(Awala.storage.privateThirdParty.get(any())).thenReturn(
-                PrivateThirdPartyEndpointData(
-                    PDACertPath.PRIVATE_ENDPOINT,
-                    AuthorizationBundle(PDACertPath.PRIVATE_ENDPOINT.serialize(), emptyList())
-                )
-            )
+            storage.gatewayCertificate.set(PDACertPath.PRIVATE_GW)
         }
     }
 
     @Test
     fun receiveParcelSuccessfully() = runBlockingTest {
-        val parcel = buildParcel()
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        storage.publicThirdParty.set(
+            channel.thirdPartyEndpoint.privateAddress,
+            PublicThirdPartyEndpointData(
+                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.identityKey,
+            )
+        )
+        val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
@@ -73,7 +76,15 @@ internal class ReceiveMessagesTest {
 
     @Test
     fun collectParcelsWithCorrectNonceSigners() = runBlockingTest {
-        val parcel = buildParcel()
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        storage.publicThirdParty.set(
+            channel.thirdPartyEndpoint.privateAddress,
+            PublicThirdPartyEndpointData(
+                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.identityKey,
+            )
+        )
+        val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
@@ -157,8 +168,19 @@ internal class ReceiveMessagesTest {
 
     @Test
     fun receiveValidParcel_invalidPayloadEncryption() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        storage.publicThirdParty.set(
+            channel.thirdPartyEndpoint.privateAddress,
+            PublicThirdPartyEndpointData(
+                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.identityKey,
+            )
+        )
         val parcelPayload = serviceMessage.encrypt(
-            PDACertPath.PUBLIC_GW // Invalid encryption key
+            channel.firstPartySessionKeyPair.sessionKey.copy(
+                publicKey = generateECDHKeyPair().public // Invalid encryption key
+            ),
+            channel.thirdPartySessionKeyPair,
         )
         val parcel = Parcel(
             recipientAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,
@@ -181,9 +203,20 @@ internal class ReceiveMessagesTest {
     @Test
     fun receiveValidParcel_invalidServiceMessage() = runBlockingTest {
         val invalidServiceMessage = CargoMessageSet(emptyArray())
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        storage.publicThirdParty.set(
+            channel.thirdPartyEndpoint.privateAddress,
+            PublicThirdPartyEndpointData(
+                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.identityKey,
+            )
+        )
         val parcel = Parcel(
             recipientAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,
-            payload = invalidServiceMessage.encrypt(PDACertPath.PRIVATE_ENDPOINT),
+            payload = invalidServiceMessage.encrypt(
+                channel.firstPartySessionKeyPair.sessionKey,
+                channel.thirdPartySessionKeyPair,
+            ),
             senderCertificate = PDACertPath.PDA,
             senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
         )
@@ -199,9 +232,12 @@ internal class ReceiveMessagesTest {
         assertTrue(ackWasCalled)
     }
 
-    private fun buildParcel() = Parcel(
+    private fun buildParcel(channel: EndpointChannel) = Parcel(
         recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
-        payload = serviceMessage.encrypt(PDACertPath.PRIVATE_ENDPOINT),
+        payload = serviceMessage.encrypt(
+            channel.firstPartySessionKeyPair.sessionKey,
+            channel.thirdPartySessionKeyPair,
+        ),
         senderCertificate = issueDeliveryAuthorization(
             subjectPublicKey = KeyPairSet.PDA_GRANTEE.public,
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,

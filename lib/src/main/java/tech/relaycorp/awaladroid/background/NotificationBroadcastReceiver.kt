@@ -7,7 +7,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import tech.relaycorp.awaladroid.GatewayClient
+import tech.relaycorp.awaladroid.Awala
 
 internal class NotificationBroadcastReceiver : BroadcastReceiver() {
 
@@ -15,7 +15,7 @@ internal class NotificationBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         CoroutineScope(coroutineContext).launch {
-            GatewayClient.checkForNewMessages()
+            Awala.getContextOrThrow().gatewayClient.checkForNewMessages()
         }
     }
 }

@@ -28,6 +28,7 @@ import tech.relaycorp.awaladroid.messaging.RejectedMessageException
 import tech.relaycorp.awaladroid.messaging.SendMessage
 import tech.relaycorp.awaladroid.messaging.SendMessageException
 import tech.relaycorp.awaladroid.test.MessageFactory
+import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.ServerConnectionException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
@@ -39,14 +40,15 @@ import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
 @RunWith(RobolectricTestRunner::class)
-internal class GatewayClientImplTest {
+internal class GatewayClientImplTest : MockContextTestCase() {
 
     private lateinit var pdcClient: MockPDCClient
     private val coroutineScope = TestCoroutineScope()
     private val serviceInteractor = mock<ServiceInteractor>()
     private val sendMessage = mock<SendMessage>()
     private val receiveMessages = mock<ReceiveMessages>()
-    private val subject = GatewayClientImpl(
+
+    override val gatewayClient = GatewayClientImpl(
         coroutineScope.coroutineContext, { serviceInteractor }, { pdcClient }, sendMessage,
         receiveMessages
     )
@@ -55,7 +57,7 @@ internal class GatewayClientImplTest {
 
     @Test
     fun bind_successful() = coroutineScope.runBlockingTest {
-        subject.bind()
+        gatewayClient.bind()
 
         verify(serviceInteractor).bind(
             Awala.GATEWAY_SYNC_ACTION,
@@ -66,8 +68,8 @@ internal class GatewayClientImplTest {
 
     @Test
     fun secondBindIsSkipped() = coroutineScope.runBlockingTest {
-        subject.bind()
-        subject.bind()
+        gatewayClient.bind()
+        gatewayClient.bind()
 
         verify(serviceInteractor, times(1))
             .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
@@ -75,9 +77,9 @@ internal class GatewayClientImplTest {
 
     @Test
     fun reBind_successful() = coroutineScope.runBlockingTest {
-        subject.bind()
-        subject.unbind()
-        subject.bind()
+        gatewayClient.bind()
+        gatewayClient.unbind()
+        gatewayClient.bind()
 
         verify(serviceInteractor, times(2))
             .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
@@ -88,7 +90,7 @@ internal class GatewayClientImplTest {
         whenever(serviceInteractor.bind(any(), any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
 
-        subject.bind()
+        gatewayClient.bind()
     }
 
     // Registration
@@ -103,7 +105,7 @@ internal class GatewayClientImplTest {
         val pnr = PrivateNodeRegistration(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
         pdcClient = MockPDCClient(RegisterNodeCall(Result.success(pnr)))
 
-        val result = subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+        val result = gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
 
         verify(serviceInteractor)
             .bind(
@@ -123,7 +125,7 @@ internal class GatewayClientImplTest {
         whenever(serviceInteractor.sendMessage(any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
 
-        subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+        gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
     }
 
     @Test(expected = RegistrationFailedException::class)
@@ -131,7 +133,7 @@ internal class GatewayClientImplTest {
         whenever(serviceInteractor.sendMessage(any(), any()))
             .thenThrow(ServiceInteractor.SendFailedException(Exception()))
 
-        subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+        gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
     }
 
     @Test(expected = RegistrationFailedException::class)
@@ -145,7 +147,7 @@ internal class GatewayClientImplTest {
             pdcClient =
                 MockPDCClient(RegisterNodeCall(Result.failure(ServerConnectionException(""))))
 
-            subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+            gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
 
     @Test(expected = GatewayProtocolException::class)
@@ -158,7 +160,7 @@ internal class GatewayClientImplTest {
 
             pdcClient = MockPDCClient(RegisterNodeCall(Result.failure(ClientBindingException(""))))
 
-            subject.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+            gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
 
     private fun buildPnra() = PrivateNodeRegistrationAuthorization(
@@ -178,51 +180,56 @@ internal class GatewayClientImplTest {
 
     @Test
     fun sendMessage_successful() = coroutineScope.runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.bind()
-        subject.sendMessage(message)
+        gatewayClient.bind()
+        gatewayClient.sendMessage(message)
     }
 
     @Test(expected = GatewayBindingException::class)
     fun sendMessage_withoutBind() = coroutineScope.runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.sendMessage(message)
+        gatewayClient.sendMessage(message)
     }
 
     @Test(expected = SendMessageException::class)
     fun sendMessage_unsuccessful() = coroutineScope.runBlockingTest {
         whenever(sendMessage.send(any())).thenThrow(SendMessageException(""))
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.bind()
-        subject.sendMessage(message)
+        gatewayClient.bind()
+        gatewayClient.sendMessage(message)
     }
 
     @Test(expected = GatewayProtocolException::class)
     fun sendMessage_unsuccessfulDueToClient() = coroutineScope.runBlockingTest {
         whenever(sendMessage.send(any())).thenThrow(GatewayProtocolException(""))
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.bind()
-        subject.sendMessage(message)
+        gatewayClient.bind()
+        gatewayClient.sendMessage(message)
     }
 
     @Test(expected = RejectedMessageException::class)
     fun sendMessage_unsuccessfulDueToRejection() = coroutineScope.runBlockingTest {
         whenever(sendMessage.send(any())).thenThrow(RejectedMessageException(""))
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val message =
+            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.bind()
-        subject.sendMessage(message)
+        gatewayClient.bind()
+        gatewayClient.sendMessage(message)
     }
 
     @Test
     fun checkForNewMessages_bindsIfNeeded() = coroutineScope.runBlockingTest {
         whenever(receiveMessages.receive()).thenReturn(emptyFlow())
 
-        subject.checkForNewMessages()
+        gatewayClient.checkForNewMessages()
 
         verify(serviceInteractor)
             .bind(
@@ -238,8 +245,8 @@ internal class GatewayClientImplTest {
     fun checkForNewMessages_doesNotRebind() = coroutineScope.runBlockingTest {
         whenever(receiveMessages.receive()).thenReturn(emptyFlow())
 
-        subject.bind()
-        subject.checkForNewMessages()
+        gatewayClient.bind()
+        gatewayClient.checkForNewMessages()
 
         verify(serviceInteractor, times(1)).bind(any(), any(), any())
     }
@@ -251,10 +258,10 @@ internal class GatewayClientImplTest {
 
         val messagesReceived = mutableListOf<IncomingMessage>()
         TestCoroutineScope().launch {
-            subject.receiveMessages().toCollection(messagesReceived)
+            gatewayClient.receiveMessages().toCollection(messagesReceived)
         }
 
-        subject.checkForNewMessages()
+        gatewayClient.checkForNewMessages()
 
         assertEquals(listOf(message), messagesReceived)
     }
@@ -263,13 +270,13 @@ internal class GatewayClientImplTest {
     fun checkForNewMessages_handlesReceiveException() = coroutineScope.runBlockingTest {
         whenever(receiveMessages.receive()).thenReturn(flow { throw ReceiveMessageException("") })
 
-        subject.checkForNewMessages()
+        gatewayClient.checkForNewMessages()
     }
 
     @Test
     fun checkForNewMessages_handlesProtocolException() = coroutineScope.runBlockingTest {
         whenever(receiveMessages.receive()).thenReturn(flow { throw GatewayProtocolException("") })
 
-        subject.checkForNewMessages()
+        gatewayClient.checkForNewMessages()
     }
 }

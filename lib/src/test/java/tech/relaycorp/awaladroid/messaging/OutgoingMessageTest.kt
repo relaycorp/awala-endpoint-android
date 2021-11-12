@@ -10,32 +10,30 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
-import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MessageFactory
-import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
+import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
-import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 
-internal class OutgoingMessageTest {
+internal class OutgoingMessageTest : MockContextTestCase() {
 
     // Public Recipient
 
     @Test
     fun buildForPublicRecipient_checkBaseValues() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
-        val parcel = message.parcel
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
-        assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
-        assertEquals(message.parcelId.value, parcel.id)
-        assertSameDateTime(message.parcelCreationDate, parcel.creationDate)
-        assertEquals(message.ttl, parcel.ttl)
+        val message = MessageFactory.buildOutgoing(channel)
+
+        assertEquals(message.recipientEndpoint.address, message.parcel.recipientAddress)
+        assertEquals(message.parcelId.value, message.parcel.id)
+        assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
+        assertEquals(message.ttl, message.parcel.ttl)
     }
 
     @Test
     fun buildForPublicRecipient_checkTTL() = runBlockingTest {
-        val senderEndpoint = FirstPartyEndpointFactory.build()
-        val recipientEndpoint = ThirdPartyEndpointFactory.buildPublic()
+        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = OutgoingMessage.build(
             "the type",
@@ -51,8 +49,7 @@ internal class OutgoingMessageTest {
 
     @Test
     fun buildForPublicRecipient_expiryDateDefaultsToMax() = runBlockingTest {
-        val senderEndpoint = FirstPartyEndpointFactory.build()
-        val recipientEndpoint = ThirdPartyEndpointFactory.buildPublic()
+        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = OutgoingMessage.build(
             "the type",
@@ -68,22 +65,28 @@ internal class OutgoingMessageTest {
 
     @Test
     fun buildForPublicRecipient_checkServiceMessage() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
-        val parcel = message.parcel
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
-        val serviceMessageDecrypted = parcel.unwrapPayload(KeyPairSet.PDA_GRANTEE.private)
+        val message = MessageFactory.buildOutgoing(channel)
+
+        val (serviceMessageDecrypted) =
+            message.parcel.unwrapPayload(channel.thirdPartySessionKeyPair.privateKey)
         assertEquals(MessageFactory.serviceMessage.type, serviceMessageDecrypted.type)
         assertArrayEquals(MessageFactory.serviceMessage.content, serviceMessageDecrypted.content)
     }
 
     @Test
     internal fun buildForPublicRecipient_checkSenderCertificate() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
-        val parcel = message.parcel
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
-        parcel.senderCertificate.let { cert ->
+        val message = MessageFactory.buildOutgoing(channel)
+
+        message.parcel.senderCertificate.let { cert ->
             cert.validate()
-            assertEquals(message.senderEndpoint.keyPair.public, cert.subjectPublicKey)
+            assertEquals(
+                message.senderEndpoint.identityCertificate.subjectPublicKey,
+                cert.subjectPublicKey,
+            )
             assertSameDateTime(message.parcelCreationDate, cert.startDate)
             assertSameDateTime(message.parcelExpiryDate, cert.expiryDate)
         }
@@ -91,7 +94,9 @@ internal class OutgoingMessageTest {
 
     @Test
     internal fun buildForPublicRecipient_checkSenderCertificateChain() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PUBLIC)
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+
+        val message = MessageFactory.buildOutgoing(channel)
 
         assertTrue(message.parcel.senderCertificateChain.isEmpty())
     }
@@ -100,18 +105,20 @@ internal class OutgoingMessageTest {
 
     @Test
     fun buildForPrivateRecipient_checkBaseValues() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
-        val parcel = message.parcel
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val message = MessageFactory.buildOutgoing(channel)
 
-        assertEquals(message.recipientEndpoint.address, parcel.recipientAddress)
-        assertEquals(message.parcelId.value, parcel.id)
-        assertSameDateTime(message.parcelCreationDate, parcel.creationDate)
-        assertEquals(message.ttl, parcel.ttl)
+        assertEquals(message.recipientEndpoint.address, message.parcel.recipientAddress)
+        assertEquals(message.parcelId.value, message.parcel.id)
+        assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
+        assertEquals(message.ttl, message.parcel.ttl)
     }
 
     @Test
     internal fun buildForPrivateRecipient_checkSenderCertificate() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+
+        val message = MessageFactory.buildOutgoing(channel)
 
         assertEquals(
             (message.recipientEndpoint as PrivateThirdPartyEndpoint).pda,
@@ -121,7 +128,9 @@ internal class OutgoingMessageTest {
 
     @Test
     internal fun buildForPrivateRecipient_checkSenderCertificateChain() = runBlockingTest {
-        val message = MessageFactory.buildOutgoing(RecipientAddressType.PRIVATE)
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+
+        val message = MessageFactory.buildOutgoing(channel)
 
         assertArrayEquals(
             (message.recipientEndpoint as PrivateThirdPartyEndpoint).pdaChain.toTypedArray(),

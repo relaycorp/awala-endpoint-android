@@ -6,7 +6,7 @@ import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
 internal object FirstPartyEndpointFactory {
     fun build(): FirstPartyEndpoint = FirstPartyEndpoint(
-        KeyPairSet.PRIVATE_ENDPOINT,
+        KeyPairSet.PRIVATE_ENDPOINT.private,
         PDACertPath.PRIVATE_ENDPOINT,
         PDACertPath.PRIVATE_GW
     )

@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.onCompletion
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
-import tech.relaycorp.awaladroid.Storage
 import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
@@ -22,6 +21,7 @@ import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
 import tech.relaycorp.relaynet.bindings.pdc.StreamingMode
 import tech.relaycorp.relaynet.messages.InvalidMessageException
+import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
@@ -55,13 +55,11 @@ internal class ReceiveMessages(
 
     @Throws(PersistenceException::class)
     private fun getNonceSigners() = suspend {
-        Storage
-            .identityCertificate
-            .list()
-            .map { endpoint ->
+        Awala.getContextOrThrow().privateKeyStore.retrieveAllIdentityKeys()
+            .map { identityKeyPair ->
                 Signer(
-                    Storage.identityCertificate.get(endpoint)!!,
-                    Storage.identityKeyPair.get(endpoint)!!.private
+                    identityKeyPair.certificate,
+                    identityKeyPair.privateKey,
                 )
             }
             .toTypedArray()
@@ -95,7 +93,7 @@ internal class ReceiveMessages(
                         exp
                     )
                     return@mapNotNull null
-                } catch (exp: InvalidMessageException) {
+                } catch (exp: InvalidPayloadException) {
                     parcelCollection.disregard(
                         "Incoming parcel did not encapsulate a valid service message",
                         exp
