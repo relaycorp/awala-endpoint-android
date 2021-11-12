@@ -44,7 +44,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun register(): Unit = runBlockingTest {
+    fun register() = runBlockingTest {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -61,7 +61,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test(expected = RegistrationFailedException::class)
-    fun register_failed(): Unit = runBlockingTest {
+    fun register_failed() = runBlockingTest {
         whenever(gatewayClient.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
 
         FirstPartyEndpoint.register()
@@ -81,7 +81,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_nonExistent(): Unit = runBlockingTest {
+    fun load_nonExistent() = runBlockingTest {
         assertNull(FirstPartyEndpoint.load("non-existent"))
     }
 
@@ -139,7 +139,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun delete(): Unit = runBlockingTest {
+    fun delete() = runBlockingTest {
         privateKeyStore.saveIdentityKey(
             KeyPairSet.PRIVATE_ENDPOINT.private,
             PDACertPath.PRIVATE_ENDPOINT
