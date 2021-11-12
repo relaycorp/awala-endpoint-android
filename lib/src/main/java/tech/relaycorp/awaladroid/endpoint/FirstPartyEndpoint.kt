@@ -10,6 +10,7 @@ import tech.relaycorp.awaladroid.RegistrationFailedException
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
+import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
@@ -115,10 +116,14 @@ internal constructor(
                 registration.gatewayCertificate
             )
 
-            context.privateKeyStore.saveIdentityKey(
-                keyPair.private,
-                endpoint.identityCertificate,
-            )
+            try {
+                context.privateKeyStore.saveIdentityKey(
+                    keyPair.private,
+                    endpoint.identityCertificate,
+                )
+            } catch (exc: KeyStoreBackendException) {
+                throw PersistenceException("Failed to save identity key", exc)
+            }
 
             context.storage.gatewayCertificate.set(endpoint.gatewayCertificate)
 
@@ -135,6 +140,8 @@ internal constructor(
                 context.privateKeyStore.retrieveIdentityKey(privateAddress)
             } catch (exc: MissingKeyException) {
                 return null
+            } catch (exc: KeyStoreBackendException) {
+                throw PersistenceException("Failed to load endpoint", exc)
             }
             return context.storage.gatewayCertificate.get()?.let { gwCertificate ->
                 FirstPartyEndpoint(
