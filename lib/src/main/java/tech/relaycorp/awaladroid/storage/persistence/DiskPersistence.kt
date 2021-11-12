@@ -1,15 +1,13 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
 import android.content.Context
-import androidx.security.crypto.EncryptedFile
-import androidx.security.crypto.MasterKey
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal class EncryptedDiskPersistence(
+internal class DiskPersistence(
     private val context: Context,
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
     private val rootFolder: String = "awaladroid"
@@ -21,8 +19,8 @@ internal class EncryptedDiskPersistence(
         withContext(coroutineContext) {
             deleteIfExists(location)
             try {
-                buildEncryptedFile(location)
-                    .openFileOutput()
+                buildFile(location)
+                    .outputStream()
                     .use { it.write(data) }
             } catch (exception: IOException) {
                 throw PersistenceException("Failed to write to file at $location", exception)
@@ -34,8 +32,8 @@ internal class EncryptedDiskPersistence(
     @Throws(PersistenceException::class)
     override suspend fun get(location: String): ByteArray? = withContext(coroutineContext) {
         try {
-            buildEncryptedFile(location)
-                .openFileInput()
+            buildFile(location)
+                .inputStream()
                 .use { it.readBytes() }
         } catch (exception: IOException) {
             if (buildFile(location).exists()) {
@@ -82,22 +80,4 @@ internal class EncryptedDiskPersistence(
         File(context.filesDir, "$rootFolder${File.separator}$location").also {
             it.parentFile?.mkdirs()
         }
-
-    private fun buildEncryptedFile(location: String) =
-        EncryptedFile.Builder(
-            context,
-            buildFile(location),
-            masterKey,
-            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
-        ).build()
-
-    private val masterKey by lazy {
-        MasterKey.Builder(context, MASTER_KEY_ALIAS)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-    }
-
-    companion object {
-        private const val MASTER_KEY_ALIAS = "_relaydroid_master_key_"
-    }
 }
