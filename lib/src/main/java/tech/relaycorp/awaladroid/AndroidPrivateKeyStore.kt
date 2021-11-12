@@ -10,13 +10,10 @@ import tech.relaycorp.awala.keystores.file.FilePrivateKeyStore
 internal class AndroidPrivateKeyStore(
     root: FileKeystoreRoot,
     private val context: Context,
-    private val enableEncryption: Boolean = false,
 ) : FilePrivateKeyStore(root) {
-    override fun makeEncryptedInputStream(file: File) =
-        if (enableEncryption) buildEncryptedFile(file).openFileInput() else file.inputStream()
+    override fun makeEncryptedInputStream(file: File) = buildEncryptedFile(file).openFileInput()
 
-    override fun makeEncryptedOutputStream(file: File) =
-        if (enableEncryption) buildEncryptedFile(file).openFileOutput() else file.outputStream()
+    override fun makeEncryptedOutputStream(file: File) = buildEncryptedFile(file).openFileOutput()
 
     private fun buildEncryptedFile(file: File) =
         EncryptedFile.Builder(
