@@ -8,7 +8,7 @@ $dokka.location:tech.relaycorp.awaladroid.endpoint/AuthorizationBundle/pdaSerial
 $dokka.location:tech.relaycorp.awaladroid.endpoint/AuthorizationIssuanceException///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-authorization-issuance-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/AuthorizationIssuanceException/AuthorizationIssuanceException/#kotlin.String#kotlin.Throwable/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-authorization-issuance-exception/-authorization-issuance-exception.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/Endpoint///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-endpoint/index.html
-$dokka.location:tech.relaycorp.awaladroid.endpoint/Endpoint/Endpoint/#tech.relaycorp.relaynet.wrappers.x509.Certificate/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-endpoint/-endpoint.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/Endpoint/Endpoint/#kotlin.String/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-endpoint/-endpoint.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/Endpoint/address/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-endpoint/address.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/Endpoint/privateAddress/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-endpoint/private-address.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/FirstPartyEndpoint.Companion///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-first-party-endpoint/-companion/index.html
@@ -25,14 +25,14 @@ $dokka.location:tech.relaycorp.awaladroid.endpoint/InvalidAuthorizationException
 $dokka.location:tech.relaycorp.awaladroid.endpoint/InvalidThirdPartyEndpoint///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-invalid-third-party-endpoint/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/InvalidThirdPartyEndpoint/InvalidThirdPartyEndpoint/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-invalid-third-party-endpoint/-invalid-third-party-endpoint.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint.Companion///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/-companion/index.html
-$dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint.Companion/import/#kotlin.ByteArray#tech.relaycorp.awaladroid.endpoint.AuthorizationBundle/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/-companion/import.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint.Companion/import/#kotlin.ByteArray#tech.relaycorp.awaladroid.endpoint.AuthorizationBundle#tech.relaycorp.relaynet.SessionKey/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/-companion/import.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint.Companion/load/#kotlin.String#kotlin.String/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/-companion/load.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint/address/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/address.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint/delete/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/delete.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PrivateThirdPartyEndpoint/firstPartyEndpointAddress/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-private-third-party-endpoint/first-party-endpoint-address.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint.Companion///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/-companion/index.html
-$dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint.Companion/import/#kotlin.String#kotlin.ByteArray/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/-companion/import.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint.Companion/import/#kotlin.ByteArray/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/-companion/import.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint.Companion/load/#kotlin.String/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/-companion/load.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint/address/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-public-third-party-endpoint/address.html
@@ -78,7 +78,7 @@ $dokka.location:tech.relaycorp.awaladroid.storage.persistence/PersistenceExcepti
 $dokka.location:tech.relaycorp.awaladroid////PointingToDeclaration/lib/tech.relaycorp.awaladroid/index.html
 $dokka.location:tech.relaycorp.awaladroid//GatewayClient/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client.html
 $dokka.location:tech.relaycorp.awaladroid/Awala///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awala/index.html
-$dokka.location:tech.relaycorp.awaladroid/Awala/setup/#android.content.Context/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awala/setup.html
+$dokka.location:tech.relaycorp.awaladroid/Awala/setUp/#android.content.Context/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awala/set-up.html
 $dokka.location:tech.relaycorp.awaladroid/AwaladroidException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awaladroid-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid/AwaladroidException/AwaladroidException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awaladroid-exception/-awaladroid-exception.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayBindingException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-binding-exception/index.html
