@@ -45,4 +45,10 @@ public object Awala {
     internal fun getContextOrThrow(): AwalaContext = context ?: throw SetupPendingException()
 }
 
+/**
+ * Private gateway client.
+ */
+public val GatewayClient: GatewayClientImpl
+    get() = Awala.getContextOrThrow().gatewayClient
+
 public class SetupPendingException : AwaladroidException("Awala.setUp() has not been called")
