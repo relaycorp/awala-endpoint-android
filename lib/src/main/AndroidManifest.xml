@@ -16,7 +16,7 @@
         tools:ignore="ExportedReceiver"
         android:exported="true">
       <intent-filter>
-        <action android:name="tech.relaycorp.endpoint.NOTIFY" />
+        <action android:name="tech.relaycorp.endpoint.INCOMING_PARCEL" />
       </intent-filter>
     </receiver>
   </application>
