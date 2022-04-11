@@ -5,6 +5,7 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.nio.charset.Charset
 import java.util.UUID
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
@@ -23,16 +24,17 @@ internal class StorageImplTest {
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun gatewayCertificate() = runBlockingTest {
-        storage.gatewayCertificate.testGet(
-            PDACertPath.PRIVATE_ENDPOINT.serialize(),
-            PDACertPath.PRIVATE_ENDPOINT
+    fun gatewayPrivateAddress() = runBlockingTest {
+        val charset = Charset.forName("ASCII")
+        storage.gatewayPrivateAddress.testGet(
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress.toByteArray(charset),
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress
         )
-        storage.gatewayCertificate.testSet(
-            PDACertPath.PRIVATE_ENDPOINT,
-            PDACertPath.PRIVATE_ENDPOINT.serialize()
+        storage.gatewayPrivateAddress.testSet(
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress,
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress.toByteArray(charset),
         )
-        storage.gatewayCertificate.testDelete()
+        storage.gatewayPrivateAddress.testDelete()
     }
 
     @Test

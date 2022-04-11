@@ -1,11 +1,11 @@
 package tech.relaycorp.awaladroid.storage
 
 import androidx.annotation.VisibleForTesting
+import java.nio.charset.Charset
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.storage.persistence.Persistence
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 // TODO: Test
 internal class StorageImpl
@@ -13,11 +13,12 @@ constructor(
     persistence: Persistence
 ) {
 
-    internal val gatewayCertificate: SingleModule<Certificate> = SingleModule(
+    private val ascii = Charset.forName("ASCII")
+    internal val gatewayPrivateAddress: SingleModule<String> = SingleModule(
         persistence = persistence,
-        prefix = "gateway_certificate_",
-        serializer = Certificate::serialize,
-        deserializer = Certificate::deserialize
+        prefix = "gateway_private_address_",
+        serializer = { address: String -> address.toByteArray(ascii) },
+        deserializer = { addressSerialized: ByteArray -> addressSerialized.toString(ascii) }
     )
 
     internal val publicThirdParty: Module<PublicThirdPartyEndpointData> = Module(

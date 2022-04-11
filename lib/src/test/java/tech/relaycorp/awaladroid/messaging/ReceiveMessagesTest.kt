@@ -45,13 +45,6 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     @Before
     fun resetPersistence() = persistence.reset()
 
-    @Before
-    fun setUp() {
-        runBlockingTest {
-            storage.gatewayCertificate.set(PDACertPath.PRIVATE_GW)
-        }
-    }
-
     @Test
     fun receiveParcelSuccessfully() = runBlockingTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)

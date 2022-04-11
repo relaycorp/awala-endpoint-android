@@ -11,12 +11,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
-import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
-import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
@@ -24,17 +23,15 @@ import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
-    private val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-    private val thirdPartyEndpointKeyPair = generateRSAKeyPair()
     private val thirdPartyEndpointCertificate = issueEndpointCertificate(
-        thirdPartyEndpointKeyPair.public,
+        KeyPairSet.PDA_GRANTEE.public,
         KeyPairSet.PRIVATE_GW.private,
         ZonedDateTime.now().plusDays(1),
         PDACertPath.PRIVATE_GW,
     )
     private val pda = issueDeliveryAuthorization(
-        subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
-        issuerPrivateKey = thirdPartyEndpointKeyPair.private,
+        subjectPublicKey = KeyPairSet.PRIVATE_ENDPOINT.public,
+        issuerPrivateKey = KeyPairSet.PDA_GRANTEE.private,
         validityEndDate = ZonedDateTime.now().plusDays(1),
         issuerCertificate = thirdPartyEndpointCertificate,
     )
@@ -82,17 +79,14 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun import_successful() = runBlockingTest {
-        privateKeyStore.saveIdentityKey(
-            firstPartyEndpoint.identityPrivateKey,
-            firstPartyEndpoint.identityCertificate,
-        )
+        val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val authBundle = AuthorizationBundle(
             pda.serialize(),
             listOf(thirdPartyEndpointCertificate.serialize())
         )
         val endpoint = PrivateThirdPartyEndpoint.import(
-            thirdPartyEndpointKeyPair.public.encoded,
+            KeyPairSet.PDA_GRANTEE.public.encoded,
             authBundle,
             sessionKey,
         )
@@ -102,11 +96,11 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             endpoint.firstPartyEndpointAddress
         )
         assertEquals(
-            thirdPartyEndpointKeyPair.public.privateAddress,
+            KeyPairSet.PDA_GRANTEE.public.privateAddress,
             endpoint.address
         )
         assertEquals(
-            thirdPartyEndpointKeyPair.public,
+            KeyPairSet.PDA_GRANTEE.public,
             endpoint.identityKey
         )
         assertEquals(pda, endpoint.pda)
@@ -118,7 +112,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         verify(storage.privateThirdParty).set(
             "${firstPartyEndpoint.privateAddress}_${endpoint.privateAddress}",
             PrivateThirdPartyEndpointData(
-                thirdPartyEndpointKeyPair.public,
+                KeyPairSet.PDA_GRANTEE.public,
                 authBundle
             )
         )
@@ -143,12 +137,13 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun import_invalidFirstParty() = runBlockingTest {
+        val firstPartyCert = PDACertPath.PRIVATE_ENDPOINT
         val exception = assertThrows(UnknownFirstPartyEndpointException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
-                    thirdPartyEndpointKeyPair.public.encoded,
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
                     AuthorizationBundle(
-                        firstPartyEndpoint.identityCertificate.serialize(),
+                        firstPartyCert.serialize(),
                         emptyList(),
                     ),
                     sessionKey,
@@ -157,17 +152,14 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         }
 
         assertEquals(
-            "First-party endpoint ${firstPartyEndpoint.privateAddress} is not registered",
+            "First-party endpoint ${firstPartyCert.subjectPrivateAddress} is not registered",
             exception.message
         )
     }
 
     @Test
     fun import_wrongAuthorizationIssuer() = runBlockingTest {
-        privateKeyStore.saveIdentityKey(
-            firstPartyEndpoint.identityPrivateKey,
-            firstPartyEndpoint.identityCertificate,
-        )
+        val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val unrelatedKeyPair = generateRSAKeyPair()
         val unrelatedCertificate = issueEndpointCertificate(
@@ -186,7 +178,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         val exception = assertThrows(InvalidAuthorizationException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
-                    thirdPartyEndpointKeyPair.public.encoded,
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
                     AuthorizationBundle(
                         authorization.serialize(),
                         listOf(unrelatedCertificate.serialize())
@@ -201,10 +193,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun import_invalidAuthorization() = runBlockingTest {
-        privateKeyStore.saveIdentityKey(
-            firstPartyEndpoint.identityPrivateKey,
-            firstPartyEndpoint.identityCertificate,
-        )
+        val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val authorization = issueDeliveryAuthorization(
             firstPartyEndpoint.identityCertificate.subjectPublicKey,
@@ -217,7 +206,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         val exception = assertThrows(InvalidAuthorizationException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
-                    thirdPartyEndpointKeyPair.public.encoded,
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
                     AuthorizationBundle(authorization.serialize(), emptyList()),
                     sessionKey,
                 )
@@ -250,16 +239,9 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun delete() = runBlockingTest {
-        val endpoint = ThirdPartyEndpointFactory.buildPrivate()
-        val ownSessionKeyPair = SessionKeyPair.generate()
-        privateKeyStore.saveSessionKey(
-            ownSessionKeyPair.privateKey,
-            ownSessionKeyPair.sessionKey.keyId,
-            firstPartyEndpoint.privateAddress,
-            endpoint.privateAddress
-        )
-        val peerSessionKey = SessionKeyPair.generate().sessionKey
-        sessionPublicKeystore.save(peerSessionKey, endpoint.privateAddress)
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val endpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
+        val firstPartyEndpoint = channel.firstPartyEndpoint
 
         endpoint.delete()
 

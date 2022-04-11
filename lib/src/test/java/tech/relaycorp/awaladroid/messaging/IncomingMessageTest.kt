@@ -25,13 +25,6 @@ internal class IncomingMessageTest : MockContextTestCase() {
     @Before
     fun resetPersistence() = persistence.reset()
 
-    @Before
-    fun setUp() {
-        runBlockingTest {
-            storage.gatewayCertificate.set(PDACertPath.PRIVATE_GW)
-        }
-    }
-
     @Test
     fun buildFromParcel() = runBlockingTest {
         val serviceMessage = ServiceMessage("the type", "the content".toByteArray())
