@@ -8,6 +8,6 @@ internal object FirstPartyEndpointFactory {
     fun build(): FirstPartyEndpoint = FirstPartyEndpoint(
         KeyPairSet.PRIVATE_ENDPOINT.private,
         PDACertPath.PRIVATE_ENDPOINT,
-        PDACertPath.PRIVATE_GW
+        listOf(PDACertPath.PRIVATE_GW),
     )
 }

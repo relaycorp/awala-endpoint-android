@@ -21,9 +21,8 @@ public class AndroidPrivateKeyStoreTest {
         val privateKey = KeyPairSet.PRIVATE_ENDPOINT.private
         val certificate = PDACertPath.PRIVATE_ENDPOINT
 
-        store.saveIdentityKey(privateKey, certificate)
-        val retrievedKeypair = store.retrieveIdentityKey(certificate.subjectPrivateAddress)
-        assertEquals(privateKey, retrievedKeypair.privateKey)
-        assertEquals(certificate, retrievedKeypair.certificate)
+        store.saveIdentityKey(privateKey)
+        val retrievedPrivateKey = store.retrieveIdentityKey(certificate.subjectPrivateAddress)
+        assertEquals(privateKey, retrievedPrivateKey)
     }
 }

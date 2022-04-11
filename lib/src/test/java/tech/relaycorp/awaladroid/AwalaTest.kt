@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.test.unsetAwalaContext
 
@@ -41,6 +42,7 @@ public class AwalaTest {
 
         assertTrue(context.privateKeyStore is AndroidPrivateKeyStore)
         assertTrue(context.sessionPublicKeyStore is FileSessionPublicKeystore)
+        assertTrue(context.certificateStore is FileCertificateStore)
         val expectedRoot = File(androidContext.filesDir, "awaladroid${File.separator}keystores")
         assertEquals(
             expectedRoot,
@@ -49,6 +51,10 @@ public class AwalaTest {
         assertEquals(
             expectedRoot,
             (context.sessionPublicKeyStore as FileSessionPublicKeystore).rootDirectory.parentFile,
+        )
+        assertEquals(
+            expectedRoot,
+            (context.certificateStore as FileCertificateStore).rootDirectory.parentFile,
         )
     }
 }

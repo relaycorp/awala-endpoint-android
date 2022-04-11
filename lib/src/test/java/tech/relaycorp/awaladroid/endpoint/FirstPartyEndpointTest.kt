@@ -1,6 +1,7 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
@@ -22,6 +23,8 @@ import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
+import tech.relaycorp.relaynet.ramf.RecipientAddressType
+import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
@@ -60,10 +63,18 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
         val endpoint = FirstPartyEndpoint.register()
 
-        val identityKeyPair =
-            privateKeyStore.retrieveIdentityKey(PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress)
-        assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityKeyPair.certificate)
-        assertEquals(endpoint.identityPrivateKey, identityKeyPair.privateKey)
+        val identityPrivateKey =
+            privateKeyStore.retrieveIdentityKey(endpoint.privateAddress)
+        assertEquals(endpoint.identityPrivateKey, identityPrivateKey)
+        val identityCertificatePath = certificateStore.retrieveLatest(
+            endpoint.identityCertificate.subjectPrivateAddress,
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+        )
+        assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
+        verify(storage.gatewayPrivateAddress).set(
+            endpoint.privateAddress,
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+        )
     }
 
     @Test(expected = RegistrationFailedException::class)
@@ -87,7 +98,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun register_failedDueToKeystore(): Unit = runBlockingTest {
+    fun register_failedDueToPrivateKeystore(): Unit = runBlockingTest {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -111,26 +122,48 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_nonExistent() = runBlockingTest {
-        assertNull(FirstPartyEndpoint.load("non-existent"))
+    fun register_failedDueToCertStore(): Unit = runBlockingTest {
+        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+            PrivateNodeRegistration(
+                PDACertPath.PRIVATE_ENDPOINT,
+                PDACertPath.PRIVATE_GW
+            )
+        )
+        val savingException = Exception("Oh noes")
+        setAwalaContext(
+            Awala.getContextOrThrow().copy(
+                certificateStore = MockCertificateStore(savingException = savingException)
+            )
+        )
+
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlockingTest { FirstPartyEndpoint.register() }
+        }
+
+        assertEquals("Failed to save certificate", exception.message)
+        assertTrue(exception.cause is KeyStoreBackendException)
+        assertEquals(savingException, exception.cause!!.cause)
     }
 
     @Test
     fun load_withResult(): Unit = runBlockingTest {
-        privateKeyStore.saveIdentityKey(
-            KeyPairSet.PRIVATE_ENDPOINT.private,
-            PDACertPath.PRIVATE_ENDPOINT
-        )
-        whenever(storage.gatewayCertificate.get())
-            .thenReturn(PDACertPath.PRIVATE_GW)
+        createFirstPartyEndpoint()
 
         val privateAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress
         with(FirstPartyEndpoint.load(privateAddress)) {
             assertNotNull(this)
             assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
-            assertEquals(PDACertPath.PRIVATE_GW, this?.gatewayCertificate)
+            assertEquals(listOf(PDACertPath.PRIVATE_GW), this?.identityCertificateChain)
         }
+    }
+
+    @Test
+    fun load_withMissingPrivateKey() = runBlockingTest {
+        whenever(storage.gatewayPrivateAddress.get())
+            .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
+
+        assertNull(FirstPartyEndpoint.load("non-existent"))
     }
 
     @Test
@@ -140,8 +173,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
                 privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes"))
             )
         )
-        whenever(storage.gatewayCertificate.get())
-            .thenReturn(PDACertPath.PRIVATE_GW)
+        whenever(storage.gatewayPrivateAddress.get())
+            .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
 
         val exception = assertThrows(PersistenceException::class.java) {
             runBlockingTest {
@@ -149,8 +182,43 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             }
         }
 
-        assertEquals("Failed to load endpoint", exception.message)
+        assertEquals("Failed to load private key of endpoint", exception.message)
         assertTrue(exception.cause is KeyStoreBackendException)
+    }
+
+    @Test
+    fun load_withMissingGatewayPrivateAddress(): Unit = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
+            .thenReturn(null)
+
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlockingTest {
+                FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+            }
+        }
+
+        assertEquals("Failed to load gateway address for endpoint", exception.message)
+    }
+
+    @Test
+    fun load_withCertStoreError(): Unit = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val retrievalException = Exception("Oh noes")
+        setAwalaContext(
+            Awala.getContextOrThrow().copy(
+                certificateStore = MockCertificateStore(retrievalException = retrievalException)
+            )
+        )
+
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlockingTest {
+                FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+            }
+        }
+
+        assertEquals("Failed to load certificate for endpoint", exception.message)
+        assertEquals(retrievalException, exception.cause?.cause)
     }
 
     @Test
@@ -190,19 +258,13 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun delete() = runBlockingTest {
-        privateKeyStore.saveIdentityKey(
-            KeyPairSet.PRIVATE_ENDPOINT.private,
-            PDACertPath.PRIVATE_ENDPOINT
-        )
-        val endpoint = FirstPartyEndpoint(
-            KeyPairSet.PRIVATE_ENDPOINT.private,
-            PDACertPath.PRIVATE_ENDPOINT,
-            PDACertPath.PRIVATE_GW,
-        )
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val endpoint = channel.firstPartyEndpoint
 
         endpoint.delete()
 
         assertEquals(0, privateKeyStore.identityKeys.size)
+        assertEquals(0, certificateStore.certificationPaths.size)
     }
 }
 

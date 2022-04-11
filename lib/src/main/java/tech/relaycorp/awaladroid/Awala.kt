@@ -2,6 +2,7 @@ package tech.relaycorp.awaladroid
 
 import android.content.Context
 import java.io.File
+import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.background.ServiceInteractor
@@ -30,6 +31,7 @@ public object Awala {
             FileKeystoreRoot(File(context.filesDir, "awaladroid${File.separator}keystores"))
         val androidPrivateKeyStore = AndroidPrivateKeyStore(keystoreRoot, context)
         val fileSessionPublicKeystore = FileSessionPublicKeystore(keystoreRoot)
+        val fileCertificateStore = FileCertificateStore(keystoreRoot)
         this.context = AwalaContext(
             StorageImpl(DiskPersistence(context)),
             GatewayClientImpl(
@@ -38,6 +40,7 @@ public object Awala {
             EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
+            fileCertificateStore,
         )
     }
 

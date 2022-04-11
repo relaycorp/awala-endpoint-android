@@ -1,15 +1,19 @@
 package tech.relaycorp.awaladroid.test
 
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.whenever
 import org.junit.After
 import org.junit.Before
+import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
+import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
+import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
 
@@ -18,6 +22,7 @@ internal abstract class MockContextTestCase {
     protected open val storage: StorageImpl = mockStorage()
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
+    protected val certificateStore: MockCertificateStore = MockCertificateStore()
 
     @Before
     fun setMockContext() {
@@ -28,6 +33,7 @@ internal abstract class MockContextTestCase {
                 EndpointManager(privateKeyStore, sessionPublicKeystore),
                 privateKeyStore,
                 sessionPublicKeystore,
+                certificateStore,
             )
         )
     }
@@ -44,11 +50,7 @@ internal abstract class MockContextTestCase {
     protected suspend fun createEndpointChannel(
         thirdPartyEndpointType: RecipientAddressType
     ): EndpointChannel {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        privateKeyStore.saveIdentityKey(
-            firstPartyEndpoint.identityPrivateKey,
-            firstPartyEndpoint.identityCertificate,
-        )
+        val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.build(thirdPartyEndpointType)
 
@@ -72,5 +74,31 @@ internal abstract class MockContextTestCase {
             thirdPartySessionKeyPair,
             firstPartySessionKeyPair,
         )
+    }
+
+    protected suspend fun createFirstPartyEndpoint(): FirstPartyEndpoint {
+        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        privateKeyStore.saveIdentityKey(
+            firstPartyEndpoint.identityPrivateKey,
+        )
+
+        val certificate = firstPartyEndpoint.identityCertificate
+        certificateStore.save(
+            certificate,
+            firstPartyEndpoint.identityCertificateChain,
+            certificate.issuerCommonName
+        )
+
+        if (MockUtil.isMock(storage)) {
+            whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
+                .thenReturn(certificate.issuerCommonName)
+        } else {
+            storage.gatewayPrivateAddress.set(
+                firstPartyEndpoint.privateAddress,
+                certificate.issuerCommonName
+            )
+        }
+
+        return firstPartyEndpoint
     }
 }

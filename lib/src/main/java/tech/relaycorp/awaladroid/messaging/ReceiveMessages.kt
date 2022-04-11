@@ -24,6 +24,7 @@ import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
+import tech.relaycorp.relaynet.wrappers.privateAddress
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
@@ -55,11 +56,20 @@ internal class ReceiveMessages(
 
     @Throws(PersistenceException::class)
     private fun getNonceSigners() = suspend {
-        Awala.getContextOrThrow().privateKeyStore.retrieveAllIdentityKeys()
-            .map { identityKeyPair ->
+        val context = Awala.getContextOrThrow()
+        context.privateKeyStore.retrieveAllIdentityKeys()
+            .mapNotNull { identityPrivateKey ->
+                val privateAddress = identityPrivateKey.privateAddress
+                val privateGatewayPrivateAddress = context.storage.gatewayPrivateAddress.get(
+                    privateAddress
+                ) ?: return@mapNotNull null
+                val certificatePath = context.certificateStore.retrieveLatest(
+                    privateAddress,
+                    privateGatewayPrivateAddress
+                ) ?: return@mapNotNull null
                 Signer(
-                    identityKeyPair.certificate,
-                    identityKeyPair.privateKey,
+                    certificatePath.leafCertificate,
+                    identityPrivateKey,
                 )
             }
             .toTypedArray()
