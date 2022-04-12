@@ -265,6 +265,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
         assertEquals(0, privateKeyStore.identityKeys.size)
         assertEquals(0, certificateStore.certificationPaths.size)
+        verify(channelManager).delete(endpoint)
     }
 }
 

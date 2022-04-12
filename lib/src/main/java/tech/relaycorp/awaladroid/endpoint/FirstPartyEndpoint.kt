@@ -96,6 +96,7 @@ internal constructor(
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.deleteKeys(privateAddress)
         context.certificateStore.delete(privateAddress, identityCertificate.issuerCommonName)
+        context.channelManager.delete(this)
     }
 
     public companion object {

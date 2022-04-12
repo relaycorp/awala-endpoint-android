@@ -24,7 +24,7 @@ internal abstract class MockContextTestCase {
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
     protected val certificateStore: MockCertificateStore = MockCertificateStore()
-    private val channelManager: ChannelManager = mock()
+    protected val channelManager: ChannelManager = mock()
 
     @Before
     fun setMockContext() {
