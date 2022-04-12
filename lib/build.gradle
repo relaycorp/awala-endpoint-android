@@ -76,7 +76,10 @@ dependencies {
   // Serialization
   implementation 'org.mongodb:bson:4.5.1'
 
-  // Testing
+  // Preferences
+  implementation 'com.fredporciuncula:flow-preferences:1.5.0'
+
+    // Testing
   testImplementation 'junit:junit:4.13.2'
   testImplementation 'androidx.test:core:1.4.0'
   testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinCoroutinesVersion"
