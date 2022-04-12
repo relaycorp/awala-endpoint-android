@@ -7,6 +7,7 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
+import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
@@ -23,6 +24,7 @@ internal abstract class MockContextTestCase {
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
     protected val certificateStore: MockCertificateStore = MockCertificateStore()
+    private val channelManager: ChannelManager = mock()
 
     @Before
     fun setMockContext() {
@@ -31,6 +33,7 @@ internal abstract class MockContextTestCase {
                 storage,
                 gatewayClient,
                 EndpointManager(privateKeyStore, sessionPublicKeystore),
+                channelManager,
                 privateKeyStore,
                 sessionPublicKeystore,
                 certificateStore,

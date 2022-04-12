@@ -2,10 +2,12 @@ package tech.relaycorp.awaladroid
 
 import android.content.Context
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.background.ServiceInteractor
+import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.persistence.DiskPersistence
 import tech.relaycorp.relaynet.nodes.EndpointManager
@@ -32,12 +34,15 @@ public object Awala {
         val androidPrivateKeyStore = AndroidPrivateKeyStore(keystoreRoot, context)
         val fileSessionPublicKeystore = FileSessionPublicKeystore(keystoreRoot)
         val fileCertificateStore = FileCertificateStore(keystoreRoot)
+        val channelPreferences =
+            context.getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
         this.context = AwalaContext(
             StorageImpl(DiskPersistence(context)),
             GatewayClientImpl(
                 serviceInteractorBuilder = { ServiceInteractor(context) }
             ),
             EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
+            ChannelManager(channelPreferences, Dispatchers.IO),
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
             fileCertificateStore,

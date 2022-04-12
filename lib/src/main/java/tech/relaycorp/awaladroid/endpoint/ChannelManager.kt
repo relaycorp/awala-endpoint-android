@@ -8,7 +8,7 @@ internal class ChannelManager(
     sharedPreferences: SharedPreferences,
     coroutineContext: CoroutineContext
 ) {
-    private val flowSharedPreferences: FlowSharedPreferences =
+    internal val flowSharedPreferences: FlowSharedPreferences =
         FlowSharedPreferences(sharedPreferences, coroutineContext)
 
     suspend fun create(
