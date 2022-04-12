@@ -2,7 +2,9 @@ package tech.relaycorp.awaladroid.endpoint
 
 import android.content.SharedPreferences
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
+import java.security.PublicKey
 import kotlin.coroutines.CoroutineContext
+import tech.relaycorp.relaynet.wrappers.privateAddress
 
 internal class ChannelManager(
     sharedPreferences: SharedPreferences,
@@ -15,10 +17,24 @@ internal class ChannelManager(
         firstPartyEndpoint: FirstPartyEndpoint,
         thirdPartyEndpoint: ThirdPartyEndpoint
     ) {
+        create(firstPartyEndpoint, thirdPartyEndpoint.privateAddress)
+    }
+
+    suspend fun create(
+        firstPartyEndpoint: FirstPartyEndpoint,
+        thirdPartyEndpointPublicKey: PublicKey
+    ) {
+        create(firstPartyEndpoint, thirdPartyEndpointPublicKey.privateAddress)
+    }
+
+    private suspend fun create(
+        firstPartyEndpoint: FirstPartyEndpoint,
+        thirdPartyEndpointPrivateAddress: String
+    ) {
         val preference =
             flowSharedPreferences.getNullableStringSet(firstPartyEndpoint.privateAddress, null)
         val originalValues = preference.get() ?: emptySet()
-        preference.setAndCommit(originalValues + mutableListOf(thirdPartyEndpoint.privateAddress))
+        preference.setAndCommit(originalValues + mutableListOf(thirdPartyEndpointPrivateAddress))
     }
 
     suspend fun delete(

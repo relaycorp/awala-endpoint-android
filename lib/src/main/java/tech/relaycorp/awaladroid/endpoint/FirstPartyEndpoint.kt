@@ -36,8 +36,9 @@ internal constructor(
      */
     public val publicKey: PublicKey get() = identityCertificate.subjectPublicKey
 
-    internal val pdaChain: List<Certificate> get() =
-        listOf(identityCertificate) + identityCertificateChain
+    internal val pdaChain: List<Certificate>
+        get() =
+            listOf(identityCertificate) + identityCertificateChain
 
     /**
      * Issue a PDA for a third-party endpoint.
@@ -60,14 +61,8 @@ internal constructor(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
         expiryDate: ZonedDateTime
     ): AuthorizationBundle {
-        val thirdPartyEndpointPublicKey = try {
-            thirdPartyEndpointPublicKeySerialized.deserializeRSAPublicKey()
-        } catch (exc: KeyException) {
-            throw AuthorizationIssuanceException(
-                "PDA grantee public key is not a valid RSA public key",
-                exc
-            )
-        }
+        val thirdPartyEndpointPublicKey =
+            deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
         return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
     }
 
@@ -86,6 +81,54 @@ internal constructor(
             pda.serialize(),
             pdaChain.map { it.serialize() }
         )
+    }
+
+    /**
+     * Issue a PDA for a third-party endpoint and renew it indefinitely.
+     */
+    @Throws(CertificateException::class)
+    public suspend fun authorizeIndefinitely(
+        thirdPartyEndpoint: ThirdPartyEndpoint
+    ): AuthorizationBundle =
+        authorizeIndefinitely(thirdPartyEndpoint.identityKey)
+
+    /**
+     * Issue a PDA for a third-party endpoint (using its public key) and renew it indefinitely.
+     */
+    @Throws(CertificateException::class)
+    public suspend fun authorizeIndefinitely(
+        thirdPartyEndpointPublicKeySerialized: ByteArray
+    ): AuthorizationBundle {
+        val thirdPartyEndpointPublicKey =
+            deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
+        return authorizeIndefinitely(thirdPartyEndpointPublicKey)
+    }
+
+    @Throws(CertificateException::class)
+    private suspend fun authorizeIndefinitely(
+        thirdPartyEndpointPublicKey: PublicKey,
+    ): AuthorizationBundle {
+        val authorization =
+            issueAuthorization(thirdPartyEndpointPublicKey, identityCertificate.expiryDate)
+
+        val context = Awala.getContextOrThrow()
+        context.channelManager.create(this, thirdPartyEndpointPublicKey)
+
+        return authorization
+    }
+
+    private fun deserializePDAGranteePublicKey(
+        thirdPartyEndpointPublicKeySerialized: ByteArray
+    ): PublicKey {
+        val thirdPartyEndpointPublicKey = try {
+            thirdPartyEndpointPublicKeySerialized.deserializeRSAPublicKey()
+        } catch (exc: KeyException) {
+            throw AuthorizationIssuanceException(
+                "PDA grantee public key is not a valid RSA public key",
+                exc
+            )
+        }
+        return thirdPartyEndpointPublicKey
     }
 
     /**

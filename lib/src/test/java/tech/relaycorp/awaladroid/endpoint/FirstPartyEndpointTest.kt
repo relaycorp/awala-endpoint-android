@@ -1,10 +1,15 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
+import java.security.PublicKey
 import java.time.ZonedDateTime
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -222,8 +227,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_thirdPartyEndpoint() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    fun issueAuthorization_thirdPartyEndpoint() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -233,8 +238,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_publicKey_valid() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    fun issueAuthorization_publicKey_valid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
         val authorization = firstPartyEndpoint.issueAuthorization(
@@ -245,15 +250,65 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
     }
 
-    @Test(expected = AuthorizationIssuanceException::class)
-    fun issueAuthorization_publicKey_invalid() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    @Test
+    fun issueAuthorization_publicKey_invalid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
-        firstPartyEndpoint.issueAuthorization(
-            "This is not a key".toByteArray(),
-            expiryDate
+        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
+            firstPartyEndpoint.issueAuthorization(
+                "This is not a key".toByteArray(),
+                expiryDate
+            )
+        }
+
+        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+    }
+
+    @Test
+    fun authorizeIndefinitely_thirdPartyEndpoint() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = firstPartyEndpoint.authorizeIndefinitely(thirdPartyEndpoint)
+
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+        verify(channelManager).create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
+    }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_valid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = firstPartyEndpoint.authorizeIndefinitely(
+            KeyPairSet.PDA_GRANTEE.public.encoded,
         )
+
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+        verify(channelManager).create(
+            eq(firstPartyEndpoint),
+            argThat<PublicKey> {
+                encoded.asList() == KeyPairSet.PDA_GRANTEE.public.encoded.asList()
+            }
+        )
+    }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_invalid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+
+        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
+            runBlocking {
+                firstPartyEndpoint.authorizeIndefinitely(
+                    "This is not a key".toByteArray()
+                )
+            }
+        }
+
+        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+        verify(channelManager, never()).create(any(), any<PublicKey>())
     }
 
     @Test

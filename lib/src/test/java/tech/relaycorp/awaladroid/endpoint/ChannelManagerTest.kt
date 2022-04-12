@@ -60,6 +60,19 @@ internal class ChannelManagerTest {
     }
 
     @Test
+    fun create_with_thirdPartyEndpointPublicKey() = runBlockingTest {
+        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        manager.create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
+
+        manager.create(firstPartyEndpoint, thirdPartyEndpoint)
+
+        assertEquals(
+            setOf(thirdPartyEndpoint.privateAddress),
+            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+        )
+    }
+
+    @Test
     fun delete_first_party_non_existing() = runBlockingTest {
         val manager = ChannelManager(sharedPreferences, coroutineContext)
 
