@@ -8,14 +8,11 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
-import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.test.EndpointChannel
 import tech.relaycorp.awaladroid.test.MockContextTestCase
-import tech.relaycorp.awaladroid.test.MockPersistence
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
@@ -37,24 +34,11 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     private lateinit var pdcClient: MockPDCClient
     private val subject = ReceiveMessages { pdcClient }
 
-    private val persistence = MockPersistence()
-    override val storage = StorageImpl(persistence)
-
     private val serviceMessage = ServiceMessage("type", "content".toByteArray())
-
-    @Before
-    fun resetPersistence() = persistence.reset()
 
     @Test
     fun receiveParcelSuccessfully() = runBlockingTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
-        storage.publicThirdParty.set(
-            channel.thirdPartyEndpoint.privateAddress,
-            PublicThirdPartyEndpointData(
-                channel.thirdPartyEndpoint.address,
-                channel.thirdPartyEndpoint.identityKey,
-            )
-        )
         val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
@@ -70,13 +54,6 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     @Test
     fun collectParcelsWithCorrectNonceSigners() = runBlockingTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
-        storage.publicThirdParty.set(
-            channel.thirdPartyEndpoint.privateAddress,
-            PublicThirdPartyEndpointData(
-                channel.thirdPartyEndpoint.address,
-                channel.thirdPartyEndpoint.identityKey,
-            )
-        )
         val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))

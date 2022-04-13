@@ -246,7 +246,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         endpoint.delete()
 
         verify(storage.privateThirdParty)
-            .delete("${endpoint.pda.subjectPrivateAddress}_${endpoint.privateAddress}")
+            .delete("${firstPartyEndpoint.privateAddress}_${endpoint.privateAddress}")
         assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.privateAddress]!!.size)
         assertEquals(0, sessionPublicKeystore.keys.size)
         verify(channelManager).delete(endpoint)

@@ -7,16 +7,23 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
+import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
+import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
+import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
+import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
+import tech.relaycorp.relaynet.testing.pki.KeyPairSet
+import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
 internal abstract class MockContextTestCase {
     protected open val gatewayClient: GatewayClientImpl = mock()
@@ -24,6 +31,8 @@ internal abstract class MockContextTestCase {
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
     protected val certificateStore: MockCertificateStore = MockCertificateStore()
+
+    // We'd ideally use the real thing but we can't use SharedPreferences in unit tests
     protected val channelManager: ChannelManager = mock()
 
     @Before
@@ -55,7 +64,12 @@ internal abstract class MockContextTestCase {
     ): EndpointChannel {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
-        val thirdPartyEndpoint = ThirdPartyEndpointFactory.build(thirdPartyEndpointType)
+        val thirdPartySessionKeyPair = SessionKeyPair.generate()
+        val thirdPartyEndpoint = createThirdPartyEndpoint(
+            thirdPartyEndpointType,
+            thirdPartySessionKeyPair.sessionKey,
+            firstPartyEndpoint,
+        )
 
         val firstPartySessionKeyPair = SessionKeyPair.generate()
         privateKeyStore.saveSessionKey(
@@ -65,11 +79,8 @@ internal abstract class MockContextTestCase {
             thirdPartyEndpoint.privateAddress,
         )
 
-        val thirdPartySessionKeyPair = SessionKeyPair.generate()
-        sessionPublicKeystore.save(
-            thirdPartySessionKeyPair.sessionKey,
-            thirdPartyEndpoint.privateAddress
-        )
+        whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
+            .thenReturn(setOf(thirdPartyEndpoint.privateAddress))
 
         return EndpointChannel(
             firstPartyEndpoint,
@@ -103,5 +114,52 @@ internal abstract class MockContextTestCase {
         }
 
         return firstPartyEndpoint
+    }
+
+    private suspend fun createThirdPartyEndpoint(
+        thirdPartyEndpointType: RecipientAddressType,
+        sessionKey: SessionKey,
+        firstPartyEndpoint: FirstPartyEndpoint
+    ): ThirdPartyEndpoint {
+        val thirdPartyEndpoint: ThirdPartyEndpoint
+        when (thirdPartyEndpointType) {
+            RecipientAddressType.PRIVATE -> {
+                thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPrivate()
+                val authBundle = AuthorizationBundle(
+                    PDACertPath.PDA.serialize(),
+                    listOf(
+                        PDACertPath.PRIVATE_ENDPOINT.serialize(),
+                        PDACertPath.PRIVATE_GW.serialize()
+                    )
+                )
+                whenever(
+                    storage.privateThirdParty.get(
+                        "${firstPartyEndpoint.privateAddress}_${thirdPartyEndpoint.privateAddress}"
+                    )
+                ).thenReturn(
+                    PrivateThirdPartyEndpointData(
+                        KeyPairSet.PDA_GRANTEE.public,
+                        authBundle
+                    )
+                )
+            }
+            else -> {
+                thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+                whenever(
+                    storage.publicThirdParty.get(thirdPartyEndpoint.privateAddress)
+                ).thenReturn(
+                    PublicThirdPartyEndpointData(
+                        thirdPartyEndpoint.publicAddress,
+                        thirdPartyEndpoint.identityKey
+                    )
+                )
+            }
+        }
+
+        sessionPublicKeystore.save(
+            sessionKey,
+            thirdPartyEndpoint.privateAddress
+        )
+        return thirdPartyEndpoint
     }
 }
