@@ -35,7 +35,7 @@ internal class ChannelManagerTest {
     fun constructor_defaultCoroutineContext() {
         val manager = ChannelManager { sharedPreferences }
 
-        assertEquals(Dispatchers.IO, manager.flowSharedPreferences.coroutineContext)
+        assertEquals(Dispatchers.IO, manager.coroutineContext)
     }
 
     @Test

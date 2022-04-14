@@ -69,10 +69,9 @@ public class AwalaTest {
 
         val context = Awala.getContextOrThrow()
 
-        assertEquals(
-            Dispatchers.IO,
-            context.channelManager.flowSharedPreferences.coroutineContext,
-        )
+        assertEquals(Dispatchers.IO, context.channelManager.coroutineContext)
+        // Cause shared preferences to be resolved before inspecting it
+        context.channelManager.sharedPreferences
         verify(androidContextSpy).getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
     }
 }

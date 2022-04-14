@@ -1,19 +1,17 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import android.content.SharedPreferences
-import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import java.security.PublicKey
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import tech.relaycorp.relaynet.wrappers.privateAddress
 
 internal class ChannelManager(
-    coroutineContext: CoroutineContext = Dispatchers.IO,
+    internal val coroutineContext: CoroutineContext = Dispatchers.IO,
     sharedPreferencesGetter: () -> SharedPreferences
 ) {
-    internal val flowSharedPreferences: FlowSharedPreferences by lazy {
-        FlowSharedPreferences(sharedPreferencesGetter(), coroutineContext)
-    }
+    internal val sharedPreferences by lazy(sharedPreferencesGetter)
 
     suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
@@ -33,40 +31,61 @@ internal class ChannelManager(
         firstPartyEndpoint: FirstPartyEndpoint,
         thirdPartyEndpointPrivateAddress: String
     ) {
-        val preference =
-            flowSharedPreferences.getNullableStringSet(firstPartyEndpoint.privateAddress, null)
-        val originalValues = preference.get() ?: emptySet()
-        preference.setAndCommit(originalValues + mutableListOf(thirdPartyEndpointPrivateAddress))
+        withContext(coroutineContext) {
+            val originalValue =
+                sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+                    ?: emptySet()
+            with(sharedPreferences.edit()) {
+                putStringSet(
+                    firstPartyEndpoint.privateAddress,
+                    originalValue + mutableListOf(thirdPartyEndpointPrivateAddress)
+                )
+                commit()
+            }
+        }
     }
 
     suspend fun delete(
         firstPartyEndpoint: FirstPartyEndpoint,
     ) {
-        val preference =
-            flowSharedPreferences.getNullableStringSet(firstPartyEndpoint.privateAddress, null)
-        preference.deleteAndCommit()
+        withContext(coroutineContext) {
+            with(sharedPreferences.edit()) {
+                remove(firstPartyEndpoint.privateAddress)
+                commit()
+            }
+        }
     }
 
     suspend fun delete(
         thirdPartyEndpoint: ThirdPartyEndpoint
     ) {
-        flowSharedPreferences.sharedPreferences.all.forEach { (key, value) ->
-            // Skip malformed values
-            if (value !is MutableSet<*>) {
-                return@forEach
-            }
-            val sanitizedValue: List<String> = value.filterIsInstance<String>()
-            if (value.size != sanitizedValue.size) {
-                return@forEach
-            }
+        withContext(coroutineContext) {
+            sharedPreferences.all.forEach { (key, value) ->
+                // Skip malformed values
+                if (value !is MutableSet<*>) {
+                    return@forEach
+                }
+                val sanitizedValue: List<String> = value.filterIsInstance<String>()
+                if (value.size != sanitizedValue.size) {
+                    return@forEach
+                }
 
-            if ((value).contains(thirdPartyEndpoint.privateAddress)) {
-                val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.privateAddress }
-                flowSharedPreferences.getStringSet(key).setAndCommit(newValue.toMutableSet())
+                if ((value).contains(thirdPartyEndpoint.privateAddress)) {
+                    val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.privateAddress }
+                    with(sharedPreferences.edit()) {
+                        putStringSet(key, newValue.toMutableSet())
+                        commit()
+                    }
+                }
             }
         }
     }
 
-    fun getLinkedEndpointAddresses(firstPartyEndpoint: FirstPartyEndpoint): Set<String> =
-        flowSharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, emptySet()).get()
+    suspend fun getLinkedEndpointAddresses(firstPartyEndpoint: FirstPartyEndpoint): Set<String> =
+        withContext(coroutineContext) {
+            return@withContext sharedPreferences.getStringSet(
+                firstPartyEndpoint.privateAddress,
+                emptySet()
+            ) ?: emptySet()
+        }
 }

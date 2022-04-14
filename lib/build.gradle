@@ -76,9 +76,6 @@ dependencies {
   // Serialization
   implementation 'org.mongodb:bson:4.5.1'
 
-  // Preferences
-  implementation 'com.fredporciuncula:flow-preferences:1.5.0'
-
   // Testing
   testImplementation 'junit:junit:4.13.2'
   testImplementation 'androidx.test:core:1.4.0'
