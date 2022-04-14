@@ -7,7 +7,6 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
-import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
@@ -18,6 +17,7 @@ import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
@@ -125,12 +125,9 @@ internal abstract class MockContextTestCase {
         when (thirdPartyEndpointType) {
             RecipientAddressType.PRIVATE -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPrivate()
-                val authBundle = AuthorizationBundle(
-                    PDACertPath.PDA.serialize(),
-                    listOf(
-                        PDACertPath.PRIVATE_ENDPOINT.serialize(),
-                        PDACertPath.PRIVATE_GW.serialize()
-                    )
+                val authBundle = CertificationPath(
+                    PDACertPath.PDA,
+                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
                 )
                 whenever(
                     storage.privateThirdParty.get(

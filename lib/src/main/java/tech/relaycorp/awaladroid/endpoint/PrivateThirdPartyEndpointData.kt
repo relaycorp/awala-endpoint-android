@@ -6,14 +6,14 @@ import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
 import org.bson.BsonBinaryWriter
-import org.bson.BsonType
 import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 internal data class PrivateThirdPartyEndpointData(
     val identityKey: PublicKey,
-    val authBundle: AuthorizationBundle
+    val pdaPath: CertificationPath
 ) {
     @Throws(PersistenceException::class)
     fun serialize(): ByteArray =
@@ -25,12 +25,7 @@ internal data class PrivateThirdPartyEndpointData(
                         "identity_key",
                         BsonBinary(identityKey.encoded)
                     )
-                    w.writeBinaryData("pda", BsonBinary(authBundle.pdaSerialized))
-                    w.writeStartArray("pda_chain")
-                    authBundle.pdaChainSerialized.forEach {
-                        w.writeBinaryData(BsonBinary(it))
-                    }
-                    w.writeEndArray()
+                    w.writeBinaryData("pda_path", BsonBinary(pdaPath.serialize()))
                     w.writeEndDocument()
                 }
                 output.toByteArray()
@@ -48,20 +43,12 @@ internal data class PrivateThirdPartyEndpointData(
 
                     val identityKey =
                         r.readBinaryData("identity_key").data.deserializeRSAPublicKey()
-                    val pdaSerialized = r.readBinaryData("pda").data
-
-                    val pdaChainSerialized = mutableListOf<ByteArray>()
-                    r.readName("pda_chain")
-                    r.readStartArray()
-                    while (r.readBsonType() != BsonType.END_OF_DOCUMENT) {
-                        pdaChainSerialized.add(r.readBinaryData().data)
-                    }
-                    r.readEndArray()
+                    val pdaPathSerialized = r.readBinaryData("pda_path").data
 
                     r.readEndDocument()
                     PrivateThirdPartyEndpointData(
                         identityKey,
-                        AuthorizationBundle(pdaSerialized, pdaChainSerialized)
+                        CertificationPath.deserialize(pdaPathSerialized)
                     )
                 }
             } catch (exp: BSONException) {

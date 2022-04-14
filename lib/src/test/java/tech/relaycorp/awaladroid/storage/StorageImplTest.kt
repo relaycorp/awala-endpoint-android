@@ -11,10 +11,10 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.storage.persistence.Persistence
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
@@ -41,19 +41,17 @@ internal class StorageImplTest {
     fun privateThirdParty() = runBlockingTest {
         val data = PrivateThirdPartyEndpointData(
             KeyPairSet.PRIVATE_ENDPOINT.public,
-            AuthorizationBundle(
-                PDACertPath.PDA.serialize(),
-                listOf(PDACertPath.PRIVATE_GW.serialize())
+            CertificationPath(
+                PDACertPath.PDA,
+                listOf(PDACertPath.PRIVATE_GW)
             )
         )
         val rawData = data.serialize()
 
         storage.privateThirdParty.testGet(rawData, data) { a, b ->
             a.identityKey == b.identityKey &&
-                a.authBundle.pdaSerialized.contentEquals(b.authBundle.pdaSerialized) &&
-                a.authBundle.pdaChainSerialized.mapIndexed { index, bytes ->
-                    bytes.contentEquals(b.authBundle.pdaChainSerialized[index])
-                }.all { it }
+                a.pdaPath.leafCertificate == b.pdaPath.leafCertificate &&
+                a.pdaPath.certificateAuthorities == b.pdaPath.certificateAuthorities
         }
         storage.privateThirdParty.testSet(data, rawData)
         storage.privateThirdParty.testDelete()
