@@ -388,10 +388,11 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 }
 
 private fun validateAuthorization(
-    authorization: CertificationPath,
+    authorizationSerialized: ByteArray,
     firstPartyEndpoint: FirstPartyEndpoint,
     expiryDate: ZonedDateTime
 ) {
+    val authorization = CertificationPath.deserialize(authorizationSerialized)
     // PDA
     val pda = authorization.leafCertificate
     assertEquals(

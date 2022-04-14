@@ -51,7 +51,7 @@ internal constructor(
     public fun issueAuthorization(
         thirdPartyEndpoint: ThirdPartyEndpoint,
         expiryDate: ZonedDateTime
-    ): CertificationPath =
+    ): ByteArray =
         issueAuthorization(
             thirdPartyEndpoint.identityKey,
             expiryDate
@@ -64,7 +64,7 @@ internal constructor(
     public fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
         expiryDate: ZonedDateTime
-    ): CertificationPath {
+    ): ByteArray {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
         return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
@@ -74,14 +74,15 @@ internal constructor(
     private fun issueAuthorization(
         thirdPartyEndpointPublicKey: PublicKey,
         expiryDate: ZonedDateTime
-    ): CertificationPath {
+    ): ByteArray {
         val pda = issueDeliveryAuthorization(
             subjectPublicKey = thirdPartyEndpointPublicKey,
             issuerPrivateKey = identityPrivateKey,
             validityEndDate = expiryDate,
             issuerCertificate = identityCertificate
         )
-        return CertificationPath(pda, pdaChain)
+        val path = CertificationPath(pda, pdaChain)
+        return path.serialize()
     }
 
     /**
@@ -90,7 +91,7 @@ internal constructor(
     @Throws(CertificateException::class)
     public suspend fun authorizeIndefinitely(
         thirdPartyEndpoint: ThirdPartyEndpoint
-    ): CertificationPath =
+    ): ByteArray =
         authorizeIndefinitely(thirdPartyEndpoint.identityKey)
 
     /**
@@ -99,7 +100,7 @@ internal constructor(
     @Throws(CertificateException::class)
     public suspend fun authorizeIndefinitely(
         thirdPartyEndpointPublicKeySerialized: ByteArray
-    ): CertificationPath {
+    ): ByteArray {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
         return authorizeIndefinitely(thirdPartyEndpointPublicKey)
@@ -108,7 +109,7 @@ internal constructor(
     @Throws(CertificateException::class)
     private suspend fun authorizeIndefinitely(
         thirdPartyEndpointPublicKey: PublicKey,
-    ): CertificationPath {
+    ): ByteArray {
         val authorization =
             issueAuthorization(thirdPartyEndpointPublicKey, identityCertificate.expiryDate)
 
@@ -148,13 +149,12 @@ internal constructor(
                 return@forEach
             }
 
-            val pdaPath = issueAuthorization(thirdPartyEndpoint, identityCertificate.expiryDate)
             val message = OutgoingMessage.build(
                 "application/vnd+relaycorp.awala.pda-path",
-                pdaPath.serialize(),
+                issueAuthorization(thirdPartyEndpoint, identityCertificate.expiryDate),
                 this,
                 thirdPartyEndpoint,
-                pdaPath.leafCertificate.expiryDate,
+                identityCertificate.expiryDate,
             )
             context.gatewayClient.sendMessage(message)
         }
