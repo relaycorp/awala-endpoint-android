@@ -1,6 +1,8 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
@@ -10,17 +12,20 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.pki.CertificationPath
+import tech.relaycorp.relaynet.pki.CertificationPathException
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.privateAddress
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
 internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     private val thirdPartyEndpointCertificate = issueEndpointCertificate(
@@ -43,12 +48,9 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         whenever(storage.privateThirdParty.get(any())).thenReturn(
             PrivateThirdPartyEndpointData(
                 KeyPairSet.PRIVATE_ENDPOINT.public,
-                AuthorizationBundle(
-                    PDACertPath.PDA.serialize(),
-                    listOf(
-                        PDACertPath.PRIVATE_ENDPOINT.serialize(),
-                        PDACertPath.PRIVATE_GW.serialize(),
-                    )
+                CertificationPath(
+                    PDACertPath.PDA,
+                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
                 )
             )
         )
@@ -81,13 +83,13 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     fun import_successful() = runBlockingTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
-        val authBundle = AuthorizationBundle(
-            pda.serialize(),
-            listOf(thirdPartyEndpointCertificate.serialize())
+        val pdaPath = CertificationPath(
+            pda,
+            listOf(thirdPartyEndpointCertificate)
         )
         val endpoint = PrivateThirdPartyEndpoint.import(
             KeyPairSet.PDA_GRANTEE.public.encoded,
-            authBundle,
+            pdaPath.serialize(),
             sessionKey,
         )
 
@@ -110,11 +112,12 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
 
         verify(storage.privateThirdParty).set(
-            "${firstPartyEndpoint.privateAddress}_${endpoint.privateAddress}",
-            PrivateThirdPartyEndpointData(
-                KeyPairSet.PDA_GRANTEE.public,
-                authBundle
-            )
+            eq("${firstPartyEndpoint.privateAddress}_${endpoint.privateAddress}"),
+            argThat {
+                identityKey == KeyPairSet.PDA_GRANTEE.public &&
+                    this.pdaPath.leafCertificate == pda &&
+                    this.pdaPath.certificateAuthorities == pdaPath.certificateAuthorities
+            }
         )
 
         assertEquals(sessionKey, sessionPublicKeystore.retrieve(endpoint.privateAddress))
@@ -122,11 +125,13 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun import_invalidIdentityKey() = runBlockingTest {
+        val pdaPath = CertificationPath(thirdPartyEndpointCertificate, emptyList())
+
         val exception = assertThrows(InvalidThirdPartyEndpoint::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     "123456".toByteArray(),
-                    AuthorizationBundle(thirdPartyEndpointCertificate.serialize(), emptyList()),
+                    pdaPath.serialize(),
                     sessionKey,
                 )
             }
@@ -138,14 +143,13 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     @Test
     fun import_invalidFirstParty() = runBlockingTest {
         val firstPartyCert = PDACertPath.PRIVATE_ENDPOINT
+        val pdaPath = CertificationPath(firstPartyCert, emptyList())
+
         val exception = assertThrows(UnknownFirstPartyEndpointException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     KeyPairSet.PDA_GRANTEE.public.encoded,
-                    AuthorizationBundle(
-                        firstPartyCert.serialize(),
-                        emptyList(),
-                    ),
+                    pdaPath.serialize(),
                     sessionKey,
                 )
             }
@@ -168,72 +172,116 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             ZonedDateTime.now().plusDays(1)
         )
 
-        val authorization = issueDeliveryAuthorization(
+        val invalidPDA = issueDeliveryAuthorization(
             subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
-            issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
+            issuerPrivateKey = unrelatedKeyPair.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
-            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT
+            issuerCertificate = unrelatedCertificate
         )
 
+        val pdaPath = CertificationPath(
+            invalidPDA,
+            listOf(thirdPartyEndpointCertificate)
+        )
         val exception = assertThrows(InvalidAuthorizationException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     KeyPairSet.PDA_GRANTEE.public.encoded,
-                    AuthorizationBundle(
-                        authorization.serialize(),
-                        listOf(unrelatedCertificate.serialize())
-                    ),
+                    pdaPath.serialize(),
                     sessionKey,
                 )
             }
         }
 
-        assertEquals("PDA was not issued by third-party endpoint", exception.message)
+        assertEquals("PDA path is invalid", exception.message)
+        assertTrue(exception.cause is CertificationPathException)
+        assertTrue(exception.cause?.cause is CertificateException)
     }
 
     @Test
-    fun import_invalidAuthorization() = runBlockingTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
+    fun import_malformedAuthorization() = runBlockingTest {
+        val exception = assertThrows(InvalidAuthorizationException::class.java) {
+            runBlockingTest {
+                PrivateThirdPartyEndpoint.import(
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
+                    "malformed".toByteArray(),
+                    sessionKey,
+                )
+            }
+        }
 
-        val authorization = issueDeliveryAuthorization(
-            firstPartyEndpoint.identityCertificate.subjectPublicKey,
-            KeyPairSet.PRIVATE_ENDPOINT.private,
-            validityEndDate = ZonedDateTime.now().minusDays(1),
-            issuerCertificate = PDACertPath.PRIVATE_ENDPOINT,
-            validityStartDate = ZonedDateTime.now().minusDays(2)
+        assertEquals("PDA path is malformed", exception.message)
+        assertTrue(exception.cause is CertificationPathException)
+    }
+
+    @Test
+    fun import_invalidPDAPath() = runBlockingTest {
+        createFirstPartyEndpoint()
+        val pdaPath = CertificationPath(
+            pda,
+            emptyList(), // Shouldn't be empty
         )
 
         val exception = assertThrows(InvalidAuthorizationException::class.java) {
             runBlockingTest {
                 PrivateThirdPartyEndpoint.import(
                     KeyPairSet.PDA_GRANTEE.public.encoded,
-                    AuthorizationBundle(authorization.serialize(), emptyList()),
+                    pdaPath.serialize(),
                     sessionKey,
                 )
             }
         }
 
-        assertEquals("PDA is invalid", exception.message)
+        assertEquals("PDA path is invalid", exception.message)
+    }
+
+    @Test
+    fun import_expiredPDA() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+
+        val now = ZonedDateTime.now()
+        val expiredPDA = issueDeliveryAuthorization(
+            firstPartyEndpoint.identityCertificate.subjectPublicKey,
+            KeyPairSet.PDA_GRANTEE.private,
+            now.minusSeconds(1),
+            thirdPartyEndpointCertificate,
+            now.minusSeconds(2)
+        )
+
+        val pdaPath = CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
+        val exception = assertThrows(InvalidAuthorizationException::class.java) {
+            runBlockingTest {
+                PrivateThirdPartyEndpoint.import(
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
+                    pdaPath.serialize(),
+                    sessionKey,
+                )
+            }
+        }
+
+        assertEquals("PDA path is invalid", exception.message)
+        assertTrue(exception.cause is CertificationPathException)
     }
 
     @Test
     fun dataSerialization() {
         val pda = PDACertPath.PDA
         val identityKey = KeyPairSet.PRIVATE_ENDPOINT.public
+        val pdaPath = CertificationPath(
+            pda,
+            listOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW)
+        )
         val dataSerialized = PrivateThirdPartyEndpointData(
             identityKey,
-            AuthorizationBundle(
-                pda.serialize(),
-                listOf(PDACertPath.PRIVATE_GW.serialize(), PDACertPath.PUBLIC_GW.serialize())
-            )
+            pdaPath
         ).serialize()
         val data = PrivateThirdPartyEndpointData.deserialize(dataSerialized)
 
         assertEquals(identityKey, data.identityKey)
-        assertEquals(pda, Certificate.deserialize(data.authBundle.pdaSerialized))
-        assertArrayEquals(
-            arrayOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW),
-            data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }.toTypedArray()
+        assertEquals(pda, data.pdaPath.leafCertificate)
+        assertEquals(
+            listOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW),
+            data.pdaPath.certificateAuthorities
         )
     }
 
