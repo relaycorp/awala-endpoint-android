@@ -40,16 +40,16 @@ public class IncomingMessage internal constructor(
         internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage {
             val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)
                 ?: throw UnknownFirstPartyEndpointException(
-                    "Unknown third party endpoint with address ${parcel.recipientAddress}"
+                    "Unknown first-party endpoint ${parcel.recipientAddress}"
                 )
 
             val sender = ThirdPartyEndpoint.load(
                 parcel.recipientAddress,
                 parcel.senderCertificate.subjectPrivateAddress,
             ) ?: throw UnknownThirdPartyEndpointException(
-                "Unknown third party endpoint with address " +
+                "Unknown third-party endpoint " +
                     "${parcel.senderCertificate.subjectPrivateAddress} " +
-                    "for first party endpoint ${parcel.recipientAddress}"
+                    "for first-party endpoint ${parcel.recipientAddress}"
             )
 
             val context = Awala.getContextOrThrow()
