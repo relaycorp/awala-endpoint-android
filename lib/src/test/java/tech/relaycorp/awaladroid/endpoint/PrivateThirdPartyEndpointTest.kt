@@ -7,6 +7,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
 import java.util.UUID
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -282,6 +283,83 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         assertEquals(
             listOf(PDACertPath.PRIVATE_GW, PDACertPath.PUBLIC_GW),
             data.pdaPath.certificateAuthorities
+        )
+    }
+
+    @Test
+    fun updatePDAPath_invalidPath() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
+        val path = CertificationPath(pda, listOf())
+
+        val exception = assertThrows(InvalidAuthorizationException::class.java) {
+            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        }
+
+        assertEquals("PDA path is invalid", exception.message)
+        assertTrue(exception.cause is CertificationPathException)
+    }
+
+    @Test
+    fun updatePDAPath_differentFirstPartyEndpoint() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
+        val invalidSubjectPublicKey = KeyPairSet.PUBLIC_GW.public
+        val invalidPDA = issueDeliveryAuthorization(
+            invalidSubjectPublicKey,
+            KeyPairSet.PDA_GRANTEE.private,
+            thirdPartyEndpointCertificate.expiryDate,
+            thirdPartyEndpointCertificate,
+        )
+        val path = CertificationPath(invalidPDA, listOf(thirdPartyEndpointCertificate))
+
+        val exception = assertThrows(InvalidAuthorizationException::class.java) {
+            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        }
+
+        assertEquals(
+            "PDA subject (${invalidSubjectPublicKey.privateAddress}) is not first-party endpoint",
+            exception.message,
+        )
+    }
+
+    @Test
+    fun updatePDAPath_differentThirdPartyEndpoint() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
+        val invalidIssuer = PDACertPath.PUBLIC_GW
+        val invalidPDA = issueDeliveryAuthorization(
+            channel.firstPartyEndpoint.publicKey,
+            KeyPairSet.PUBLIC_GW.private, // Invalid issuer
+            invalidIssuer.expiryDate,
+            invalidIssuer,
+        )
+        val path = CertificationPath(invalidPDA, listOf(invalidIssuer))
+
+        val exception = assertThrows(InvalidAuthorizationException::class.java) {
+            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        }
+
+        assertEquals(
+            "PDA issuer (${invalidIssuer.subjectPrivateAddress}) is not third-party endpoint",
+            exception.message,
+        )
+    }
+
+    @Test
+    fun updatePDAPath_valid() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
+        val path = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
+
+        thirdPartyEndpoint.updatePDAPath(path)
+
+        verify(storage.privateThirdParty).set(
+            "${channel.firstPartyEndpoint.privateAddress}_${thirdPartyEndpoint.privateAddress}",
+            PrivateThirdPartyEndpointData(
+                KeyPairSet.PDA_GRANTEE.public,
+                path
+            )
         )
     }
 
