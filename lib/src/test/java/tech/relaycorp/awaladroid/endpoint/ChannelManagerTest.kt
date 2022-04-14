@@ -1,6 +1,7 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -28,6 +29,13 @@ internal class ChannelManagerTest {
             clear()
             apply()
         }
+    }
+
+    @Test
+    fun constructor_defaultCoroutineContext() {
+        val manager = ChannelManager(sharedPreferences)
+
+        assertEquals(Dispatchers.IO, manager.flowSharedPreferences.coroutineContext)
     }
 
     @Test

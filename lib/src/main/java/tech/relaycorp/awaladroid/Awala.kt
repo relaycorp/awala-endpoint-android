@@ -2,7 +2,6 @@ package tech.relaycorp.awaladroid
 
 import android.content.Context
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
@@ -42,7 +41,7 @@ public object Awala {
                 serviceInteractorBuilder = { ServiceInteractor(context) }
             ),
             EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
-            ChannelManager(channelPreferences, Dispatchers.IO),
+            ChannelManager(channelPreferences),
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
             fileCertificateStore,

@@ -4,11 +4,12 @@ import android.content.SharedPreferences
 import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import java.security.PublicKey
 import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.Dispatchers
 import tech.relaycorp.relaynet.wrappers.privateAddress
 
 internal class ChannelManager(
     sharedPreferences: SharedPreferences,
-    coroutineContext: CoroutineContext
+    coroutineContext: CoroutineContext = Dispatchers.IO
 ) {
     internal val flowSharedPreferences: FlowSharedPreferences =
         FlowSharedPreferences(sharedPreferences, coroutineContext)
