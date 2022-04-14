@@ -1,6 +1,10 @@
 package tech.relaycorp.awaladroid
 
+import android.content.Context
+import com.nhaarman.mockitokotlin2.spy
+import com.nhaarman.mockitokotlin2.verify
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -34,7 +38,7 @@ public class AwalaTest {
     }
 
     @Test
-    public fun keystoresRoot(): Unit = runBlockingTest {
+    public fun keystores(): Unit = runBlockingTest {
         val androidContext = RuntimeEnvironment.getApplication()
         Awala.setUp(androidContext)
 
@@ -56,5 +60,18 @@ public class AwalaTest {
             expectedRoot,
             (context.certificateStore as FileCertificateStore).rootDirectory.parentFile,
         )
+    }
+
+    @Test
+    public fun channelManager(): Unit = runBlockingTest {
+        val androidContextSpy = spy(RuntimeEnvironment.getApplication())
+        Awala.setUp(androidContextSpy)
+
+        val context = Awala.getContextOrThrow()
+
+        assertEquals(Dispatchers.IO, context.channelManager.coroutineContext)
+        // Cause shared preferences to be resolved before inspecting it
+        context.channelManager.sharedPreferences
+        verify(androidContextSpy).getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
     }
 }

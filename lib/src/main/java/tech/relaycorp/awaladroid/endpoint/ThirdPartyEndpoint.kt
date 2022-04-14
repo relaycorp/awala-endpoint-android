@@ -30,6 +30,7 @@ public sealed class ThirdPartyEndpoint(
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.deleteSessionKeysForPeer(privateAddress)
         context.sessionPublicKeyStore.delete(privateAddress)
+        context.channelManager.delete(this)
     }
 
     internal companion object {

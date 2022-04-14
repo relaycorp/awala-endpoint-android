@@ -1,11 +1,19 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.argThat
+import com.nhaarman.mockitokotlin2.argumentCaptor
+import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
+import java.security.PublicKey
 import java.time.ZonedDateTime
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
+import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -15,6 +23,7 @@ import org.junit.Test
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
+import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
@@ -23,13 +32,13 @@ import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.privateAddress
-import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
 internal class FirstPartyEndpointTest : MockContextTestCase() {
     @Test
@@ -222,8 +231,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_thirdPartyEndpoint() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    fun issueAuthorization_thirdPartyEndpoint() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -233,8 +242,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_publicKey_valid() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    fun issueAuthorization_publicKey_valid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
         val authorization = firstPartyEndpoint.issueAuthorization(
@@ -245,15 +254,124 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
     }
 
-    @Test(expected = AuthorizationIssuanceException::class)
-    fun issueAuthorization_publicKey_invalid() {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    @Test
+    fun issueAuthorization_publicKey_invalid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
-        firstPartyEndpoint.issueAuthorization(
-            "This is not a key".toByteArray(),
-            expiryDate
+        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
+            firstPartyEndpoint.issueAuthorization(
+                "This is not a key".toByteArray(),
+                expiryDate
+            )
+        }
+
+        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+    }
+
+    @Test
+    fun authorizeIndefinitely_thirdPartyEndpoint() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = firstPartyEndpoint.authorizeIndefinitely(thirdPartyEndpoint)
+
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+        verify(channelManager).create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
+    }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_valid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val expiryDate = ZonedDateTime.now().plusDays(1)
+
+        val authorization = firstPartyEndpoint.authorizeIndefinitely(
+            KeyPairSet.PDA_GRANTEE.public.encoded,
         )
+
+        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+        verify(channelManager).create(
+            eq(firstPartyEndpoint),
+            argThat<PublicKey> {
+                encoded.asList() == KeyPairSet.PDA_GRANTEE.public.encoded.asList()
+            }
+        )
+    }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_invalid() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+
+        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
+            runBlocking {
+                firstPartyEndpoint.authorizeIndefinitely(
+                    "This is not a key".toByteArray()
+                )
+            }
+        }
+
+        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+        verify(channelManager, never()).create(any(), any<PublicKey>())
+    }
+
+    @Test
+    fun reissuePDAs_with_no_channel() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
+            .thenReturn(emptySet())
+
+        firstPartyEndpoint.reissuePDAs()
+
+        verify(gatewayClient, never()).sendMessage(any())
+    }
+
+    @Test
+    fun reissuePDAs_with_missing_third_party_endpoint() = runBlockingTest {
+        val firstPartyEndpoint = createFirstPartyEndpoint()
+        val missingAddress = "non existing address"
+        whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
+            .thenReturn(setOf(missingAddress))
+        val logCaptor = LogCaptor.forClass(FirstPartyEndpoint::class.java)
+
+        firstPartyEndpoint.reissuePDAs()
+
+        verify(gatewayClient, never()).sendMessage(any())
+        assertTrue(
+            logCaptor.infoLogs.contains("Ignoring missing third-party endpoint $missingAddress")
+        )
+    }
+
+    @Test
+    fun reissuePDAs_with_existing_third_party_endpoint() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val firstPartyEndpoint = channel.firstPartyEndpoint
+
+        firstPartyEndpoint.reissuePDAs()
+
+        argumentCaptor<OutgoingMessage>().apply {
+            verify(gatewayClient, times(1)).sendMessage(capture())
+
+            val outgoingMessage = firstValue
+            // Verify the parcel
+            assertEquals(firstPartyEndpoint, outgoingMessage.senderEndpoint)
+            assertEquals(
+                channel.thirdPartyEndpoint.privateAddress,
+                outgoingMessage.recipientEndpoint.privateAddress
+            )
+            // Verify the PDA
+            val (serviceMessage) =
+                outgoingMessage.parcel.unwrapPayload(channel.thirdPartySessionKeyPair.privateKey)
+            assertEquals("application/vnd+relaycorp.awala.pda-path", serviceMessage.type)
+            val pdaPath = CertificationPath.deserialize(serviceMessage.content)
+            pdaPath.validate()
+            assertEquals(
+                channel.thirdPartyEndpoint.identityKey,
+                pdaPath.leafCertificate.subjectPublicKey
+            )
+            assertEquals(firstPartyEndpoint.pdaChain, pdaPath.certificateAuthorities)
+            assertEquals(pdaPath.leafCertificate.expiryDate, outgoingMessage.parcelExpiryDate)
+        }
     }
 
     @Test
@@ -265,16 +383,18 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
         assertEquals(0, privateKeyStore.identityKeys.size)
         assertEquals(0, certificateStore.certificationPaths.size)
+        verify(channelManager).delete(endpoint)
     }
 }
 
 private fun validateAuthorization(
-    authorization: AuthorizationBundle,
+    authorizationSerialized: ByteArray,
     firstPartyEndpoint: FirstPartyEndpoint,
     expiryDate: ZonedDateTime
 ) {
+    val authorization = CertificationPath.deserialize(authorizationSerialized)
     // PDA
-    val pda = Certificate.deserialize(authorization.pdaSerialized)
+    val pda = authorization.leafCertificate
     assertEquals(
         KeyPairSet.PDA_GRANTEE.public.encoded.asList(),
         pda.subjectPublicKey.encoded.asList()
@@ -289,8 +409,5 @@ private fun validateAuthorization(
     )
 
     // PDA chain
-    assertEquals(
-        firstPartyEndpoint.pdaChain.map { it.serialize().asList() },
-        authorization.pdaChainSerialized.map { it.asList() }
-    )
+    assertEquals(firstPartyEndpoint.pdaChain, authorization.certificateAuthorities)
 }

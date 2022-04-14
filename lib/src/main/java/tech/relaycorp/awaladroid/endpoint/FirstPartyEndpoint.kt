@@ -3,15 +3,19 @@ package tech.relaycorp.awaladroid.endpoint
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.time.ZonedDateTime
+import java.util.logging.Level
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
 import tech.relaycorp.awaladroid.SetupPendingException
+import tech.relaycorp.awaladroid.common.Logging.logger
+import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.keystores.MissingKeyException
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
@@ -36,8 +40,9 @@ internal constructor(
      */
     public val publicKey: PublicKey get() = identityCertificate.subjectPublicKey
 
-    internal val pdaChain: List<Certificate> get() =
-        listOf(identityCertificate) + identityCertificateChain
+    internal val pdaChain: List<Certificate>
+        get() =
+            listOf(identityCertificate) + identityCertificateChain
 
     /**
      * Issue a PDA for a third-party endpoint.
@@ -46,7 +51,7 @@ internal constructor(
     public fun issueAuthorization(
         thirdPartyEndpoint: ThirdPartyEndpoint,
         expiryDate: ZonedDateTime
-    ): AuthorizationBundle =
+    ): ByteArray =
         issueAuthorization(
             thirdPartyEndpoint.identityKey,
             expiryDate
@@ -59,7 +64,64 @@ internal constructor(
     public fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
         expiryDate: ZonedDateTime
-    ): AuthorizationBundle {
+    ): ByteArray {
+        val thirdPartyEndpointPublicKey =
+            deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
+        return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
+    }
+
+    @Throws(CertificateException::class)
+    private fun issueAuthorization(
+        thirdPartyEndpointPublicKey: PublicKey,
+        expiryDate: ZonedDateTime
+    ): ByteArray {
+        val pda = issueDeliveryAuthorization(
+            subjectPublicKey = thirdPartyEndpointPublicKey,
+            issuerPrivateKey = identityPrivateKey,
+            validityEndDate = expiryDate,
+            issuerCertificate = identityCertificate
+        )
+        val path = CertificationPath(pda, pdaChain)
+        return path.serialize()
+    }
+
+    /**
+     * Issue a PDA for a third-party endpoint and renew it indefinitely.
+     */
+    @Throws(CertificateException::class)
+    public suspend fun authorizeIndefinitely(
+        thirdPartyEndpoint: ThirdPartyEndpoint
+    ): ByteArray =
+        authorizeIndefinitely(thirdPartyEndpoint.identityKey)
+
+    /**
+     * Issue a PDA for a third-party endpoint (using its public key) and renew it indefinitely.
+     */
+    @Throws(CertificateException::class)
+    public suspend fun authorizeIndefinitely(
+        thirdPartyEndpointPublicKeySerialized: ByteArray
+    ): ByteArray {
+        val thirdPartyEndpointPublicKey =
+            deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
+        return authorizeIndefinitely(thirdPartyEndpointPublicKey)
+    }
+
+    @Throws(CertificateException::class)
+    private suspend fun authorizeIndefinitely(
+        thirdPartyEndpointPublicKey: PublicKey,
+    ): ByteArray {
+        val authorization =
+            issueAuthorization(thirdPartyEndpointPublicKey, identityCertificate.expiryDate)
+
+        val context = Awala.getContextOrThrow()
+        context.channelManager.create(this, thirdPartyEndpointPublicKey)
+
+        return authorization
+    }
+
+    private fun deserializePDAGranteePublicKey(
+        thirdPartyEndpointPublicKeySerialized: ByteArray
+    ): PublicKey {
         val thirdPartyEndpointPublicKey = try {
             thirdPartyEndpointPublicKeySerialized.deserializeRSAPublicKey()
         } catch (exc: KeyException) {
@@ -68,24 +130,34 @@ internal constructor(
                 exc
             )
         }
-        return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
+        return thirdPartyEndpointPublicKey
     }
 
-    @Throws(CertificateException::class)
-    private fun issueAuthorization(
-        thirdPartyEndpointPublicKey: PublicKey,
-        expiryDate: ZonedDateTime
-    ): AuthorizationBundle {
-        val pda = issueDeliveryAuthorization(
-            subjectPublicKey = thirdPartyEndpointPublicKey,
-            issuerPrivateKey = identityPrivateKey,
-            validityEndDate = expiryDate,
-            issuerCertificate = identityCertificate
-        )
-        return AuthorizationBundle(
-            pda.serialize(),
-            pdaChain.map { it.serialize() }
-        )
+    internal suspend fun reissuePDAs() {
+        val context = Awala.getContextOrThrow()
+        val thirdPartyEndpointAddresses = context.channelManager.getLinkedEndpointAddresses(this)
+        thirdPartyEndpointAddresses.forEach { thirdPartyEndpointAddress ->
+            val thirdPartyEndpoint = ThirdPartyEndpoint.load(
+                this@FirstPartyEndpoint.privateAddress,
+                thirdPartyEndpointAddress
+            )
+            if (thirdPartyEndpoint == null) {
+                logger.log(
+                    Level.INFO,
+                    "Ignoring missing third-party endpoint $thirdPartyEndpointAddress"
+                )
+                return@forEach
+            }
+
+            val message = OutgoingMessage.build(
+                "application/vnd+relaycorp.awala.pda-path",
+                issueAuthorization(thirdPartyEndpoint, identityCertificate.expiryDate),
+                this,
+                thirdPartyEndpoint,
+                identityCertificate.expiryDate,
+            )
+            context.gatewayClient.sendMessage(message)
+        }
     }
 
     /**
@@ -96,6 +168,7 @@ internal constructor(
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.deleteKeys(privateAddress)
         context.certificateStore.delete(privateAddress, identityCertificate.issuerCommonName)
+        context.channelManager.delete(this)
     }
 
     public companion object {
@@ -172,7 +245,7 @@ internal constructor(
             return FirstPartyEndpoint(
                 identityPrivateKey,
                 certificatePath.leafCertificate,
-                certificatePath.chain
+                certificatePath.certificateAuthorities
             )
         }
     }
