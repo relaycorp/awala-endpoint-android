@@ -8,11 +8,12 @@ import kotlinx.coroutines.Dispatchers
 import tech.relaycorp.relaynet.wrappers.privateAddress
 
 internal class ChannelManager(
-    sharedPreferences: SharedPreferences,
-    coroutineContext: CoroutineContext = Dispatchers.IO
+    coroutineContext: CoroutineContext = Dispatchers.IO,
+    sharedPreferencesGetter: () -> SharedPreferences
 ) {
-    internal val flowSharedPreferences: FlowSharedPreferences =
-        FlowSharedPreferences(sharedPreferences, coroutineContext)
+    internal val flowSharedPreferences: FlowSharedPreferences by lazy {
+        FlowSharedPreferences(sharedPreferencesGetter(), coroutineContext)
+    }
 
     suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,

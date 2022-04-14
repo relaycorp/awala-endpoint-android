@@ -33,7 +33,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun constructor_defaultCoroutineContext() {
-        val manager = ChannelManager(sharedPreferences)
+        val manager = ChannelManager { sharedPreferences }
 
         assertEquals(Dispatchers.IO, manager.flowSharedPreferences.coroutineContext)
     }
@@ -44,7 +44,7 @@ internal class ChannelManagerTest {
             null,
             sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
         )
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
@@ -56,7 +56,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun create_existing() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
@@ -69,7 +69,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun create_with_thirdPartyEndpointPublicKey() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
 
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
@@ -82,7 +82,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_first_party_non_existing() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         manager.delete(firstPartyEndpoint)
 
@@ -94,7 +94,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_first_party_existing() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         manager.delete(firstPartyEndpoint)
@@ -107,7 +107,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_third_party_non_existing() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
             putStringSet(
@@ -127,7 +127,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_third_party_existing() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
             putStringSet(
@@ -147,7 +147,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_third_party_single_valued() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val malformedValue = "i-should-not-be-here"
         with(sharedPreferences.edit()) {
             putString(
@@ -167,7 +167,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun delete_third_party_invalid_type() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val malformedValue = 42
         with(sharedPreferences.edit()) {
             putInt(
@@ -187,7 +187,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun getLinkedEndpointAddresses_empty() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         val linkedEndpoints = manager.getLinkedEndpointAddresses(firstPartyEndpoint)
 
@@ -196,7 +196,7 @@ internal class ChannelManagerTest {
 
     @Test
     fun getLinkedEndpointAddresses_matches() = runBlockingTest {
-        val manager = ChannelManager(sharedPreferences, coroutineContext)
+        val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         val linkedEndpoints = manager.getLinkedEndpointAddresses(firstPartyEndpoint)

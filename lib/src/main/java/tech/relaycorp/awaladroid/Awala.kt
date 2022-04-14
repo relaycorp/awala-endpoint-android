@@ -33,15 +33,15 @@ public object Awala {
         val androidPrivateKeyStore = AndroidPrivateKeyStore(keystoreRoot, context)
         val fileSessionPublicKeystore = FileSessionPublicKeystore(keystoreRoot)
         val fileCertificateStore = FileCertificateStore(keystoreRoot)
-        val channelPreferences =
-            context.getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
         this.context = AwalaContext(
             StorageImpl(DiskPersistence(context)),
             GatewayClientImpl(
                 serviceInteractorBuilder = { ServiceInteractor(context) }
             ),
             EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
-            ChannelManager(channelPreferences),
+            ChannelManager {
+                context.getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
+            },
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
             fileCertificateStore,

@@ -69,10 +69,10 @@ public class AwalaTest {
 
         val context = Awala.getContextOrThrow()
 
-        verify(androidContextSpy).getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
         assertEquals(
             Dispatchers.IO,
             context.channelManager.flowSharedPreferences.coroutineContext,
         )
+        verify(androidContextSpy).getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
     }
 }
