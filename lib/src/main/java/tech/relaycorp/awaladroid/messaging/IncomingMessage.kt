@@ -1,14 +1,20 @@
 package tech.relaycorp.awaladroid.messaging
 
+import java.util.logging.Level
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.SetupPendingException
+import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.awaladroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.pki.CertificationPath
+import tech.relaycorp.relaynet.pki.CertificationPathException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
 /**
@@ -29,6 +35,8 @@ public class IncomingMessage internal constructor(
 ) : Message() {
 
     internal companion object {
+        private const val PDA_PATH_TYPE = "application/vnd+relaycorp.awala.pda-path"
+
         @Throws(
             UnknownFirstPartyEndpointException::class,
             UnknownThirdPartyEndpointException::class,
@@ -37,7 +45,7 @@ public class IncomingMessage internal constructor(
             InvalidMessageException::class,
             SetupPendingException::class,
         )
-        internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage {
+        internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage? {
             val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)
                 ?: throw UnknownFirstPartyEndpointException(
                     "Unknown first-party endpoint ${parcel.recipientAddress}"
@@ -54,12 +62,60 @@ public class IncomingMessage internal constructor(
 
             val context = Awala.getContextOrThrow()
             val serviceMessage = context.endpointManager.unwrapMessagePayload(parcel)
+            if (serviceMessage.type == PDA_PATH_TYPE) {
+                processPDAPath(serviceMessage.content, sender, recipientEndpoint)
+                ack()
+                return null
+            }
             return IncomingMessage(
                 type = serviceMessage.type,
                 content = serviceMessage.content,
                 senderEndpoint = sender,
                 recipientEndpoint = recipientEndpoint,
                 ack = ack
+            )
+        }
+
+        private suspend fun processPDAPath(
+            pdaPathSerialized: ByteArray,
+            senderEndpoint: ThirdPartyEndpoint,
+            recipientEndpoint: FirstPartyEndpoint,
+        ) {
+            if (senderEndpoint is PublicThirdPartyEndpoint) {
+                logger.info(
+                    "Ignoring PDA path from public endpoint ${senderEndpoint.privateAddress} " +
+                        "(${senderEndpoint.publicAddress})"
+                )
+                return
+            }
+            val pdaPath = try {
+                CertificationPath.deserialize(pdaPathSerialized)
+            } catch (exc: CertificationPathException) {
+                logger.log(
+                    Level.INFO,
+                    "Ignoring malformed PDA path for ${recipientEndpoint.privateAddress} " +
+                        "from ${senderEndpoint.privateAddress}",
+                    exc,
+                )
+                return
+            }
+
+            try {
+                pdaPath.validate()
+            } catch (exc: CertificationPathException) {
+                logger.log(
+                    Level.INFO,
+                    "Ignoring invalid PDA path for ${recipientEndpoint.privateAddress} " +
+                        "from ${senderEndpoint.privateAddress}",
+                    exc,
+                )
+                return
+            }
+
+            (senderEndpoint as PrivateThirdPartyEndpoint).updatePDAPath(pdaPath)
+            logger.info(
+                "Updated PDA path from ${senderEndpoint.privateAddress} for " +
+                    recipientEndpoint.privateAddress
             )
         }
     }
