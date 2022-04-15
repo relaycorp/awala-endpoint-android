@@ -5,6 +5,7 @@ import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.InvalidAuthorizationException
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
@@ -101,8 +102,8 @@ public class IncomingMessage internal constructor(
             }
 
             try {
-                pdaPath.validate()
-            } catch (exc: CertificationPathException) {
+                (senderEndpoint as PrivateThirdPartyEndpoint).updatePDAPath(pdaPath)
+            } catch (exc: InvalidAuthorizationException) {
                 logger.log(
                     Level.INFO,
                     "Ignoring invalid PDA path for ${recipientEndpoint.privateAddress} " +
@@ -111,8 +112,6 @@ public class IncomingMessage internal constructor(
                 )
                 return
             }
-
-            (senderEndpoint as PrivateThirdPartyEndpoint).updatePDAPath(pdaPath)
             logger.info(
                 "Updated PDA path from ${senderEndpoint.privateAddress} for " +
                     recipientEndpoint.privateAddress
