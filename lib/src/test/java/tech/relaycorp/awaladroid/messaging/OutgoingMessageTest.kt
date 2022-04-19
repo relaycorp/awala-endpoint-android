@@ -17,6 +17,48 @@ import tech.relaycorp.relaynet.ramf.RecipientAddressType
 
 internal class OutgoingMessageTest : MockContextTestCase() {
 
+    @Test
+    fun build_creationDate() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+        val dateBeforeCreation = ZonedDateTime.now()
+
+        val message = MessageFactory.buildOutgoing(channel)
+
+        assertTrue(dateBeforeCreation.minusMinutes(5) <= message.parcel.creationDate)
+        assertTrue(message.parcel.creationDate <= ZonedDateTime.now().minusMinutes(5))
+    }
+
+    @Test
+    fun build_defaultExpiryDate() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+
+        val message = MessageFactory.buildOutgoing(channel)
+
+        val differenceSeconds = Duration.between(
+            message.parcel.expiryDate,
+            message.parcel.creationDate.plusDays(180)
+        ).seconds
+        assertTrue(abs(differenceSeconds) < 3)
+    }
+
+    @Test
+    fun build_customExpiryDate() = runBlockingTest {
+        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
+        val parcelExpiryDate = ZonedDateTime.now().plusMinutes(1)
+
+        val message = OutgoingMessage.build(
+            "the type",
+            Random.Default.nextBytes(10),
+            senderEndpoint,
+            recipientEndpoint,
+            parcelExpiryDate
+        )
+
+        val differenceSeconds =
+            Duration.between(message.parcel.expiryDate, parcelExpiryDate).seconds
+        assertTrue(abs(differenceSeconds) < 3)
+    }
+
     // Public Recipient
 
     @Test
@@ -29,38 +71,6 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
         assertEquals(message.ttl, message.parcel.ttl)
-    }
-
-    @Test
-    fun buildForPublicRecipient_checkTTL() = runBlockingTest {
-        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
-
-        val message = OutgoingMessage.build(
-            "the type",
-            Random.Default.nextBytes(10),
-            senderEndpoint = senderEndpoint,
-            recipientEndpoint = recipientEndpoint,
-            parcelExpiryDate = ZonedDateTime.now().plusMinutes(1)
-        )
-
-        assertTrue(58 < message.ttl)
-        assertTrue(message.ttl <= 60)
-    }
-
-    @Test
-    fun buildForPublicRecipient_expiryDateDefaultsToMax() = runBlockingTest {
-        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
-
-        val message = OutgoingMessage.build(
-            "the type",
-            Random.Default.nextBytes(10),
-            senderEndpoint = senderEndpoint,
-            recipientEndpoint = recipientEndpoint,
-        )
-
-        val ttlExpected =
-            Duration.between(ZonedDateTime.now(), OutgoingMessage.maxExpiryDate()).seconds
-        assertTrue(abs(ttlExpected - message.ttl) < 2)
     }
 
     @Test
