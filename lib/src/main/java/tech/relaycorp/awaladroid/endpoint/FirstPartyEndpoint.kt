@@ -203,8 +203,10 @@ internal constructor(
             val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
             try {
                 context.certificateStore.save(
-                    registration.privateNodeCertificate,
-                    listOf(registration.gatewayCertificate),
+                    CertificationPath(
+                        registration.privateNodeCertificate,
+                        listOf(registration.gatewayCertificate),
+                    ),
                     gatewayPrivateAddress
                 )
             } catch (exc: KeyStoreBackendException) {

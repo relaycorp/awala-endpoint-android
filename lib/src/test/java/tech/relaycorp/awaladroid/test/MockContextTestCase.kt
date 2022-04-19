@@ -98,9 +98,11 @@ internal abstract class MockContextTestCase {
 
         val certificate = firstPartyEndpoint.identityCertificate
         certificateStore.save(
-            certificate,
-            firstPartyEndpoint.identityCertificateChain,
-            certificate.issuerCommonName
+            CertificationPath(
+                certificate,
+                firstPartyEndpoint.identityCertificateChain
+            ),
+            certificate.issuerCommonName,
         )
 
         if (MockUtil.isMock(storage)) {
