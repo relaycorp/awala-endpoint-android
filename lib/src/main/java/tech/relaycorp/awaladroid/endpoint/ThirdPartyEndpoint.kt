@@ -68,6 +68,35 @@ public class PrivateThirdPartyEndpoint internal constructor(
         super.delete()
     }
 
+    @Throws(InvalidAuthorizationException::class)
+    internal suspend fun updatePDAPath(pdaPath: CertificationPath) {
+        try {
+            pdaPath.validate()
+        } catch (exc: CertificationPathException) {
+            throw InvalidAuthorizationException("PDA path is invalid", exc)
+        }
+
+        val pdaSubjectAddress = pdaPath.leafCertificate.subjectPrivateAddress
+        if (pdaSubjectAddress != firstPartyEndpointAddress) {
+            throw InvalidAuthorizationException(
+                "PDA subject ($pdaSubjectAddress) is not first-party endpoint"
+            )
+        }
+
+        val pdaIssuerAddress = pdaPath.certificateAuthorities.first().subjectPrivateAddress
+        if (pdaIssuerAddress != privateAddress) {
+            throw InvalidAuthorizationException(
+                "PDA issuer ($pdaIssuerAddress) is not third-party endpoint"
+            )
+        }
+
+        val context = Awala.getContextOrThrow()
+        context.storage.privateThirdParty.set(
+            storageKey,
+            PrivateThirdPartyEndpointData(identityKey, pdaPath)
+        )
+    }
+
     public companion object {
         /**
          * Load an endpoint.
@@ -235,5 +264,5 @@ public class UnknownFirstPartyEndpointException(message: String) : AwaladroidExc
 public class InvalidThirdPartyEndpoint(message: String, cause: Throwable? = null) :
     AwaladroidException(message, cause)
 
-public class InvalidAuthorizationException(message: String, cause: Throwable) :
+public class InvalidAuthorizationException(message: String, cause: Throwable? = null) :
     AwaladroidException(message, cause)

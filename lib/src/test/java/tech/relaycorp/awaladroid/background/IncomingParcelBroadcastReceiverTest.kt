@@ -10,10 +10,10 @@ import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 
 @RunWith(RobolectricTestRunner::class)
-internal class NotificationBroadcastReceiverTest : MockContextTestCase() {
+internal class IncomingParcelBroadcastReceiverTest : MockContextTestCase() {
     @Test
     fun name() = runBlockingTest {
-        val receiver = NotificationBroadcastReceiver()
+        val receiver = IncomingParcelBroadcastReceiver()
         receiver.coroutineContext = coroutineContext
         receiver.onReceive(RuntimeEnvironment.getApplication(), Intent())
 
