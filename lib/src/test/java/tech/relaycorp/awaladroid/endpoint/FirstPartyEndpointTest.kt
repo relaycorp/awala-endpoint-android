@@ -23,6 +23,7 @@ import org.junit.Test
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
+import tech.relaycorp.awaladroid.common.toPublicKey
 import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
@@ -30,6 +31,7 @@ import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
+import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.pki.CertificationPath
@@ -84,6 +86,30 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             endpoint.privateAddress,
             PDACertPath.PRIVATE_GW.subjectPrivateAddress
         )
+    }
+
+    @Test
+    fun reRegister() = runBlockingTest {
+        val endpoint = FirstPartyEndpointFactory.build()
+        val newCertificate = issueEndpointCertificate(
+            subjectPublicKey = endpoint.identityPrivateKey.toPublicKey(),
+            issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
+            validityEndDate = ZonedDateTime.now().plusYears(1),
+        )
+        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+            PrivateNodeRegistration(
+                newCertificate,
+                PDACertPath.PRIVATE_GW
+            )
+        )
+
+        endpoint.reRegister()
+
+        val identityCertificatePath = certificateStore.retrieveLatest(
+            endpoint.identityPrivateKey.privateAddress,
+            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+        )
+        assertEquals(newCertificate, identityCertificatePath!!.leafCertificate)
     }
 
     @Test(expected = RegistrationFailedException::class)
