@@ -24,9 +24,9 @@ public class OutgoingMessage
 private constructor(
     public val senderEndpoint: FirstPartyEndpoint,
     public val recipientEndpoint: ThirdPartyEndpoint,
-    public val parcelExpiryDate: ZonedDateTime = maxExpiryDate(),
+    public val parcelExpiryDate: ZonedDateTime,
     public val parcelId: ParcelId,
-    internal val parcelCreationDate: ZonedDateTime = ZonedDateTime.now()
+    internal val parcelCreationDate: ZonedDateTime,
 ) : Message() {
 
     internal lateinit var parcel: Parcel
@@ -35,7 +35,10 @@ private constructor(
     internal val ttl get() = Duration.between(parcelCreationDate, parcelExpiryDate).seconds.toInt()
 
     public companion object {
-        internal fun maxExpiryDate() = ZonedDateTime.now().plusDays(180)
+        private val CLOCK_DRIFT_OFFSET = Duration.ofMinutes(5)
+        private val MAX_TTL = Duration.ofDays(180)
+
+        private fun maxExpiryDate() = ZonedDateTime.now().plus(MAX_TTL).minus(CLOCK_DRIFT_OFFSET)
 
         /**
          * Create an outgoing service message (but don't send it).
@@ -59,7 +62,8 @@ private constructor(
                 senderEndpoint,
                 recipientEndpoint,
                 parcelExpiryDate,
-                parcelId
+                parcelId,
+                ZonedDateTime.now().minus(CLOCK_DRIFT_OFFSET),
             )
             message.parcel = message.buildParcel(type, content)
             return message
