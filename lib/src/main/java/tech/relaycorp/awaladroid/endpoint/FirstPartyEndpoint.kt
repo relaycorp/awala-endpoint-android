@@ -156,9 +156,11 @@ internal constructor(
         val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
         try {
             context.certificateStore.save(
-                registration.privateNodeCertificate,
-                listOf(registration.gatewayCertificate),
-                gatewayPrivateAddress
+                CertificationPath(
+                    registration.privateNodeCertificate,
+                    listOf(registration.gatewayCertificate),
+                ),
+                gatewayPrivateAddress,
             )
         } catch (exc: KeyStoreBackendException) {
             throw PersistenceException("Failed to save certificate", exc)
