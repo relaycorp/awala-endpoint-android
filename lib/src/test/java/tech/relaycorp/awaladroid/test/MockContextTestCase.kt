@@ -9,6 +9,7 @@ import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
 import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.HandleGatewayCertificateChange
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
@@ -31,6 +32,7 @@ internal abstract class MockContextTestCase {
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
     protected val certificateStore: MockCertificateStore = MockCertificateStore()
+    protected val handleGatewayCertificateChange: HandleGatewayCertificateChange = mock()
 
     // We'd ideally use the real thing but we can't use SharedPreferences in unit tests
     protected val channelManager: ChannelManager = mock()
@@ -46,6 +48,7 @@ internal abstract class MockContextTestCase {
                 privateKeyStore,
                 sessionPublicKeystore,
                 certificateStore,
+                handleGatewayCertificateChange
             )
         )
     }
