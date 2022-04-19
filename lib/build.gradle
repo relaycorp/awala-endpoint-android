@@ -4,7 +4,7 @@ plugins {
   id 'kotlin-kapt'
   id 'maven-publish'
   id 'org.jlleitschuh.gradle.ktlint' version "10.2.1"
-  id 'org.jetbrains.dokka' version "1.6.10"
+  id 'org.jetbrains.dokka' version "1.6.20"
 }
 
 apply from: 'jacoco.gradle'
@@ -74,7 +74,7 @@ dependencies {
   implementation "org.bouncycastle:bcpkix-jdk15on:1.70"
 
   // Serialization
-  implementation 'org.mongodb:bson:4.5.1'
+  implementation 'org.mongodb:bson:4.6.0'
 
   // Testing
   testImplementation 'junit:junit:4.13.2'
