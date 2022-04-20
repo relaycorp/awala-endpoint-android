@@ -58,19 +58,20 @@ internal class ReceiveMessages(
     private fun getNonceSigners() = suspend {
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.retrieveAllIdentityKeys()
-            .mapNotNull { identityPrivateKey ->
+            .flatMap { identityPrivateKey ->
                 val privateAddress = identityPrivateKey.privateAddress
-                val privateGatewayPrivateAddress = context.storage.gatewayPrivateAddress.get(
-                    privateAddress
-                ) ?: return@mapNotNull null
-                val certificatePath = context.certificateStore.retrieveLatest(
+                val privateGatewayPrivateAddress =
+                    context.storage.gatewayPrivateAddress.get(privateAddress)
+                        ?: return@flatMap emptyList()
+                context.certificateStore.retrieveAll(
                     privateAddress,
                     privateGatewayPrivateAddress
-                ) ?: return@mapNotNull null
-                Signer(
-                    certificatePath.leafCertificate,
-                    identityPrivateKey,
-                )
+                ).map {
+                    Signer(
+                        it.leafCertificate,
+                        identityPrivateKey,
+                    )
+                }
             }
             .toTypedArray()
     }.asFlow()

@@ -2,6 +2,8 @@ package tech.relaycorp.awaladroid
 
 import android.content.Context
 import java.io.File
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
@@ -34,6 +36,7 @@ public object Awala {
         val androidPrivateKeyStore = AndroidPrivateKeyStore(keystoreRoot, context)
         val fileSessionPublicKeystore = FileSessionPublicKeystore(keystoreRoot)
         val fileCertificateStore = FileCertificateStore(keystoreRoot)
+
         this.context = AwalaContext(
             StorageImpl(DiskPersistence(context)),
             GatewayClientImpl(
@@ -48,6 +51,10 @@ public object Awala {
             fileCertificateStore,
             HandleGatewayCertificateChange(androidPrivateKeyStore)
         )
+
+        coroutineScope {
+            launch { fileCertificateStore.deleteExpired() }
+        }
     }
 
     internal var context: AwalaContext? = null
