@@ -25,6 +25,7 @@ import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.Awala.context
 import tech.relaycorp.awaladroid.test.unsetAwalaContext
 import tech.relaycorp.relaynet.issueEndpointCertificate
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.wrappers.privateAddress
 
@@ -98,8 +99,7 @@ public class AwalaTest {
         )
 
         certStore.save(
-            expiringCertificate,
-            emptyList(),
+            CertificationPath(expiringCertificate, emptyList()),
             KeyPairSet.PRIVATE_GW.private.privateAddress
         )
         assertNotNull(
