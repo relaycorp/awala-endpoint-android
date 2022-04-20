@@ -4,8 +4,8 @@ import android.content.Context
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
 import java.io.File
+import java.time.Duration
 import java.time.ZonedDateTime
-import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
@@ -19,7 +19,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
-import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.test.unsetAwalaContext
 import tech.relaycorp.relaynet.issueEndpointCertificate
@@ -86,33 +85,33 @@ public class AwalaTest {
     @Test
     public fun deleteExpiredOnSetUp(): Unit = runBlockingTest {
         val androidContext = RuntimeEnvironment.getApplication()
-
-        val rootFolder = File(androidContext.filesDir, "awaladroid${File.separator}keystores")
-        val certStore = FileCertificateStore(FileKeystoreRoot(rootFolder))
-        val interval = Duration.milliseconds(3_000)
+        Awala.setUp(androidContext)
+        val originalAwalaContext = Awala.getContextOrThrow()
+        val interval = Duration.ofSeconds(3)
         val expiringCertificate = issueEndpointCertificate(
             subjectPublicKey = KeyPairSet.PRIVATE_ENDPOINT.public,
             issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
-            validityEndDate = ZonedDateTime.now().plusNanos(interval.inWholeNanoseconds),
+            validityEndDate = ZonedDateTime.now().plus(interval),
         )
 
-        certStore.save(
+        val certificateStore = originalAwalaContext.certificateStore
+        certificateStore.save(
             CertificationPath(expiringCertificate, emptyList()),
-            KeyPairSet.PRIVATE_GW.private.privateAddress
+            expiringCertificate.issuerCommonName,
         )
         assertNotNull(
-            certStore.retrieveLatest(
-                KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
-                KeyPairSet.PRIVATE_GW.private.privateAddress
+            certificateStore.retrieveLatest(
+                expiringCertificate.subjectPrivateAddress,
+                expiringCertificate.issuerCommonName,
             )
         )
 
         // Retry until expiration
         repeat(3) {
-            runCatching { Thread.sleep(interval.inWholeMilliseconds) }
+            runCatching { Thread.sleep(interval.toMillis()) }
             Awala.setUp(androidContext)
             advanceUntilIdle()
-            certStore.retrieveLatest(
+            certificateStore.retrieveLatest(
                 KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
                 KeyPairSet.PRIVATE_GW.private.privateAddress
             ) ?: return@runBlockingTest
