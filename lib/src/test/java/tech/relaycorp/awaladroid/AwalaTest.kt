@@ -11,7 +11,6 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -22,7 +21,6 @@ import org.robolectric.RuntimeEnvironment
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
-import tech.relaycorp.awaladroid.Awala.context
 import tech.relaycorp.awaladroid.test.unsetAwalaContext
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.pki.CertificationPath
@@ -91,7 +89,7 @@ public class AwalaTest {
 
         val rootFolder = File(androidContext.filesDir, "awaladroid${File.separator}keystores")
         val certStore = FileCertificateStore(FileKeystoreRoot(rootFolder))
-        val interval = Duration.milliseconds(1000)
+        val interval = Duration.milliseconds(3_000)
         val expiringCertificate = issueEndpointCertificate(
             subjectPublicKey = KeyPairSet.PRIVATE_ENDPOINT.public,
             issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
@@ -109,14 +107,16 @@ public class AwalaTest {
             )
         )
 
-        runCatching { Thread.sleep(interval.inWholeMilliseconds) } // Wait for expiration
-        Awala.setUp(androidContext)
-        advanceUntilIdle()
-        assertNull(
+        // Retry until expiration
+        repeat(3) {
+            runCatching { Thread.sleep(interval.inWholeMilliseconds) }
+            Awala.setUp(androidContext)
+            advanceUntilIdle()
             certStore.retrieveLatest(
                 KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
                 KeyPairSet.PRIVATE_GW.private.privateAddress
-            )
-        )
+            ) ?: return@runBlockingTest
+        }
+        throw AssertionError("Expired certificate not deleted")
     }
 }
