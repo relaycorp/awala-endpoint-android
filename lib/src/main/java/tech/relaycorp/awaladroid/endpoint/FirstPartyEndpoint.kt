@@ -10,6 +10,7 @@ import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.RegistrationFailedException
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.common.Logging.logger
+import tech.relaycorp.awaladroid.common.toKeyPair
 import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
@@ -133,6 +134,41 @@ internal constructor(
         return thirdPartyEndpointPublicKey
     }
 
+    /**
+     * Re-register endpoints after gateway certificate change
+     */
+    @Throws(
+        RegistrationFailedException::class,
+        GatewayProtocolException::class,
+        PersistenceException::class,
+        SetupPendingException::class,
+    )
+    internal suspend fun reRegister(): FirstPartyEndpoint {
+        val context = Awala.getContextOrThrow()
+
+        val registration = context.gatewayClient.registerEndpoint(identityPrivateKey.toKeyPair())
+        val newEndpoint = FirstPartyEndpoint(
+            identityPrivateKey,
+            registration.privateNodeCertificate,
+            listOf(registration.gatewayCertificate)
+        )
+
+        val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
+        try {
+            context.certificateStore.save(
+                CertificationPath(
+                    registration.privateNodeCertificate,
+                    listOf(registration.gatewayCertificate),
+                ),
+                gatewayPrivateAddress,
+            )
+        } catch (exc: KeyStoreBackendException) {
+            throw PersistenceException("Failed to save certificate", exc)
+        }
+
+        return newEndpoint
+    }
+
     internal suspend fun reissuePDAs() {
         val context = Awala.getContextOrThrow()
         val thirdPartyEndpointAddresses = context.channelManager.getLinkedEndpointAddresses(this)
@@ -203,8 +239,10 @@ internal constructor(
             val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
             try {
                 context.certificateStore.save(
-                    registration.privateNodeCertificate,
-                    listOf(registration.gatewayCertificate),
+                    CertificationPath(
+                        registration.privateNodeCertificate,
+                        listOf(registration.gatewayCertificate),
+                    ),
                     gatewayPrivateAddress
                 )
             } catch (exc: KeyStoreBackendException) {

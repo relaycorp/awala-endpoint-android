@@ -9,11 +9,12 @@ import tech.relaycorp.relaynet.InvalidNodeConnectionParams
 import tech.relaycorp.relaynet.PublicNodeConnectionParams
 import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.keystores.MissingKeyException
+import tech.relaycorp.relaynet.pki.CertificationPath
+import tech.relaycorp.relaynet.pki.CertificationPathException
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
-import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
 /**
  * An endpoint owned by a different instance of this app, or a different app in the same service.
@@ -67,6 +68,35 @@ public class PrivateThirdPartyEndpoint internal constructor(
         super.delete()
     }
 
+    @Throws(InvalidAuthorizationException::class)
+    internal suspend fun updatePDAPath(pdaPath: CertificationPath) {
+        try {
+            pdaPath.validate()
+        } catch (exc: CertificationPathException) {
+            throw InvalidAuthorizationException("PDA path is invalid", exc)
+        }
+
+        val pdaSubjectAddress = pdaPath.leafCertificate.subjectPrivateAddress
+        if (pdaSubjectAddress != firstPartyEndpointAddress) {
+            throw InvalidAuthorizationException(
+                "PDA subject ($pdaSubjectAddress) is not first-party endpoint"
+            )
+        }
+
+        val pdaIssuerAddress = pdaPath.certificateAuthorities.first().subjectPrivateAddress
+        if (pdaIssuerAddress != privateAddress) {
+            throw InvalidAuthorizationException(
+                "PDA issuer ($pdaIssuerAddress) is not third-party endpoint"
+            )
+        }
+
+        val context = Awala.getContextOrThrow()
+        context.storage.privateThirdParty.set(
+            storageKey,
+            PrivateThirdPartyEndpointData(identityKey, pdaPath)
+        )
+    }
+
     public companion object {
         /**
          * Load an endpoint.
@@ -82,8 +112,8 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 PrivateThirdPartyEndpoint(
                     firstPartyAddress,
                     data.identityKey,
-                    Certificate.deserialize(data.authBundle.pdaSerialized),
-                    data.authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
+                    data.pdaPath.leafCertificate,
+                    data.pdaPath.certificateAuthorities,
                 )
             }
         }
@@ -100,7 +130,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             identityKeySerialized: ByteArray,
-            authBundle: AuthorizationBundle,
+            pdaPathSerialized: ByteArray,
             sessionKey: SessionKey,
         ): PrivateThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
@@ -114,8 +144,13 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 )
             }
 
-            val pda = Certificate.deserialize(authBundle.pdaSerialized)
-            val pdaChain = authBundle.pdaChainSerialized.map { Certificate.deserialize(it) }
+            val pdaPath = try {
+                CertificationPath.deserialize(pdaPathSerialized)
+            } catch (exc: CertificationPathException) {
+                throw InvalidAuthorizationException("PDA path is malformed", exc)
+            }
+            val pda = pdaPath.leafCertificate
+            val pdaChain = pdaPath.certificateAuthorities
 
             val firstPartyAddress = pda.subjectPrivateAddress
             try {
@@ -127,14 +162,9 @@ public class PrivateThirdPartyEndpoint internal constructor(
             }
 
             try {
-                pda.validate()
-            } catch (exc: CertificateException) {
-                throw InvalidAuthorizationException("PDA is invalid", exc)
-            }
-            try {
-                pda.getCertificationPath(emptyList(), pdaChain)
-            } catch (e: CertificateException) {
-                throw InvalidAuthorizationException("PDA was not issued by third-party endpoint", e)
+                pdaPath.validate()
+            } catch (exc: CertificationPathException) {
+                throw InvalidAuthorizationException("PDA path is invalid", exc)
             }
 
             val endpoint = PrivateThirdPartyEndpoint(
@@ -146,7 +176,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
             context.storage.privateThirdParty.set(
                 endpoint.storageKey,
-                PrivateThirdPartyEndpointData(identityKey, authBundle)
+                PrivateThirdPartyEndpointData(identityKey, pdaPath)
             )
 
             context.sessionPublicKeyStore.save(sessionKey, endpoint.privateAddress)
@@ -234,5 +264,5 @@ public class UnknownFirstPartyEndpointException(message: String) : AwaladroidExc
 public class InvalidThirdPartyEndpoint(message: String, cause: Throwable? = null) :
     AwaladroidException(message, cause)
 
-public class InvalidAuthorizationException(message: String, cause: Throwable) :
+public class InvalidAuthorizationException(message: String, cause: Throwable? = null) :
     AwaladroidException(message, cause)

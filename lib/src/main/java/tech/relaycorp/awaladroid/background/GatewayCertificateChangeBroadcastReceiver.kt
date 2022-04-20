@@ -9,13 +9,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import tech.relaycorp.awaladroid.Awala
 
-internal class NotificationBroadcastReceiver : BroadcastReceiver() {
+internal class GatewayCertificateChangeBroadcastReceiver : BroadcastReceiver() {
 
     internal var coroutineContext: CoroutineContext = Dispatchers.IO
 
     override fun onReceive(context: Context?, intent: Intent?) {
         CoroutineScope(coroutineContext).launch {
-            Awala.getContextOrThrow().gatewayClient.checkForNewMessages()
+            Awala.getContextOrThrow().handleGatewayCertificateChange()
         }
     }
 }

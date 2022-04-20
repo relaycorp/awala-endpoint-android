@@ -7,9 +7,9 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
-import tech.relaycorp.awaladroid.endpoint.AuthorizationBundle
 import tech.relaycorp.awaladroid.endpoint.ChannelManager
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.HandleGatewayCertificateChange
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
@@ -18,6 +18,7 @@ import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
+import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
@@ -31,6 +32,7 @@ internal abstract class MockContextTestCase {
     protected val privateKeyStore: MockPrivateKeyStore = MockPrivateKeyStore()
     protected val sessionPublicKeystore: MockSessionPublicKeyStore = MockSessionPublicKeyStore()
     protected val certificateStore: MockCertificateStore = MockCertificateStore()
+    protected val handleGatewayCertificateChange: HandleGatewayCertificateChange = mock()
 
     // We'd ideally use the real thing but we can't use SharedPreferences in unit tests
     protected val channelManager: ChannelManager = mock()
@@ -46,6 +48,7 @@ internal abstract class MockContextTestCase {
                 privateKeyStore,
                 sessionPublicKeystore,
                 certificateStore,
+                handleGatewayCertificateChange
             )
         )
     }
@@ -98,9 +101,11 @@ internal abstract class MockContextTestCase {
 
         val certificate = firstPartyEndpoint.identityCertificate
         certificateStore.save(
-            certificate,
-            firstPartyEndpoint.identityCertificateChain,
-            certificate.issuerCommonName
+            CertificationPath(
+                certificate,
+                firstPartyEndpoint.identityCertificateChain
+            ),
+            certificate.issuerCommonName,
         )
 
         if (MockUtil.isMock(storage)) {
@@ -125,12 +130,9 @@ internal abstract class MockContextTestCase {
         when (thirdPartyEndpointType) {
             RecipientAddressType.PRIVATE -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPrivate()
-                val authBundle = AuthorizationBundle(
-                    PDACertPath.PDA.serialize(),
-                    listOf(
-                        PDACertPath.PRIVATE_ENDPOINT.serialize(),
-                        PDACertPath.PRIVATE_GW.serialize()
-                    )
+                val authBundle = CertificationPath(
+                    PDACertPath.PDA,
+                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
                 )
                 whenever(
                     storage.privateThirdParty.get(
