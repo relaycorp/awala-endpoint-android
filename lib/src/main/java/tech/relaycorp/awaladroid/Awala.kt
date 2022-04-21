@@ -9,7 +9,9 @@ import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
 import tech.relaycorp.awaladroid.background.ServiceInteractor
 import tech.relaycorp.awaladroid.endpoint.ChannelManager
+import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.HandleGatewayCertificateChange
+import tech.relaycorp.awaladroid.endpoint.RenewExpiringCertificates
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.persistence.DiskPersistence
 import tech.relaycorp.relaynet.nodes.EndpointManager
@@ -53,7 +55,10 @@ public object Awala {
         )
 
         coroutineScope {
-            launch { fileCertificateStore.deleteExpired() }
+            launch {
+                RenewExpiringCertificates(androidPrivateKeyStore, FirstPartyEndpoint::load)()
+                fileCertificateStore.deleteExpired()
+            }
         }
     }
 
