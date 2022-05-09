@@ -11,6 +11,7 @@ import tech.relaycorp.awaladroid.GatewayException
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
+import tech.relaycorp.awaladroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.poweb.PoWebClient
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
@@ -95,7 +96,7 @@ internal class ReceiveMessages(
                 } catch (exp: UnknownFirstPartyEndpointException) {
                     parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
                     return@mapNotNull null
-                } catch (exp: UnknownFirstPartyEndpointException) {
+                } catch (exp: UnknownThirdPartyEndpointException) {
                     parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
                     return@mapNotNull null
                 } catch (exp: EnvelopedDataException) {
