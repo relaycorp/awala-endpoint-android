@@ -1,11 +1,11 @@
 package tech.relaycorp.awaladroid.messaging
 
 import java.time.ZonedDateTime
-import java.util.UUID
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runBlockingTest
+import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,6 +35,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     private val subject = ReceiveMessages { pdcClient }
 
     private val serviceMessage = ServiceMessage("type", "content".toByteArray())
+    private val logCaptor = LogCaptor.forClass(ParcelCollection::class.java)
 
     @Test
     fun receiveParcelSuccessfully() = runBlockingTest {
@@ -95,15 +96,14 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     @Test
     fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runBlockingTest {
         val invalidParcel = Parcel(
-            recipientAddress = UUID.randomUUID().toString(),
-            payload = "1234".toByteArray(),
-            senderCertificate = PDACertPath.PRIVATE_ENDPOINT,
-            creationDate = ZonedDateTime.now().plusDays(1)
+            recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
+            payload = "".toByteArray(),
+            senderCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
         var ackWasCalled = false
         val parcelCollection = ParcelCollection(
             parcelSerialized = invalidParcel.serialize(KeyPairSet.PRIVATE_ENDPOINT.private),
-            trustedCertificates = emptyList(),
+            trustedCertificates = emptyList(), // sender won't be trusted
             ack = { ackWasCalled = true }
         )
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
@@ -115,6 +115,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(collectParcelsCall.wasCalled)
         assertTrue(messages.isEmpty())
         assertTrue(ackWasCalled)
+        assertTrue(logCaptor.warnLogs.contains("Invalid incoming parcel"))
     }
 
     @Test
@@ -134,6 +135,47 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(collectParcelsCall.wasCalled)
         assertTrue(messages.isEmpty())
         assertTrue(ackWasCalled)
+        assertTrue(logCaptor.warnLogs.contains("Malformed incoming parcel"))
+    }
+
+    @Test
+    fun receiveParcelWithUnknownRecipient_ackedButNotDeliveredToApp() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        val parcel = buildParcel(channel)
+        var ackWasCalled = false
+        val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
+        val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        channel.firstPartyEndpoint.delete()
+
+        val messages = subject.receive().toCollection(mutableListOf())
+
+        assertTrue(pdcClient.wasClosed)
+        assertTrue(collectParcelsCall.wasCalled)
+        assertTrue(messages.isEmpty())
+        assertTrue(ackWasCalled)
+        assertTrue(logCaptor.warnLogs.contains("Incoming parcel with invalid recipient"))
+    }
+
+    @Test
+    fun receiveParcelWithUnknownSender_ackedButNotDeliveredToApp() = runBlockingTest {
+        val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        val parcel = buildParcel(channel)
+        var ackWasCalled = false
+        val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
+        val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        channel.thirdPartyEndpoint.delete()
+
+        val messages = subject.receive().toCollection(mutableListOf())
+
+        assertTrue(pdcClient.wasClosed)
+        assertTrue(collectParcelsCall.wasCalled)
+        assertTrue(messages.isEmpty())
+        assertTrue(ackWasCalled)
+        assertTrue(logCaptor.warnLogs.contains("Incoming parcel issues with invalid sender"))
     }
 
     @Test
@@ -168,6 +210,11 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(pdcClient.wasClosed)
         assertTrue(messages.isEmpty())
         assertTrue(ackWasCalled)
+        assertTrue(
+            logCaptor.warnLogs.contains(
+                "Failed to decrypt parcel; sender might have used wrong key"
+            )
+        )
     }
 
     @Test
@@ -200,6 +247,11 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(pdcClient.wasClosed)
         assertTrue(messages.isEmpty())
         assertTrue(ackWasCalled)
+        assertTrue(
+            logCaptor.warnLogs.contains(
+                "Incoming parcel did not encapsulate a valid service message"
+            )
+        )
     }
 
     private fun buildParcel(channel: EndpointChannel) = Parcel(
