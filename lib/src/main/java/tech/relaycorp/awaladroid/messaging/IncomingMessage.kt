@@ -12,6 +12,7 @@ import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.awaladroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.pki.CertificationPath
@@ -62,7 +63,14 @@ public class IncomingMessage internal constructor(
             )
 
             val context = Awala.getContextOrThrow()
-            val serviceMessage = context.endpointManager.unwrapMessagePayload(parcel)
+
+            val serviceMessage = try {
+                context.endpointManager.unwrapMessagePayload(parcel)
+            } catch (e: MissingKeyException) {
+                throw UnknownThirdPartyEndpointException(
+                    "Missing third-party endpoint session keys"
+                )
+            }
             if (serviceMessage.type == PDA_PATH_TYPE) {
                 processPDAPath(serviceMessage.content, sender, recipientEndpoint)
                 ack()
