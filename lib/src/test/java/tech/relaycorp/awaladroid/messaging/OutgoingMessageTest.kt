@@ -34,11 +34,11 @@ internal class OutgoingMessageTest : MockContextTestCase() {
 
         val message = MessageFactory.buildOutgoing(channel)
 
-        val differenceSeconds = Duration.between(
+        val difference = Duration.between(
             message.parcel.expiryDate,
             message.parcel.creationDate.plusDays(180)
-        ).seconds
-        assertTrue(abs(differenceSeconds) < 3)
+        )
+        assertTrue(abs(difference.toDays()) == 0L)
     }
 
     @Test
