@@ -326,7 +326,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             thirdPartyEndpoint.updatePDAPath(path)
         } catch (exception: InvalidAuthorizationException) {
             assertEquals(
-                "PDA subject (${invalidSubjectPublicKey.privateAddress}) is not first-party endpoint",
+                "PDA subject (${invalidSubjectPublicKey.privateAddress}) " +
+                    "is not first-party endpoint",
                 exception.message,
             )
             return@runTest

@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
