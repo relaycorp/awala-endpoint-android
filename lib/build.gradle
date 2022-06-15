@@ -102,10 +102,10 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
   kotlinOptions {
     jvmTarget = JavaVersion.VERSION_1_8
     freeCompilerArgs += [
-      '-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi',
-      '-Xuse-experimental=kotlinx.coroutines.FlowPreview',
-      '-Xuse-experimental=kotlin.time.ExperimentalTime',
-      '-Xuse-experimental=io.ktor.util.KtorExperimentalAPI'
+      '-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi',
+      '-opt-in=kotlinx.coroutines.FlowPreview',
+      '-opt-in=kotlin.time.ExperimentalTime',
+      '-opt-in=io.ktor.util.KtorExperimentalAPI'
     ]
   }
 }
