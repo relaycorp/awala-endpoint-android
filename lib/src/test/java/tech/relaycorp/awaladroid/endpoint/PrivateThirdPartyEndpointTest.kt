@@ -7,12 +7,10 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
 import java.util.UUID
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.test.MockContextTestCase
@@ -45,7 +43,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     private val sessionKey = SessionKeyPair.generate().sessionKey
 
     @Test
-    fun load_successful() = runBlockingTest {
+    fun load_successful() = runTest {
         whenever(storage.privateThirdParty.get(any())).thenReturn(
             PrivateThirdPartyEndpointData(
                 KeyPairSet.PRIVATE_ENDPOINT.public,
@@ -69,7 +67,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_nonExistent() = runBlockingTest {
+    fun load_nonExistent() = runTest {
         whenever(storage.privateThirdParty.get(any())).thenReturn(null)
 
         assertNull(
@@ -81,7 +79,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun import_successful() = runBlockingTest {
+    fun import_successful() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val pdaPath = CertificationPath(
@@ -125,45 +123,47 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun import_invalidIdentityKey() = runBlockingTest {
+    fun import_invalidIdentityKey() = runTest {
         val pdaPath = CertificationPath(thirdPartyEndpointCertificate, emptyList())
 
-        val exception = assertThrows(InvalidThirdPartyEndpoint::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    "123456".toByteArray(),
-                    pdaPath.serialize(),
-                    sessionKey,
-                )
-            }
+        try {
+            PrivateThirdPartyEndpoint.import(
+                "123456".toByteArray(),
+                pdaPath.serialize(),
+                sessionKey,
+            )
+        } catch (exception: InvalidThirdPartyEndpoint) {
+            assertEquals("Identity key is not a well-formed RSA public key", exception.message)
+            return@runTest
         }
 
-        assertEquals("Identity key is not a well-formed RSA public key", exception.message)
+        assert(false)
     }
 
     @Test
-    fun import_invalidFirstParty() = runBlockingTest {
+    fun import_invalidFirstParty() = runTest {
         val firstPartyCert = PDACertPath.PRIVATE_ENDPOINT
         val pdaPath = CertificationPath(firstPartyCert, emptyList())
 
-        val exception = assertThrows(UnknownFirstPartyEndpointException::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    KeyPairSet.PDA_GRANTEE.public.encoded,
-                    pdaPath.serialize(),
-                    sessionKey,
-                )
-            }
+        try {
+            PrivateThirdPartyEndpoint.import(
+                KeyPairSet.PDA_GRANTEE.public.encoded,
+                pdaPath.serialize(),
+                sessionKey,
+            )
+        } catch (exception: UnknownFirstPartyEndpointException) {
+            assertEquals(
+                "First-party endpoint ${firstPartyCert.subjectPrivateAddress} is not registered",
+                exception.message
+            )
+            return@runTest
         }
 
-        assertEquals(
-            "First-party endpoint ${firstPartyCert.subjectPrivateAddress} is not registered",
-            exception.message
-        )
+        assert(false)
     }
 
     @Test
-    fun import_wrongAuthorizationIssuer() = runBlockingTest {
+    fun import_wrongAuthorizationIssuer() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val unrelatedKeyPair = generateRSAKeyPair()
@@ -184,60 +184,64 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             invalidPDA,
             listOf(thirdPartyEndpointCertificate)
         )
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    KeyPairSet.PDA_GRANTEE.public.encoded,
-                    pdaPath.serialize(),
-                    sessionKey,
-                )
-            }
+
+        try {
+            PrivateThirdPartyEndpoint.import(
+                KeyPairSet.PDA_GRANTEE.public.encoded,
+                pdaPath.serialize(),
+                sessionKey,
+            )
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals("PDA path is invalid", exception.message)
+            assertTrue(exception.cause is CertificationPathException)
+            assertTrue(exception.cause?.cause is CertificateException)
+            return@runTest
         }
 
-        assertEquals("PDA path is invalid", exception.message)
-        assertTrue(exception.cause is CertificationPathException)
-        assertTrue(exception.cause?.cause is CertificateException)
+        assert(false)
     }
 
     @Test
-    fun import_malformedAuthorization() = runBlockingTest {
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    KeyPairSet.PDA_GRANTEE.public.encoded,
-                    "malformed".toByteArray(),
-                    sessionKey,
-                )
-            }
+    fun import_malformedAuthorization() = runTest {
+        try {
+            PrivateThirdPartyEndpoint.import(
+                KeyPairSet.PDA_GRANTEE.public.encoded,
+                "malformed".toByteArray(),
+                sessionKey,
+            )
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals("PDA path is malformed", exception.message)
+            assertTrue(exception.cause is CertificationPathException)
+            return@runTest
         }
 
-        assertEquals("PDA path is malformed", exception.message)
-        assertTrue(exception.cause is CertificationPathException)
+        assert(false)
     }
 
     @Test
-    fun import_invalidPDAPath() = runBlockingTest {
+    fun import_invalidPDAPath() = runTest {
         createFirstPartyEndpoint()
         val pdaPath = CertificationPath(
             pda,
             emptyList(), // Shouldn't be empty
         )
 
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    KeyPairSet.PDA_GRANTEE.public.encoded,
-                    pdaPath.serialize(),
-                    sessionKey,
-                )
-            }
+        try {
+            PrivateThirdPartyEndpoint.import(
+                KeyPairSet.PDA_GRANTEE.public.encoded,
+                pdaPath.serialize(),
+                sessionKey,
+            )
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals("PDA path is invalid", exception.message)
+            return@runTest
         }
 
-        assertEquals("PDA path is invalid", exception.message)
+        assert(false)
     }
 
     @Test
-    fun import_expiredPDA() = runBlockingTest {
+    fun import_expiredPDA() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val now = ZonedDateTime.now()
@@ -250,18 +254,20 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
 
         val pdaPath = CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlockingTest {
-                PrivateThirdPartyEndpoint.import(
-                    KeyPairSet.PDA_GRANTEE.public.encoded,
-                    pdaPath.serialize(),
-                    sessionKey,
-                )
-            }
+
+        try {
+            PrivateThirdPartyEndpoint.import(
+                KeyPairSet.PDA_GRANTEE.public.encoded,
+                pdaPath.serialize(),
+                sessionKey,
+            )
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals("PDA path is invalid", exception.message)
+            assertTrue(exception.cause is CertificationPathException)
+            return@runTest
         }
 
-        assertEquals("PDA path is invalid", exception.message)
-        assertTrue(exception.cause is CertificationPathException)
+        assert(false)
     }
 
     @Test
@@ -287,21 +293,24 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun updatePDAPath_invalidPath() = runBlockingTest {
+    fun updatePDAPath_invalidPath() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val path = CertificationPath(pda, listOf())
 
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        try {
+            thirdPartyEndpoint.updatePDAPath(path)
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals("PDA path is invalid", exception.message)
+            assertTrue(exception.cause is CertificationPathException)
+            return@runTest
         }
 
-        assertEquals("PDA path is invalid", exception.message)
-        assertTrue(exception.cause is CertificationPathException)
+        assert(false)
     }
 
     @Test
-    fun updatePDAPath_differentFirstPartyEndpoint() = runBlockingTest {
+    fun updatePDAPath_differentFirstPartyEndpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val invalidSubjectPublicKey = KeyPairSet.PUBLIC_GW.public
@@ -313,18 +322,22 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
         val path = CertificationPath(invalidPDA, listOf(thirdPartyEndpointCertificate))
 
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        try {
+            thirdPartyEndpoint.updatePDAPath(path)
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals(
+                "PDA subject (${invalidSubjectPublicKey.privateAddress}) " +
+                    "is not first-party endpoint",
+                exception.message,
+            )
+            return@runTest
         }
 
-        assertEquals(
-            "PDA subject (${invalidSubjectPublicKey.privateAddress}) is not first-party endpoint",
-            exception.message,
-        )
+        assert(false)
     }
 
     @Test
-    fun updatePDAPath_differentThirdPartyEndpoint() = runBlockingTest {
+    fun updatePDAPath_differentThirdPartyEndpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val invalidIssuer = PDACertPath.PUBLIC_GW
@@ -336,18 +349,21 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
         val path = CertificationPath(invalidPDA, listOf(invalidIssuer))
 
-        val exception = assertThrows(InvalidAuthorizationException::class.java) {
-            runBlocking { thirdPartyEndpoint.updatePDAPath(path) }
+        try {
+            thirdPartyEndpoint.updatePDAPath(path)
+        } catch (exception: InvalidAuthorizationException) {
+            assertEquals(
+                "PDA issuer (${invalidIssuer.subjectPrivateAddress}) is not third-party endpoint",
+                exception.message,
+            )
+            return@runTest
         }
 
-        assertEquals(
-            "PDA issuer (${invalidIssuer.subjectPrivateAddress}) is not third-party endpoint",
-            exception.message,
-        )
+        assert(false)
     }
 
     @Test
-    fun updatePDAPath_valid() = runBlockingTest {
+    fun updatePDAPath_valid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val path = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
@@ -364,7 +380,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun delete() = runBlockingTest {
+    fun delete() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val endpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val firstPartyEndpoint = channel.firstPartyEndpoint

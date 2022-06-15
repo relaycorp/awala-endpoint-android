@@ -4,7 +4,7 @@ import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -38,7 +38,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     private val logCaptor = LogCaptor.forClass(ParcelCollection::class.java)
 
     @Test
-    fun receiveParcelSuccessfully() = runBlockingTest {
+    fun receiveParcelSuccessfully() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
@@ -53,7 +53,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun collectParcelsWithCorrectNonceSigners() = runBlockingTest {
+    fun collectParcelsWithCorrectNonceSigners() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = buildParcel(channel)
         val parcelCollection = parcel.toParcelCollection()
@@ -70,7 +70,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test(expected = ReceiveMessageException::class)
-    fun collectParcelsGetsServerError() = runBlockingTest {
+    fun collectParcelsGetsServerError() = runTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(ServerBindingException("")))
         pdcClient = MockPDCClient(collectParcelsCall)
 
@@ -78,7 +78,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun collectParcelsGetsClientError() = runBlockingTest {
+    fun collectParcelsGetsClientError() = runTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(ClientBindingException("")))
         pdcClient = MockPDCClient(collectParcelsCall)
 
@@ -86,7 +86,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun collectParcelsGetsSigningError() = runBlockingTest {
+    fun collectParcelsGetsSigningError() = runTest {
         val collectParcelsCall = CollectParcelsCall(Result.failure(NonceSignerException("")))
         pdcClient = MockPDCClient(collectParcelsCall)
 
@@ -94,7 +94,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runBlockingTest {
+    fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runTest {
         val invalidParcel = Parcel(
             recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
             payload = "".toByteArray(),
@@ -119,7 +119,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveMalformedParcel_ackedButNotDeliveredToApp() = runBlockingTest {
+    fun receiveMalformedParcel_ackedButNotDeliveredToApp() = runTest {
         var ackWasCalled = false
         val parcelCollection = ParcelCollection(
             parcelSerialized = "1234".toByteArray(),
@@ -139,7 +139,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveParcelWithUnknownRecipient_ackedButNotDeliveredToApp() = runBlockingTest {
+    fun receiveParcelWithUnknownRecipient_ackedButNotDeliveredToApp() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = buildParcel(channel)
         var ackWasCalled = false
@@ -159,7 +159,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveParcelWithUnknownSender_ackedButNotDeliveredToApp() = runBlockingTest {
+    fun receiveParcelWithUnknownSender_ackedButNotDeliveredToApp() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = buildParcel(channel)
         var ackWasCalled = false
@@ -179,7 +179,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveValidParcel_invalidPayloadEncryption() = runBlockingTest {
+    fun receiveValidParcel_invalidPayloadEncryption() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         storage.publicThirdParty.set(
             channel.thirdPartyEndpoint.privateAddress,
@@ -218,7 +218,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     @Test
-    fun receiveValidParcel_invalidServiceMessage() = runBlockingTest {
+    fun receiveValidParcel_invalidServiceMessage() = runTest {
         val invalidServiceMessage = CargoMessageSet(emptyArray())
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         storage.publicThirdParty.set(

@@ -9,13 +9,15 @@ import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +45,7 @@ import tech.relaycorp.relaynet.testing.pki.PDACertPath
 internal class GatewayClientImplTest : MockContextTestCase() {
 
     private lateinit var pdcClient: MockPDCClient
-    private val coroutineScope = TestCoroutineScope()
+    private val coroutineScope = TestScope()
     private val serviceInteractor = mock<ServiceInteractor>()
     private val sendMessage = mock<SendMessage>()
     private val receiveMessages = mock<ReceiveMessages>()
@@ -56,7 +58,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     // Binding
 
     @Test
-    fun bind_successful() = coroutineScope.runBlockingTest {
+    fun bind_successful() = coroutineScope.runTest {
         gatewayClient.bind()
 
         verify(serviceInteractor).bind(
@@ -67,7 +69,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun secondBindIsSkipped() = coroutineScope.runBlockingTest {
+    fun secondBindIsSkipped() = coroutineScope.runTest {
         gatewayClient.bind()
         gatewayClient.bind()
 
@@ -76,7 +78,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun reBind_successful() = coroutineScope.runBlockingTest {
+    fun reBind_successful() = coroutineScope.runTest {
         gatewayClient.bind()
         gatewayClient.unbind()
         gatewayClient.bind()
@@ -86,7 +88,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayBindingException::class)
-    fun bind_unsuccessful() = coroutineScope.runBlockingTest {
+    fun bind_unsuccessful() = coroutineScope.runTest {
         whenever(serviceInteractor.bind(any(), any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
 
@@ -96,7 +98,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     // Registration
 
     @Test
-    internal fun registerEndpoint_successful() = coroutineScope.runBlockingTest {
+    internal fun registerEndpoint_successful() = coroutineScope.runTest {
         val replyMessage = buildAuthorizationReplyMessage()
         whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
             it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
@@ -121,7 +123,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = RegistrationFailedException::class)
-    internal fun registerEndpoint_withFailedPreRegisterBind() = coroutineScope.runBlockingTest {
+    internal fun registerEndpoint_withFailedPreRegisterBind() = coroutineScope.runTest {
         whenever(serviceInteractor.sendMessage(any(), any()))
             .thenThrow(ServiceInteractor.BindFailedException(""))
 
@@ -129,7 +131,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = RegistrationFailedException::class)
-    internal fun registerEndpoint_withFailedPreRegisterSend() = coroutineScope.runBlockingTest {
+    internal fun registerEndpoint_withFailedPreRegisterSend() = coroutineScope.runTest {
         whenever(serviceInteractor.sendMessage(any(), any()))
             .thenThrow(ServiceInteractor.SendFailedException(Exception()))
 
@@ -138,7 +140,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
 
     @Test(expected = RegistrationFailedException::class)
     internal fun registerEndpoint_withFailedRegistrationDueToServer() =
-        coroutineScope.runBlockingTest {
+        coroutineScope.runTest {
             val replyMessage = buildAuthorizationReplyMessage()
             whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
                 it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
@@ -152,7 +154,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
 
     @Test(expected = GatewayProtocolException::class)
     internal fun registerEndpoint_withFailedRegistrationDueToClient() =
-        coroutineScope.runBlockingTest {
+        coroutineScope.runTest {
             val replyMessage = buildAuthorizationReplyMessage()
             whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
                 it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
@@ -179,7 +181,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     // Messaging
 
     @Test
-    fun sendMessage_successful() = coroutineScope.runBlockingTest {
+    fun sendMessage_successful() = coroutineScope.runTest {
         val message =
             MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
@@ -188,7 +190,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayBindingException::class)
-    fun sendMessage_withoutBind() = coroutineScope.runBlockingTest {
+    fun sendMessage_withoutBind() = coroutineScope.runTest {
         val message =
             MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
@@ -196,7 +198,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = SendMessageException::class)
-    fun sendMessage_unsuccessful() = coroutineScope.runBlockingTest {
+    fun sendMessage_unsuccessful() = coroutineScope.runTest {
         whenever(sendMessage.send(any())).thenThrow(SendMessageException(""))
         val message =
             MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
@@ -206,7 +208,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun sendMessage_unsuccessfulDueToClient() = coroutineScope.runBlockingTest {
+    fun sendMessage_unsuccessfulDueToClient() = coroutineScope.runTest {
         whenever(sendMessage.send(any())).thenThrow(GatewayProtocolException(""))
         val message =
             MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
@@ -216,7 +218,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test(expected = RejectedMessageException::class)
-    fun sendMessage_unsuccessfulDueToRejection() = coroutineScope.runBlockingTest {
+    fun sendMessage_unsuccessfulDueToRejection() = coroutineScope.runTest {
         whenever(sendMessage.send(any())).thenThrow(RejectedMessageException(""))
         val message =
             MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
@@ -226,7 +228,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun checkForNewMessages_bindsIfNeeded() = coroutineScope.runBlockingTest {
+    fun checkForNewMessages_bindsIfNeeded() = coroutineScope.runTest {
         whenever(receiveMessages.receive()).thenReturn(emptyFlow())
 
         gatewayClient.checkForNewMessages()
@@ -242,7 +244,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun checkForNewMessages_doesNotRebind() = coroutineScope.runBlockingTest {
+    fun checkForNewMessages_doesNotRebind() = coroutineScope.runTest {
         whenever(receiveMessages.receive()).thenReturn(emptyFlow())
 
         gatewayClient.bind()
@@ -252,12 +254,12 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun checkForNewMessages_relaysIncomingMessages() = coroutineScope.runBlockingTest {
+    fun checkForNewMessages_relaysIncomingMessages() = coroutineScope.runTest {
         val message = MessageFactory.buildIncoming()
         whenever(receiveMessages.receive()).thenReturn(flowOf(message))
 
         val messagesReceived = mutableListOf<IncomingMessage>()
-        TestCoroutineScope().launch {
+        CoroutineScope(UnconfinedTestDispatcher()).launch {
             gatewayClient.receiveMessages().toCollection(messagesReceived)
         }
 
@@ -267,14 +269,14 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     }
 
     @Test
-    fun checkForNewMessages_handlesReceiveException() = coroutineScope.runBlockingTest {
+    fun checkForNewMessages_handlesReceiveException() = coroutineScope.runTest {
         whenever(receiveMessages.receive()).thenReturn(flow { throw ReceiveMessageException("") })
 
         gatewayClient.checkForNewMessages()
     }
 
     @Test
-    fun checkForNewMessages_handlesProtocolException() = coroutineScope.runBlockingTest {
+    fun checkForNewMessages_handlesProtocolException() = coroutineScope.runTest {
         whenever(receiveMessages.receive()).thenReturn(flow { throw GatewayProtocolException("") })
 
         gatewayClient.checkForNewMessages()

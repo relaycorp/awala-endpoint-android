@@ -2,7 +2,7 @@ package tech.relaycorp.awaladroid.endpoint
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -39,7 +39,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun create_non_existing() = runBlockingTest {
+    fun create_non_existing() = runTest {
         assertEquals(
             null,
             sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
@@ -55,7 +55,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun create_existing() = runBlockingTest {
+    fun create_existing() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
@@ -68,7 +68,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun create_with_thirdPartyEndpointPublicKey() = runBlockingTest {
+    fun create_with_thirdPartyEndpointPublicKey() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
 
@@ -81,7 +81,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_first_party_non_existing() = runBlockingTest {
+    fun delete_first_party_non_existing() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         manager.delete(firstPartyEndpoint)
@@ -93,7 +93,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_first_party_existing() = runBlockingTest {
+    fun delete_first_party_existing() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
@@ -106,7 +106,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_third_party_non_existing() = runBlockingTest {
+    fun delete_third_party_non_existing() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
@@ -126,7 +126,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_third_party_existing() = runBlockingTest {
+    fun delete_third_party_existing() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
@@ -146,7 +146,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_third_party_single_valued() = runBlockingTest {
+    fun delete_third_party_single_valued() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val malformedValue = "i-should-not-be-here"
         with(sharedPreferences.edit()) {
@@ -166,7 +166,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun delete_third_party_invalid_type() = runBlockingTest {
+    fun delete_third_party_invalid_type() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         val malformedValue = 42
         with(sharedPreferences.edit()) {
@@ -186,7 +186,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun getLinkedEndpointAddresses_empty() = runBlockingTest {
+    fun getLinkedEndpointAddresses_empty() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         val linkedEndpoints = manager.getLinkedEndpointAddresses(firstPartyEndpoint)
@@ -195,7 +195,7 @@ internal class ChannelManagerTest {
     }
 
     @Test
-    fun getLinkedEndpointAddresses_matches() = runBlockingTest {
+    fun getLinkedEndpointAddresses_matches() = runTest {
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 

@@ -1,7 +1,7 @@
 package tech.relaycorp.awaladroid.messaging
 
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,11 +19,11 @@ import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 internal class SendMessageTest : MockContextTestCase() {
 
     private lateinit var pdcClient: MockPDCClient
-    private val coroutineScope = TestCoroutineScope()
+    private val coroutineScope = TestScope()
     private val subject = SendMessage({ pdcClient }, coroutineScope.coroutineContext)
 
     @Test
-    fun deliverParcelToPublicEndpoint() = coroutineScope.runBlockingTest {
+    fun deliverParcelToPublicEndpoint() = coroutineScope.runTest {
         val deliverParcelCall = DeliverParcelCall()
         pdcClient = MockPDCClient(deliverParcelCall)
         val message =
@@ -37,7 +37,7 @@ internal class SendMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun deliverParcelSigner() = coroutineScope.runBlockingTest {
+    fun deliverParcelSigner() = coroutineScope.runTest {
         val deliverParcelCall = DeliverParcelCall()
         pdcClient = MockPDCClient(deliverParcelCall)
         val message =
@@ -54,7 +54,7 @@ internal class SendMessageTest : MockContextTestCase() {
     }
 
     @Test(expected = SendMessageException::class)
-    fun deliverParcelWithServerError() = coroutineScope.runBlockingTest {
+    fun deliverParcelWithServerError() = coroutineScope.runTest {
         val deliverParcelCall = DeliverParcelCall(ServerConnectionException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
@@ -64,7 +64,7 @@ internal class SendMessageTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun deliverParcelWithClientError() = coroutineScope.runBlockingTest {
+    fun deliverParcelWithClientError() = coroutineScope.runTest {
         val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 
@@ -74,7 +74,7 @@ internal class SendMessageTest : MockContextTestCase() {
     }
 
     @Test(expected = RejectedMessageException::class)
-    fun deliverParcelWithRejectedParcelError() = coroutineScope.runBlockingTest {
+    fun deliverParcelWithRejectedParcelError() = coroutineScope.runTest {
         val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
         pdcClient = MockPDCClient(deliverParcelCall)
 

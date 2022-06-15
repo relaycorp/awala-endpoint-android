@@ -10,12 +10,12 @@ plugins {
 apply from: 'jacoco.gradle'
 
 android {
-  compileSdkVersion 31
+  compileSdkVersion 32
   buildToolsVersion "30.0.3"
 
   defaultConfig {
     minSdkVersion 21
-    targetSdkVersion 31
+    targetSdkVersion 32
     versionCode 1
     versionName "1.0.0"
 
