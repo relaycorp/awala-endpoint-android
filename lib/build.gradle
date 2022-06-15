@@ -67,7 +67,7 @@ dependencies {
   implementation 'tech.relaycorp:awala:1.65.0'
   implementation 'tech.relaycorp:awala-keystore-file:1.6.2'
   implementation 'tech.relaycorp:poweb:1.5.26'
-  testImplementation 'tech.relaycorp:awala-testing:1.5.2'
+  testImplementation 'tech.relaycorp:awala-testing:1.5.5'
 
   // Security
   implementation 'androidx.security:security-crypto:1.1.0-alpha03'
