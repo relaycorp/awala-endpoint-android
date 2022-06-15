@@ -7,7 +7,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.nio.charset.Charset
 import java.util.UUID
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,7 +24,7 @@ internal class StorageImplTest {
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun gatewayPrivateAddress() = runBlockingTest {
+    fun gatewayPrivateAddress() = runTest {
         val charset = Charset.forName("ASCII")
         storage.gatewayPrivateAddress.testGet(
             PDACertPath.PRIVATE_GW.subjectPrivateAddress.toByteArray(charset),
@@ -38,7 +38,7 @@ internal class StorageImplTest {
     }
 
     @Test
-    fun privateThirdParty() = runBlockingTest {
+    fun privateThirdParty() = runTest {
         val data = PrivateThirdPartyEndpointData(
             KeyPairSet.PRIVATE_ENDPOINT.public,
             CertificationPath(
@@ -60,7 +60,7 @@ internal class StorageImplTest {
     }
 
     @Test
-    fun publicThirdParty() = runBlockingTest {
+    fun publicThirdParty() = runTest {
         val data = PublicThirdPartyEndpointData(
             "example.org",
             KeyPairSet.PUBLIC_GW.public

@@ -7,7 +7,7 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.After
 import org.junit.AfterClass
@@ -46,7 +46,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     fun clearLogs() = logCaptor.clearLogs()
 
     @Test
-    fun build_valid() = runBlockingTest {
+    fun build_valid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val thirdPartyEndpointManager = makeThirdPartyEndpointManager(channel)
         val serviceMessage = ServiceMessage("the type", "the content".toByteArray())
@@ -68,7 +68,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_unknownRecipient() = runBlockingTest {
+    fun build_unknownRecipient() = runTest {
         val parcel = Parcel(
             "0deadbeef", // Non-existing first-party endpoint
             "payload".toByteArray(),
@@ -85,7 +85,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_unknownSender() = runBlockingTest {
+    fun build_unknownSender() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val parcel = Parcel(
             firstPartyEndpoint.privateAddress,
@@ -107,7 +107,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_pdaPath_fromPublicEndpoint() = runBlockingTest {
+    fun build_pdaPath_fromPublicEndpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = Parcel(
             channel.firstPartyEndpoint.privateAddress,
@@ -130,7 +130,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_pdaPath_malformed() = runBlockingTest {
+    fun build_pdaPath_malformed() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val parcel = Parcel(
             channel.firstPartyEndpoint.privateAddress,
@@ -153,7 +153,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_pdaPath_invalid() = runBlockingTest {
+    fun build_pdaPath_invalid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val now = ZonedDateTime.now()
         val expiredPDA = issueDeliveryAuthorization(
@@ -187,7 +187,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_pdaPath_valid() = runBlockingTest {
+    fun build_pdaPath_valid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val pda = issueDeliveryAuthorization(
             channel.firstPartyEndpoint.publicKey,

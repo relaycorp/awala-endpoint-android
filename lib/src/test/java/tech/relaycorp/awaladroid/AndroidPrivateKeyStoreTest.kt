@@ -1,7 +1,7 @@
 package tech.relaycorp.awaladroid
 
 import java.io.File
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +14,7 @@ import tech.relaycorp.relaynet.testing.pki.PDACertPath
 @RunWith(RobolectricTestRunner::class)
 public class AndroidPrivateKeyStoreTest {
     @Test
-    public fun saveAndRetrieve(): Unit = runBlockingTest {
+    public fun saveAndRetrieve(): Unit = runTest {
         val androidContext = RuntimeEnvironment.getApplication()
         val root = FileKeystoreRoot(File(androidContext.filesDir, "tmp-keystore"))
         val store = AndroidPrivateKeyStore(root, androidContext)

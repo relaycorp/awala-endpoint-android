@@ -7,7 +7,8 @@ import java.io.File
 import java.time.Duration
 import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -38,14 +39,14 @@ public class AwalaTest {
     }
 
     @Test
-    public fun useAfterSetup(): Unit = runBlockingTest {
+    public fun useAfterSetup(): Unit = runTest {
         Awala.setUp(RuntimeEnvironment.getApplication())
 
         Awala.getContextOrThrow()
     }
 
     @Test
-    public fun keystores(): Unit = runBlockingTest {
+    public fun keystores(): Unit = runTest {
         val androidContext = RuntimeEnvironment.getApplication()
         Awala.setUp(androidContext)
 
@@ -70,7 +71,7 @@ public class AwalaTest {
     }
 
     @Test
-    public fun channelManager(): Unit = runBlockingTest {
+    public fun channelManager(): Unit = runTest {
         val androidContextSpy = spy(RuntimeEnvironment.getApplication())
         Awala.setUp(androidContextSpy)
 
@@ -83,7 +84,7 @@ public class AwalaTest {
     }
 
     @Test
-    public fun deleteExpiredOnSetUp(): Unit = runBlockingTest {
+    public fun deleteExpiredOnSetUp(): Unit = runTest {
         val androidContext = RuntimeEnvironment.getApplication()
         Awala.setUp(androidContext)
         val originalAwalaContext = Awala.getContextOrThrow()
@@ -114,7 +115,7 @@ public class AwalaTest {
             certificateStore.retrieveLatest(
                 KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
                 KeyPairSet.PRIVATE_GW.private.privateAddress
-            ) ?: return@runBlockingTest
+            ) ?: return@runTest
         }
         throw AssertionError("Expired certificate not deleted")
     }

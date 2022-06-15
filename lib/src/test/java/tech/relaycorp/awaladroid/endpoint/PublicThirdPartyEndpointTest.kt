@@ -4,11 +4,12 @@ import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.util.UUID
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
@@ -43,7 +44,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_successful() = runBlockingTest {
+    fun load_successful() = runTest {
         val privateAddress = UUID.randomUUID().toString()
         whenever(storage.publicThirdParty.get(any()))
             .thenReturn(PublicThirdPartyEndpointData(publicAddress, KeyPairSet.PDA_GRANTEE.public))
@@ -54,14 +55,14 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_nonExistent() = runBlockingTest {
+    fun load_nonExistent() = runTest {
         whenever(storage.publicThirdParty.get(any())).thenReturn(null)
 
         assertNull(PublicThirdPartyEndpoint.load(UUID.randomUUID().toString()))
     }
 
     @Test
-    fun import_validConnectionParams() = runBlockingTest {
+    fun import_validConnectionParams() = runTest {
         val connectionParams = PublicNodeConnectionParams(
             publicAddress,
             KeyPairSet.PDA_GRANTEE.public,
@@ -83,17 +84,18 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun import_invalidConnectionParams() = runBlockingTest {
-        val exception = assertThrows(InvalidThirdPartyEndpoint::class.java) {
-            runBlockingTest {
-                PublicThirdPartyEndpoint.import(
-                    "malformed".toByteArray()
-                )
-            }
+    fun import_invalidConnectionParams() = runTest {
+        try {
+            PublicThirdPartyEndpoint.import(
+                "malformed".toByteArray()
+            )
+        } catch (exception: InvalidThirdPartyEndpoint) {
+            assertEquals("Connection params serialization is malformed", exception.message)
+            assertEquals(0, sessionPublicKeystore.keys.size)
+            return@runTest
         }
 
-        assertEquals("Connection params serialization is malformed", exception.message)
-        assertEquals(0, sessionPublicKeystore.keys.size)
+        assert(false)
     }
 
     @Test
@@ -108,7 +110,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun delete() = runBlockingTest {
+    fun delete() = runTest {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val ownSessionKeyPair = SessionKeyPair.generate()

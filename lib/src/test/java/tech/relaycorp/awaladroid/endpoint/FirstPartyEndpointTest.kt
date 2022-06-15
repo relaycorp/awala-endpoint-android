@@ -12,7 +12,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import java.security.PublicKey
 import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -64,7 +64,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun register() = runBlockingTest {
+    fun register() = runTest {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -89,7 +89,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun reRegister() = runBlockingTest {
+    fun reRegister() = runTest {
         val endpoint = FirstPartyEndpointFactory.build()
         val newCertificate = issueEndpointCertificate(
             subjectPublicKey = endpoint.identityPrivateKey.toPublicKey(),
@@ -113,7 +113,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test(expected = RegistrationFailedException::class)
-    fun register_failed() = runBlockingTest {
+    fun register_failed() = runTest {
         whenever(gatewayClient.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
 
         FirstPartyEndpoint.register()
@@ -123,7 +123,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test(expected = GatewayProtocolException::class)
-    fun register_failedDueToProtocol(): Unit = runBlockingTest {
+    fun register_failedDueToProtocol(): Unit = runTest {
         whenever(gatewayClient.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
 
         FirstPartyEndpoint.register()
@@ -133,7 +133,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun register_failedDueToPrivateKeystore(): Unit = runBlockingTest {
+    fun register_failedDueToPrivateKeystore(): Unit = runTest {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -147,17 +147,20 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlockingTest { FirstPartyEndpoint.register() }
+        try {
+            FirstPartyEndpoint.register()
+        } catch (exception: PersistenceException) {
+            assertEquals("Failed to save identity key", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
+            assertEquals(savingException, exception.cause!!.cause)
+            return@runTest
         }
 
-        assertEquals("Failed to save identity key", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
-        assertEquals(savingException, exception.cause!!.cause)
+        assert(false)
     }
 
     @Test
-    fun register_failedDueToCertStore(): Unit = runBlockingTest {
+    fun register_failedDueToCertStore(): Unit = runTest {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
@@ -171,17 +174,20 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlockingTest { FirstPartyEndpoint.register() }
+        try {
+            FirstPartyEndpoint.register()
+        } catch (exception: PersistenceException) {
+            assertEquals("Failed to save certificate", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
+            assertEquals(savingException, exception.cause!!.cause)
+            return@runTest
         }
 
-        assertEquals("Failed to save certificate", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
-        assertEquals(savingException, exception.cause!!.cause)
+        assert(false)
     }
 
     @Test
-    fun load_withResult(): Unit = runBlockingTest {
+    fun load_withResult(): Unit = runTest {
         createFirstPartyEndpoint()
 
         val privateAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress
@@ -194,7 +200,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withMissingPrivateKey() = runBlockingTest {
+    fun load_withMissingPrivateKey() = runTest {
         whenever(storage.gatewayPrivateAddress.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
 
@@ -202,7 +208,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withKeystoreError(): Unit = runBlockingTest {
+    fun load_withKeystoreError(): Unit = runTest {
         setAwalaContext(
             Awala.getContextOrThrow().copy(
                 privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes"))
@@ -211,33 +217,35 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(storage.gatewayPrivateAddress.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlockingTest {
-                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress)
-            }
+        try {
+            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress)
+        } catch (exception: PersistenceException) {
+            assertEquals("Failed to load private key of endpoint", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
+            return@runTest
         }
 
-        assertEquals("Failed to load private key of endpoint", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
+        assert(false)
     }
 
     @Test
-    fun load_withMissingGatewayPrivateAddress(): Unit = runBlockingTest {
+    fun load_withMissingGatewayPrivateAddress(): Unit = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
             .thenReturn(null)
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlockingTest {
-                FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
-            }
+        try {
+            FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+        } catch (exception: PersistenceException) {
+            assertEquals("Failed to load gateway address for endpoint", exception.message)
+            return@runTest
         }
 
-        assertEquals("Failed to load gateway address for endpoint", exception.message)
+        assert(false)
     }
 
     @Test
-    fun load_withCertStoreError(): Unit = runBlockingTest {
+    fun load_withCertStoreError(): Unit = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val retrievalException = Exception("Oh noes")
         setAwalaContext(
@@ -246,18 +254,17 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlockingTest {
-                FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
-            }
+        try {
+            FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+        } catch (exception: PersistenceException) {
+            assertEquals("Failed to load certificate for endpoint", exception.message)
+            assertEquals(retrievalException, exception.cause?.cause)
+            return@runTest
         }
-
-        assertEquals("Failed to load certificate for endpoint", exception.message)
-        assertEquals(retrievalException, exception.cause?.cause)
     }
 
     @Test
-    fun issueAuthorization_thirdPartyEndpoint() = runBlockingTest {
+    fun issueAuthorization_thirdPartyEndpoint() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
@@ -268,7 +275,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_publicKey_valid() = runBlockingTest {
+    fun issueAuthorization_publicKey_valid() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -281,7 +288,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun issueAuthorization_publicKey_invalid() = runBlockingTest {
+    fun issueAuthorization_publicKey_invalid() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -296,7 +303,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun authorizeIndefinitely_thirdPartyEndpoint() = runBlockingTest {
+    fun authorizeIndefinitely_thirdPartyEndpoint() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
         val expiryDate = ZonedDateTime.now().plusDays(1)
@@ -308,7 +315,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun authorizeIndefinitely_publicKey_valid() = runBlockingTest {
+    fun authorizeIndefinitely_publicKey_valid() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
@@ -326,7 +333,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun authorizeIndefinitely_publicKey_invalid() = runBlockingTest {
+    fun authorizeIndefinitely_publicKey_invalid() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val exception = assertThrows(AuthorizationIssuanceException::class.java) {
@@ -342,7 +349,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun reissuePDAs_with_no_channel() = runBlockingTest {
+    fun reissuePDAs_with_no_channel() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
             .thenReturn(emptySet())
@@ -353,7 +360,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun reissuePDAs_with_missing_third_party_endpoint() = runBlockingTest {
+    fun reissuePDAs_with_missing_third_party_endpoint() = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
         val missingAddress = "non existing address"
         whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
@@ -369,7 +376,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun reissuePDAs_with_existing_third_party_endpoint() = runBlockingTest {
+    fun reissuePDAs_with_existing_third_party_endpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val firstPartyEndpoint = channel.firstPartyEndpoint
 
@@ -401,7 +408,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun delete() = runBlockingTest {
+    fun delete() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val endpoint = channel.firstPartyEndpoint
 
