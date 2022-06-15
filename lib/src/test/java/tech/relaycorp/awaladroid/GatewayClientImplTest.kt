@@ -8,6 +8,7 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.time.ZonedDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
@@ -39,7 +40,6 @@ import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pdc.RegisterNodeCall
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import java.time.ZonedDateTime
 
 @RunWith(RobolectricTestRunner::class)
 internal class GatewayClientImplTest : MockContextTestCase() {
