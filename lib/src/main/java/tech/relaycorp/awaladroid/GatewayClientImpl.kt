@@ -7,11 +7,10 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import tech.relaycorp.awaladroid.background.ServiceInteractor
 import tech.relaycorp.awaladroid.common.Logging.logger
@@ -160,12 +159,12 @@ internal constructor(
         sendMessage.send(message)
     }
 
-    private val incomingMessageChannel = BroadcastChannel<IncomingMessage>(1)
+    private val incomingMessageChannel = MutableSharedFlow<IncomingMessage>(1)
 
     /**
      * Receive messages from the gateway.
      */
-    public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asFlow()
+    public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asSharedFlow()
 
     // Internal
 
@@ -188,7 +187,7 @@ internal constructor(
             try {
                 receiveMessages
                     .receive()
-                    .collect(incomingMessageChannel::send)
+                    .collect(incomingMessageChannel::emit)
             } catch (exp: ReceiveMessageException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
             } catch (exp: GatewayProtocolException) {

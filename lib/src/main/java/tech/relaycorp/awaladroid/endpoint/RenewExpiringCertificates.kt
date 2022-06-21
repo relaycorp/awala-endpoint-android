@@ -1,8 +1,7 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import java.time.ZonedDateTime
-import kotlin.time.Duration
-import kotlin.time.days
+import kotlin.time.Duration.Companion.days
 import tech.relaycorp.relaynet.keystores.PrivateKeyStore
 import tech.relaycorp.relaynet.wrappers.privateAddress
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
@@ -26,6 +25,6 @@ internal class RenewExpiringCertificates(
         expiryDate <= ZonedDateTime.now().plusSeconds(EXPIRATION_THRESHOLD.inWholeSeconds)
 
     companion object {
-        internal val EXPIRATION_THRESHOLD = Duration.days(60)
+        internal val EXPIRATION_THRESHOLD = 60.days
     }
 }
