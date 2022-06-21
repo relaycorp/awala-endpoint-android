@@ -4,7 +4,7 @@ import java.time.Duration
 import java.time.ZonedDateTime
 import kotlin.math.abs
 import kotlin.random.Random
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -18,7 +18,7 @@ import tech.relaycorp.relaynet.ramf.RecipientAddressType
 internal class OutgoingMessageTest : MockContextTestCase() {
 
     @Test
-    fun build_creationDate() = runBlockingTest {
+    fun build_creationDate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val dateBeforeCreation = ZonedDateTime.now()
 
@@ -29,7 +29,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_defaultExpiryDate() = runBlockingTest {
+    fun build_defaultExpiryDate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -42,7 +42,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun build_customExpiryDate() = runBlockingTest {
+    fun build_customExpiryDate() = runTest {
         val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcelExpiryDate = ZonedDateTime.now().plusMinutes(1)
 
@@ -62,7 +62,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     // Public Recipient
 
     @Test
-    fun buildForPublicRecipient_checkBaseValues() = runBlockingTest {
+    fun buildForPublicRecipient_checkBaseValues() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -74,7 +74,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    fun buildForPublicRecipient_checkServiceMessage() = runBlockingTest {
+    fun buildForPublicRecipient_checkServiceMessage() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -86,7 +86,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    internal fun buildForPublicRecipient_checkSenderCertificate() = runBlockingTest {
+    internal fun buildForPublicRecipient_checkSenderCertificate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -103,7 +103,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    internal fun buildForPublicRecipient_checkSenderCertificateChain() = runBlockingTest {
+    internal fun buildForPublicRecipient_checkSenderCertificateChain() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -114,7 +114,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     // Private Recipient
 
     @Test
-    fun buildForPrivateRecipient_checkBaseValues() = runBlockingTest {
+    fun buildForPrivateRecipient_checkBaseValues() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val message = MessageFactory.buildOutgoing(channel)
 
@@ -125,7 +125,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    internal fun buildForPrivateRecipient_checkSenderCertificate() = runBlockingTest {
+    internal fun buildForPrivateRecipient_checkSenderCertificate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
 
         val message = MessageFactory.buildOutgoing(channel)
@@ -137,7 +137,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     }
 
     @Test
-    internal fun buildForPrivateRecipient_checkSenderCertificateChain() = runBlockingTest {
+    internal fun buildForPrivateRecipient_checkSenderCertificateChain() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
 
         val message = MessageFactory.buildOutgoing(channel)
