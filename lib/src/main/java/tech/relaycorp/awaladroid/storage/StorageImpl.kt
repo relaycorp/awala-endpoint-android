@@ -37,7 +37,7 @@ constructor(
 
     internal open class Module<T>(
         private val persistence: Persistence,
-        @VisibleForTesting
+        @get:VisibleForTesting
         internal val prefix: String,
         private val serializer: (T) -> ByteArray,
         private val deserializer: (ByteArray) -> T

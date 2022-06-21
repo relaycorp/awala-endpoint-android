@@ -5,7 +5,7 @@ import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import java.time.ZonedDateTime
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaynet.issueEndpointCertificate
@@ -17,13 +17,13 @@ internal class RenewExpiringCertificatesTest() {
     private val privateKeyStore = mock<PrivateKeyStore>()
 
     @Before
-    fun setUp() = runBlockingTest {
+    fun setUp() = runTest {
         whenever(privateKeyStore.retrieveAllIdentityKeys())
             .thenReturn(listOf(KeyPairSet.PRIVATE_ENDPOINT.private))
     }
 
     @Test
-    fun `renews expiring certificates`() = runBlockingTest {
+    fun `renews expiring certificates`() = runTest {
         val expiringEndpoint = buildFirstPartyEndpoint(ZonedDateTime.now().plusDays(50))
         val subject = RenewExpiringCertificates(privateKeyStore) { expiringEndpoint }
 
@@ -33,7 +33,7 @@ internal class RenewExpiringCertificatesTest() {
     }
 
     @Test
-    fun `does not renew not expiring certificates`() = runBlockingTest {
+    fun `does not renew not expiring certificates`() = runTest {
         val notExpiringEndpoint = buildFirstPartyEndpoint(ZonedDateTime.now().plusDays(70))
         val subject = RenewExpiringCertificates(privateKeyStore) { notExpiringEndpoint }
 
