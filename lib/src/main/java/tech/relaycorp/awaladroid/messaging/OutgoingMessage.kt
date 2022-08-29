@@ -83,7 +83,10 @@ private constructor(
             senderEndpoint.nodeId,
         )
         return Parcel(
-            recipient = Recipient(recipientEndpoint.nodeId, (recipientEndpoint as? PublicThirdPartyEndpoint)?.internetAddress),
+            recipient = Recipient(
+                recipientEndpoint.nodeId,
+                (recipientEndpoint as? PublicThirdPartyEndpoint)?.internetAddress
+            ),
             payload = payload,
             senderCertificate = getSenderCertificate(),
             messageId = parcelId.value,
