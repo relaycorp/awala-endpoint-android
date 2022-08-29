@@ -7,19 +7,13 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
-import tech.relaycorp.awaladroid.endpoint.ChannelManager
-import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
-import tech.relaycorp.awaladroid.endpoint.HandleGatewayCertificateChange
-import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
-import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
-import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.*
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
 import tech.relaycorp.relaynet.pki.CertificationPath
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
@@ -78,12 +72,12 @@ internal abstract class MockContextTestCase {
         privateKeyStore.saveSessionKey(
             firstPartySessionKeyPair.privateKey,
             firstPartySessionKeyPair.sessionKey.keyId,
-            firstPartyEndpoint.privateAddress,
-            thirdPartyEndpoint.privateAddress,
+            firstPartyEndpoint.nodeId,
+            thirdPartyEndpoint.nodeId,
         )
 
         whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
-            .thenReturn(setOf(thirdPartyEndpoint.privateAddress))
+            .thenReturn(setOf(thirdPartyEndpoint.nodeId))
 
         return EndpointChannel(
             firstPartyEndpoint,
@@ -109,11 +103,11 @@ internal abstract class MockContextTestCase {
         )
 
         if (MockUtil.isMock(storage)) {
-            whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
+            whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.nodeId))
                 .thenReturn(certificate.issuerCommonName)
         } else {
             storage.gatewayPrivateAddress.set(
-                firstPartyEndpoint.privateAddress,
+                firstPartyEndpoint.nodeId,
                 certificate.issuerCommonName
             )
         }
@@ -136,7 +130,7 @@ internal abstract class MockContextTestCase {
                 )
                 whenever(
                     storage.privateThirdParty.get(
-                        "${firstPartyEndpoint.privateAddress}_${thirdPartyEndpoint.privateAddress}"
+                        "${firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}"
                     )
                 ).thenReturn(
                     PrivateThirdPartyEndpointData(
@@ -148,10 +142,10 @@ internal abstract class MockContextTestCase {
             else -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
                 whenever(
-                    storage.publicThirdParty.get(thirdPartyEndpoint.privateAddress)
+                    storage.publicThirdParty.get(thirdPartyEndpoint.nodeId)
                 ).thenReturn(
                     PublicThirdPartyEndpointData(
-                        thirdPartyEndpoint.publicAddress,
+                        thirdPartyEndpoint.internetAddress,
                         thirdPartyEndpoint.identityKey
                     )
                 )
@@ -160,7 +154,7 @@ internal abstract class MockContextTestCase {
 
         sessionPublicKeystore.save(
             sessionKey,
-            thirdPartyEndpoint.privateAddress
+            thirdPartyEndpoint.nodeId
         )
         return thirdPartyEndpoint
     }

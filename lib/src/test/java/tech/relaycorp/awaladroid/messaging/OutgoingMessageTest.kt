@@ -5,15 +5,14 @@ import java.time.ZonedDateTime
 import kotlin.math.abs
 import kotlin.random.Random
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.awaladroid.test.MessageFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.assertSameDateTime
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 
 internal class OutgoingMessageTest : MockContextTestCase() {
 
@@ -64,10 +63,12 @@ internal class OutgoingMessageTest : MockContextTestCase() {
     @Test
     fun buildForPublicRecipient_checkBaseValues() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
+        val recipientPublicEndpoint = channel.thirdPartyEndpoint as PublicThirdPartyEndpoint
 
         val message = MessageFactory.buildOutgoing(channel)
 
-        assertEquals(message.recipientEndpoint.address, message.parcel.recipientAddress)
+        assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
+        assertEquals(recipientPublicEndpoint.internetAddress, message.parcel.recipient.internetAddress)
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
         assertEquals(message.ttl, message.parcel.ttl)
@@ -118,7 +119,8 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val message = MessageFactory.buildOutgoing(channel)
 
-        assertEquals(message.recipientEndpoint.address, message.parcel.recipientAddress)
+        assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
+        assertNull(message.parcel.recipient.internetAddress)
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
         assertEquals(message.ttl, message.parcel.ttl)

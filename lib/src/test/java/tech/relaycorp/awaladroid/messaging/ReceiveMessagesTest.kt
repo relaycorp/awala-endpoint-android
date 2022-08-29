@@ -13,21 +13,22 @@ import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.test.EndpointChannel
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerBindingException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.messages.Recipient
 import tech.relaycorp.relaynet.messages.payloads.CargoMessageSet
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pdc.CollectParcelsCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateECDHKeyPair
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 internal class ReceiveMessagesTest : MockContextTestCase() {
 
@@ -96,7 +97,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     @Test
     fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runTest {
         val invalidParcel = Parcel(
-            recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
+            recipient = Recipient(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId),
             payload = "".toByteArray(),
             senderCertificate = PDACertPath.PRIVATE_ENDPOINT
         )
@@ -182,9 +183,9 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     fun receiveValidParcel_invalidPayloadEncryption() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         storage.publicThirdParty.set(
-            channel.thirdPartyEndpoint.privateAddress,
+            channel.thirdPartyEndpoint.nodeId,
             PublicThirdPartyEndpointData(
-                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.nodeId,
                 channel.thirdPartyEndpoint.identityKey,
             )
         )
@@ -195,7 +196,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             channel.thirdPartySessionKeyPair,
         )
         val parcel = Parcel(
-            recipientAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,
+            recipient = Recipient(PDACertPath.PRIVATE_ENDPOINT.subjectId),
             payload = parcelPayload,
             senderCertificate = PDACertPath.PDA,
             senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
@@ -222,14 +223,14 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         val invalidServiceMessage = CargoMessageSet(emptyArray())
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         storage.publicThirdParty.set(
-            channel.thirdPartyEndpoint.privateAddress,
+            channel.thirdPartyEndpoint.nodeId,
             PublicThirdPartyEndpointData(
-                channel.thirdPartyEndpoint.address,
+                channel.thirdPartyEndpoint.nodeId,
                 channel.thirdPartyEndpoint.identityKey,
             )
         )
         val parcel = Parcel(
-            recipientAddress = PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,
+            recipient = Recipient(PDACertPath.PRIVATE_ENDPOINT.subjectId),
             payload = invalidServiceMessage.encrypt(
                 channel.firstPartySessionKeyPair.sessionKey,
                 channel.thirdPartySessionKeyPair,
@@ -255,7 +256,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
     }
 
     private fun buildParcel(channel: EndpointChannel) = Parcel(
-        recipientAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
+        recipient = Recipient(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId),
         payload = serviceMessage.encrypt(
             channel.firstPartySessionKeyPair.sessionKey,
             channel.thirdPartySessionKeyPair,

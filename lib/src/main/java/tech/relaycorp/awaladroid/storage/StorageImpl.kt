@@ -16,7 +16,7 @@ constructor(
     private val ascii = Charset.forName("ASCII")
     internal val gatewayPrivateAddress: SingleModule<String> = SingleModule(
         persistence = persistence,
-        prefix = "gateway_private_address_",
+        prefix = "gateway_id_",
         serializer = { address: String -> address.toByteArray(ascii) },
         deserializer = { addressSerialized: ByteArray -> addressSerialized.toString(ascii) }
     )

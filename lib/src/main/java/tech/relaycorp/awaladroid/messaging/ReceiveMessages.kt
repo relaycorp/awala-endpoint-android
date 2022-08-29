@@ -25,7 +25,7 @@ import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
@@ -60,7 +60,7 @@ internal class ReceiveMessages(
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.retrieveAllIdentityKeys()
             .flatMap { identityPrivateKey ->
-                val privateAddress = identityPrivateKey.privateAddress
+                val privateAddress = identityPrivateKey.nodeId
                 val privateGatewayPrivateAddress =
                     context.storage.gatewayPrivateAddress.get(privateAddress)
                         ?: return@flatMap emptyList()

@@ -31,11 +31,11 @@ import tech.relaycorp.awaladroid.messaging.SendMessage
 import tech.relaycorp.awaladroid.messaging.SendMessageException
 import tech.relaycorp.awaladroid.test.MessageFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.ServerConnectionException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationAuthorization
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pdc.RegisterNodeCall
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
@@ -104,7 +104,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
             it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
         }
 
-        val pnr = PrivateNodeRegistration(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
+        val pnr = PrivateNodeRegistration(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW, "")
         pdcClient = MockPDCClient(RegisterNodeCall(Result.success(pnr)))
 
         val result = gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
