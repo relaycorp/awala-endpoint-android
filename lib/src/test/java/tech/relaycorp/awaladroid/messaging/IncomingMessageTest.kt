@@ -52,7 +52,10 @@ internal class IncomingMessageTest : MockContextTestCase() {
         val thirdPartyEndpointManager = makeThirdPartyEndpointManager(channel)
         val serviceMessage = ServiceMessage("the type", "the content".toByteArray())
         val parcel = Parcel(
-            recipient = Recipient(channel.firstPartyEndpoint.nodeId, channel.firstPartyEndpoint.nodeId),
+            recipient = Recipient(
+                channel.firstPartyEndpoint.nodeId,
+                channel.firstPartyEndpoint.nodeId
+            ),
             payload = thirdPartyEndpointManager.wrapMessagePayload(
                 serviceMessage,
                 channel.firstPartyEndpoint.nodeId,

@@ -7,7 +7,12 @@ import org.junit.Before
 import org.mockito.internal.util.MockUtil
 import tech.relaycorp.awaladroid.AwalaContext
 import tech.relaycorp.awaladroid.GatewayClientImpl
-import tech.relaycorp.awaladroid.endpoint.*
+import tech.relaycorp.awaladroid.endpoint.ChannelManager
+import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
+import tech.relaycorp.awaladroid.endpoint.HandleGatewayCertificateChange
+import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpointData
+import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
+import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.mockStorage
 import tech.relaycorp.relaynet.SessionKey

@@ -5,7 +5,10 @@ import java.time.ZonedDateTime
 import kotlin.math.abs
 import kotlin.random.Random
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
@@ -68,7 +71,10 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         val message = MessageFactory.buildOutgoing(channel)
 
         assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
-        assertEquals(recipientPublicEndpoint.internetAddress, message.parcel.recipient.internetAddress)
+        assertEquals(
+            recipientPublicEndpoint.internetAddress,
+            message.parcel.recipient.internetAddress
+        )
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
         assertEquals(message.ttl, message.parcel.ttl)

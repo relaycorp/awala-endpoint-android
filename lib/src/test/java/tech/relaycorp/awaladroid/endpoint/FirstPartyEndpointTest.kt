@@ -26,9 +26,9 @@ import tech.relaycorp.awaladroid.RegistrationFailedException
 import tech.relaycorp.awaladroid.common.toPublicKey
 import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
-import tech.relaycorp.awaladroid.test.*
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
