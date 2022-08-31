@@ -25,8 +25,8 @@ constructor(
         persistence = persistence,
         prefix = "internet_address_",
         serializer = { internetAddress: String -> internetAddress.toByteArray(ascii) },
-        deserializer = {
-                internetAddressSerialized: ByteArray -> internetAddressSerialized.toString(ascii)
+        deserializer = { internetAddressSerialized: ByteArray ->
+            internetAddressSerialized.toString(ascii)
         }
     )
 
