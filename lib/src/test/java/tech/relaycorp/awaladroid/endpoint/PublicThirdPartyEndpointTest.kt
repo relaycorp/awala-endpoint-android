@@ -11,44 +11,39 @@ import org.junit.Test
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
-import tech.relaycorp.relaynet.PublicNodeConnectionParams
+import tech.relaycorp.relaynet.NodeConnectionParams
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
-    private val publicAddress = "example.org"
+    private val internetAddress = "example.org"
 
     @Test
-    fun privateAddress() {
+    fun nodeId() {
         val identityKey = KeyPairSet.PDA_GRANTEE.public
         val thirdPartyEndpoint = PublicThirdPartyEndpoint(
-            publicAddress,
+            internetAddress,
             identityKey,
         )
 
-        assertEquals(identityKey.privateAddress, thirdPartyEndpoint.privateAddress)
-    }
-
-    @Test
-    fun address() {
-        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
-            publicAddress,
-            KeyPairSet.PDA_GRANTEE.public,
-        )
-
-        assertEquals("https://$publicAddress", thirdPartyEndpoint.address)
+        assertEquals(identityKey.nodeId, thirdPartyEndpoint.nodeId)
     }
 
     @Test
     fun load_successful() = runTest {
-        val privateAddress = UUID.randomUUID().toString()
+        val id = UUID.randomUUID().toString()
         whenever(storage.publicThirdParty.get(any()))
-            .thenReturn(PublicThirdPartyEndpointData(publicAddress, KeyPairSet.PDA_GRANTEE.public))
+            .thenReturn(
+                PublicThirdPartyEndpointData(
+                    internetAddress,
+                    KeyPairSet.PDA_GRANTEE.public
+                )
+            )
 
-        val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
-        assertEquals(publicAddress, endpoint.publicAddress)
+        val endpoint = PublicThirdPartyEndpoint.load(id)!!
+        assertEquals(internetAddress, endpoint.internetAddress)
         assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
     }
 
@@ -61,24 +56,24 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun import_validConnectionParams() = runTest {
-        val connectionParams = PublicNodeConnectionParams(
-            publicAddress,
+        val connectionParams = NodeConnectionParams(
+            internetAddress,
             KeyPairSet.PDA_GRANTEE.public,
             SessionKeyPair.generate().sessionKey
         )
 
         val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
 
-        assertEquals(connectionParams.publicAddress, thirdPartyEndpoint.publicAddress)
+        assertEquals(connectionParams.internetAddress, thirdPartyEndpoint.internetAddress)
         assertEquals(connectionParams.identityKey, thirdPartyEndpoint.identityKey)
         verify(storage.publicThirdParty).set(
-            PDACertPath.PDA.subjectPrivateAddress,
+            PDACertPath.PDA.subjectId,
             PublicThirdPartyEndpointData(
-                connectionParams.publicAddress,
+                connectionParams.internetAddress,
                 connectionParams.identityKey
             )
         )
-        sessionPublicKeystore.retrieve(thirdPartyEndpoint.privateAddress)
+        sessionPublicKeystore.retrieve(thirdPartyEndpoint.nodeId)
     }
 
     @Test
@@ -100,10 +95,10 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     fun dataSerialization() {
         val identityKey = KeyPairSet.PDA_GRANTEE.public
 
-        val dataSerialized = PublicThirdPartyEndpointData(publicAddress, identityKey).serialize()
+        val dataSerialized = PublicThirdPartyEndpointData(internetAddress, identityKey).serialize()
         val data = PublicThirdPartyEndpointData.deserialize(dataSerialized)
 
-        assertEquals(publicAddress, data.publicAddress)
+        assertEquals(internetAddress, data.internetAddress)
         assertEquals(identityKey, data.identityKey)
     }
 
@@ -115,16 +110,16 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
         privateKeyStore.saveSessionKey(
             ownSessionKeyPair.privateKey,
             ownSessionKeyPair.sessionKey.keyId,
-            firstPartyEndpoint.privateAddress,
-            thirdPartyEndpoint.privateAddress
+            firstPartyEndpoint.nodeId,
+            thirdPartyEndpoint.nodeId
         )
         val peerSessionKey = SessionKeyPair.generate().sessionKey
-        sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.privateAddress)
+        sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.nodeId)
 
         thirdPartyEndpoint.delete()
 
-        verify(storage.publicThirdParty).delete(thirdPartyEndpoint.privateAddress)
-        assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.privateAddress]!!.size)
+        verify(storage.publicThirdParty).delete(thirdPartyEndpoint.nodeId)
+        assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
         assertEquals(0, sessionPublicKeystore.keys.size)
         verify(channelManager).delete(thirdPartyEndpoint)
     }

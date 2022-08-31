@@ -48,18 +48,18 @@ public class IncomingMessage internal constructor(
             SetupPendingException::class,
         )
         internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage? {
-            val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipientAddress)
+            val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipient.id)
                 ?: throw UnknownFirstPartyEndpointException(
-                    "Unknown first-party endpoint ${parcel.recipientAddress}"
+                    "Unknown first-party endpoint ${parcel.recipient.id}"
                 )
 
             val sender = ThirdPartyEndpoint.load(
-                parcel.recipientAddress,
-                parcel.senderCertificate.subjectPrivateAddress,
+                parcel.recipient.id,
+                parcel.senderCertificate.subjectId,
             ) ?: throw UnknownThirdPartyEndpointException(
                 "Unknown third-party endpoint " +
-                    "${parcel.senderCertificate.subjectPrivateAddress} " +
-                    "for first-party endpoint ${parcel.recipientAddress}"
+                    "${parcel.senderCertificate.subjectId} " +
+                    "for first-party endpoint ${parcel.recipient.id}"
             )
 
             val context = Awala.getContextOrThrow()
@@ -92,8 +92,8 @@ public class IncomingMessage internal constructor(
         ) {
             if (senderEndpoint is PublicThirdPartyEndpoint) {
                 logger.info(
-                    "Ignoring PDA path from public endpoint ${senderEndpoint.privateAddress} " +
-                        "(${senderEndpoint.publicAddress})"
+                    "Ignoring PDA path from public endpoint ${senderEndpoint.nodeId} " +
+                        "(${senderEndpoint.internetAddress})"
                 )
                 return
             }
@@ -102,8 +102,8 @@ public class IncomingMessage internal constructor(
             } catch (exc: CertificationPathException) {
                 logger.log(
                     Level.INFO,
-                    "Ignoring malformed PDA path for ${recipientEndpoint.privateAddress} " +
-                        "from ${senderEndpoint.privateAddress}",
+                    "Ignoring malformed PDA path for ${recipientEndpoint.nodeId} " +
+                        "from ${senderEndpoint.nodeId}",
                     exc,
                 )
                 return
@@ -114,15 +114,15 @@ public class IncomingMessage internal constructor(
             } catch (exc: InvalidAuthorizationException) {
                 logger.log(
                     Level.INFO,
-                    "Ignoring invalid PDA path for ${recipientEndpoint.privateAddress} " +
-                        "from ${senderEndpoint.privateAddress}",
+                    "Ignoring invalid PDA path for ${recipientEndpoint.nodeId} " +
+                        "from ${senderEndpoint.nodeId}",
                     exc,
                 )
                 return
             }
             logger.info(
-                "Updated PDA path from ${senderEndpoint.privateAddress} for " +
-                    recipientEndpoint.privateAddress
+                "Updated PDA path from ${senderEndpoint.nodeId} for " +
+                    recipientEndpoint.nodeId
             )
         }
     }

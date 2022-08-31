@@ -8,11 +8,11 @@ import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayProtocolException
 import tech.relaycorp.awaladroid.test.MessageFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.relaynet.bindings.pdc.ClientBindingException
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerConnectionException
 import tech.relaycorp.relaynet.messages.Parcel
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.pdc.DeliverParcelCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 
@@ -48,8 +48,8 @@ internal class SendMessageTest : MockContextTestCase() {
         assertTrue(deliverParcelCall.wasCalled)
         val signer = deliverParcelCall.arguments!!.deliverySigner
         assertEquals(
-            message.senderEndpoint.identityCertificate.subjectPrivateAddress,
-            signer.certificate.subjectPrivateAddress
+            message.senderEndpoint.identityCertificate.subjectId,
+            signer.certificate.subjectId
         )
     }
 

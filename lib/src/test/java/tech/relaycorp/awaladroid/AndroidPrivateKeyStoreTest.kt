@@ -18,11 +18,11 @@ public class AndroidPrivateKeyStoreTest {
         val androidContext = RuntimeEnvironment.getApplication()
         val root = FileKeystoreRoot(File(androidContext.filesDir, "tmp-keystore"))
         val store = AndroidPrivateKeyStore(root, androidContext)
-        val privateKey = KeyPairSet.PRIVATE_ENDPOINT.private
+        val id = KeyPairSet.PRIVATE_ENDPOINT.private
         val certificate = PDACertPath.PRIVATE_ENDPOINT
 
-        store.saveIdentityKey(privateKey)
-        val retrievedPrivateKey = store.retrieveIdentityKey(certificate.subjectPrivateAddress)
-        assertEquals(privateKey, retrievedPrivateKey)
+        store.saveIdentityKey(id)
+        val retrievedId = store.retrieveIdentityKey(certificate.subjectId)
+        assertEquals(id, retrievedId)
     }
 }

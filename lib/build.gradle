@@ -64,10 +64,10 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
 
   // Awala
-  implementation 'tech.relaycorp:awala:1.65.2'
+  implementation 'tech.relaycorp:awala:1.66.3'
   implementation 'tech.relaycorp:awala-keystore-file:1.6.3'
   implementation 'tech.relaycorp:poweb:1.5.31'
-  testImplementation 'tech.relaycorp:awala-testing:1.5.5'
+  testImplementation 'tech.relaycorp:awala-testing:1.5.8'
 
   // Security
   implementation 'androidx.security:security-crypto:1.1.0-alpha03'
