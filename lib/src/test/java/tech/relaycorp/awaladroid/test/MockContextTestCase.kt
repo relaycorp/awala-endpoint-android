@@ -94,6 +94,7 @@ internal abstract class MockContextTestCase {
 
     protected suspend fun createFirstPartyEndpoint(): FirstPartyEndpoint {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val gatewayAddress = "example.org"
         privateKeyStore.saveIdentityKey(
             firstPartyEndpoint.identityPrivateKey,
         )
@@ -108,12 +109,19 @@ internal abstract class MockContextTestCase {
         )
 
         if (MockUtil.isMock(storage)) {
-            whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.nodeId))
+            whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
                 .thenReturn(certificate.issuerCommonName)
+
+            whenever(storage.internetAddress.get(gatewayAddress))
+                .thenReturn(gatewayAddress)
         } else {
-            storage.gatewayPrivateAddress.set(
+            storage.gatewayId.set(
                 firstPartyEndpoint.nodeId,
                 certificate.issuerCommonName
+            )
+
+            storage.internetAddress.set(
+                gatewayAddress
             )
         }
 

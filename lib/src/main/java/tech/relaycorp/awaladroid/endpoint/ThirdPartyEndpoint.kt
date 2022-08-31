@@ -48,7 +48,7 @@ public sealed class ThirdPartyEndpoint(
 /**
  * A private third-party endpoint (i.e., one behind a different private gateway).
  *
- * @property firstPartyEndpointAddress The private address of the first-party endpoint linked to
+ * @property firstPartyEndpointAddress The nodeId of the first-party endpoint linked to
  * this endpoint.
  */
 public class PrivateThirdPartyEndpoint internal constructor(
@@ -204,12 +204,12 @@ public class PublicThirdPartyEndpoint internal constructor(
 
     public companion object {
         /**
-         * Load an endpoint by its [privateAddress].
+         * Load an endpoint by its [nodeId].
          */
         @Throws(PersistenceException::class, SetupPendingException::class)
-        public suspend fun load(privateAddress: String): PublicThirdPartyEndpoint? {
+        public suspend fun load(nodeId: String): PublicThirdPartyEndpoint? {
             val storage = Awala.getContextOrThrow().storage
-            return storage.publicThirdParty.get(privateAddress)?.let {
+            return storage.publicThirdParty.get(nodeId)?.let {
                 PublicThirdPartyEndpoint(it.internetAddress, it.identityKey)
             }
         }
@@ -236,9 +236,9 @@ public class PublicThirdPartyEndpoint internal constructor(
                     exc,
                 )
             }
-            val peerPrivateAddress = connectionParams.identityKey.nodeId
+            val peerNodeId = connectionParams.identityKey.nodeId
             context.storage.publicThirdParty.set(
-                peerPrivateAddress,
+                peerNodeId,
                 PublicThirdPartyEndpointData(
                     connectionParams.internetAddress,
                     connectionParams.identityKey
@@ -246,7 +246,7 @@ public class PublicThirdPartyEndpoint internal constructor(
             )
             context.sessionPublicKeyStore.save(
                 connectionParams.sessionKey,
-                peerPrivateAddress,
+                peerNodeId,
             )
             return PublicThirdPartyEndpoint(
                 connectionParams.internetAddress,

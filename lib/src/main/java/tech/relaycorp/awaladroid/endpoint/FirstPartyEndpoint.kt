@@ -234,22 +234,26 @@ internal constructor(
                 throw PersistenceException("Failed to save identity key", exc)
             }
 
-            val gatewayPrivateAddress = registration.gatewayCertificate.subjectId
+            val gatewayId = registration.gatewayCertificate.subjectId
             try {
                 context.certificateStore.save(
                     CertificationPath(
                         registration.privateNodeCertificate,
                         listOf(registration.gatewayCertificate),
                     ),
-                    gatewayPrivateAddress
+                    gatewayId
                 )
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to save certificate", exc)
             }
 
-            context.storage.gatewayPrivateAddress.set(
+            context.storage.gatewayId.set(
                 endpoint.nodeId,
-                gatewayPrivateAddress,
+                gatewayId,
+            )
+
+            context.storage.internetAddress.set(
+                registration.gatewayInternetAddress
             )
 
             return endpoint
@@ -268,11 +272,11 @@ internal constructor(
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to load private key of endpoint", exc)
             }
-            val gatewayPrivateAddress = context.storage.gatewayPrivateAddress.get(nodeId)
+            val gatewayNodeId = context.storage.gatewayId.get(nodeId)
                 ?: throw PersistenceException("Failed to load gateway address for endpoint")
             val certificatePath = try {
                 context.certificateStore.retrieveLatest(
-                    nodeId, gatewayPrivateAddress
+                    nodeId, gatewayNodeId
                 )
                     ?: return null
             } catch (exc: KeyStoreBackendException) {

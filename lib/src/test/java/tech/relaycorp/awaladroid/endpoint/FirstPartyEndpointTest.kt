@@ -65,11 +65,12 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun register() = runTest {
+        val gatewayInternetAddress = "example.org"
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                ""
+                gatewayInternetAddress
             )
         )
 
@@ -83,10 +84,11 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             PDACertPath.PRIVATE_GW.subjectId
         )
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
-        verify(storage.gatewayPrivateAddress).set(
+        verify(storage.gatewayId).set(
             endpoint.nodeId,
             PDACertPath.PRIVATE_GW.subjectId
         )
+        verify(storage.internetAddress).set(gatewayInternetAddress)
     }
 
     @Test
@@ -205,7 +207,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun load_withMissingPrivateKey() = runTest {
-        whenever(storage.gatewayPrivateAddress.get())
+        whenever(storage.gatewayId.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
         assertNull(FirstPartyEndpoint.load("non-existent"))
@@ -218,7 +220,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
                 privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes"))
             )
         )
-        whenever(storage.gatewayPrivateAddress.get())
+        whenever(storage.gatewayId.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
         try {
@@ -233,9 +235,9 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withMissingGatewayPrivateAddress(): Unit = runTest {
+    fun load_withMissingGatewayId(): Unit = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
-        whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.nodeId))
+        whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
             .thenReturn(null)
 
         try {

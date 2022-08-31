@@ -21,7 +21,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     private val internetAddress = "example.org"
 
     @Test
-    fun privateAddress() {
+    fun nodeId() {
         val identityKey = KeyPairSet.PDA_GRANTEE.public
         val thirdPartyEndpoint = PublicThirdPartyEndpoint(
             internetAddress,
@@ -33,7 +33,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun load_successful() = runTest {
-        val privateAddress = UUID.randomUUID().toString()
+        val id = UUID.randomUUID().toString()
         whenever(storage.publicThirdParty.get(any()))
             .thenReturn(
                 PublicThirdPartyEndpointData(
@@ -42,7 +42,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
                 )
             )
 
-        val endpoint = PublicThirdPartyEndpoint.load(privateAddress)!!
+        val endpoint = PublicThirdPartyEndpoint.load(id)!!
         assertEquals(internetAddress, endpoint.internetAddress)
         assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
     }

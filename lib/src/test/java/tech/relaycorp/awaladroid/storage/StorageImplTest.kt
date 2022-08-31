@@ -24,17 +24,17 @@ internal class StorageImplTest {
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun gatewayPrivateAddress() = runTest {
+    fun gatewayId() = runTest {
         val charset = Charset.forName("ASCII")
-        storage.gatewayPrivateAddress.testGet(
+        storage.gatewayId.testGet(
             PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
             PDACertPath.PRIVATE_GW.subjectId
         )
-        storage.gatewayPrivateAddress.testSet(
+        storage.gatewayId.testSet(
             PDACertPath.PRIVATE_GW.subjectId,
             PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
         )
-        storage.gatewayPrivateAddress.testDelete()
+        storage.gatewayId.testDelete()
     }
 
     @Test

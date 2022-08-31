@@ -60,13 +60,13 @@ internal class ReceiveMessages(
         val context = Awala.getContextOrThrow()
         context.privateKeyStore.retrieveAllIdentityKeys()
             .flatMap { identityPrivateKey ->
-                val privateAddress = identityPrivateKey.nodeId
-                val privateGatewayPrivateAddress =
-                    context.storage.gatewayPrivateAddress.get(privateAddress)
+                val nodeId = identityPrivateKey.nodeId
+                val privateGatewayId =
+                    context.storage.gatewayId.get(nodeId)
                         ?: return@flatMap emptyList()
                 context.certificateStore.retrieveAll(
-                    privateAddress,
-                    privateGatewayPrivateAddress
+                    nodeId,
+                    privateGatewayId
                 ).map {
                     Signer(
                         it.leafCertificate,
