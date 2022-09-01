@@ -14,11 +14,20 @@ constructor(
 ) {
 
     private val ascii = Charset.forName("ASCII")
-    internal val gatewayPrivateAddress: SingleModule<String> = SingleModule(
+    internal val gatewayId: SingleModule<String> = SingleModule(
         persistence = persistence,
-        prefix = "gateway_private_address_",
+        prefix = "gateway_id_",
         serializer = { address: String -> address.toByteArray(ascii) },
         deserializer = { addressSerialized: ByteArray -> addressSerialized.toString(ascii) }
+    )
+
+    internal val internetAddress: SingleModule<String> = SingleModule(
+        persistence = persistence,
+        prefix = "internet_address_",
+        serializer = { internetAddress: String -> internetAddress.toByteArray(ascii) },
+        deserializer = { internetAddressSerialized: ByteArray ->
+            internetAddressSerialized.toString(ascii)
+        }
     )
 
     internal val publicThirdParty: Module<PublicThirdPartyEndpointData> = Module(

@@ -19,7 +19,6 @@ import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.nodes.EndpointManager
 import tech.relaycorp.relaynet.pki.CertificationPath
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
@@ -78,12 +77,12 @@ internal abstract class MockContextTestCase {
         privateKeyStore.saveSessionKey(
             firstPartySessionKeyPair.privateKey,
             firstPartySessionKeyPair.sessionKey.keyId,
-            firstPartyEndpoint.privateAddress,
-            thirdPartyEndpoint.privateAddress,
+            firstPartyEndpoint.nodeId,
+            thirdPartyEndpoint.nodeId,
         )
 
         whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
-            .thenReturn(setOf(thirdPartyEndpoint.privateAddress))
+            .thenReturn(setOf(thirdPartyEndpoint.nodeId))
 
         return EndpointChannel(
             firstPartyEndpoint,
@@ -95,6 +94,7 @@ internal abstract class MockContextTestCase {
 
     protected suspend fun createFirstPartyEndpoint(): FirstPartyEndpoint {
         val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+        val gatewayAddress = "example.org"
         privateKeyStore.saveIdentityKey(
             firstPartyEndpoint.identityPrivateKey,
         )
@@ -109,12 +109,19 @@ internal abstract class MockContextTestCase {
         )
 
         if (MockUtil.isMock(storage)) {
-            whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
+            whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
                 .thenReturn(certificate.issuerCommonName)
+
+            whenever(storage.internetAddress.get(gatewayAddress))
+                .thenReturn(gatewayAddress)
         } else {
-            storage.gatewayPrivateAddress.set(
-                firstPartyEndpoint.privateAddress,
+            storage.gatewayId.set(
+                firstPartyEndpoint.nodeId,
                 certificate.issuerCommonName
+            )
+
+            storage.internetAddress.set(
+                gatewayAddress
             )
         }
 
@@ -136,7 +143,7 @@ internal abstract class MockContextTestCase {
                 )
                 whenever(
                     storage.privateThirdParty.get(
-                        "${firstPartyEndpoint.privateAddress}_${thirdPartyEndpoint.privateAddress}"
+                        "${firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}"
                     )
                 ).thenReturn(
                     PrivateThirdPartyEndpointData(
@@ -148,10 +155,10 @@ internal abstract class MockContextTestCase {
             else -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
                 whenever(
-                    storage.publicThirdParty.get(thirdPartyEndpoint.privateAddress)
+                    storage.publicThirdParty.get(thirdPartyEndpoint.nodeId)
                 ).thenReturn(
                     PublicThirdPartyEndpointData(
-                        thirdPartyEndpoint.publicAddress,
+                        thirdPartyEndpoint.internetAddress,
                         thirdPartyEndpoint.identityKey
                     )
                 )
@@ -160,7 +167,7 @@ internal abstract class MockContextTestCase {
 
         sessionPublicKeystore.save(
             sessionKey,
-            thirdPartyEndpoint.privateAddress
+            thirdPartyEndpoint.nodeId
         )
         return thirdPartyEndpoint
     }

@@ -42,15 +42,15 @@ internal class ChannelManagerTest {
     fun create_non_existing() = runTest {
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         assertEquals(
-            setOf(thirdPartyEndpoint.privateAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            setOf(thirdPartyEndpoint.nodeId),
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -62,8 +62,8 @@ internal class ChannelManagerTest {
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         assertEquals(
-            setOf(thirdPartyEndpoint.privateAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            setOf(thirdPartyEndpoint.nodeId),
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -75,8 +75,8 @@ internal class ChannelManagerTest {
         manager.create(firstPartyEndpoint, thirdPartyEndpoint)
 
         assertEquals(
-            setOf(thirdPartyEndpoint.privateAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            setOf(thirdPartyEndpoint.nodeId),
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -88,7 +88,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -101,7 +101,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -111,7 +111,7 @@ internal class ChannelManagerTest {
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
             putStringSet(
-                firstPartyEndpoint.privateAddress,
+                firstPartyEndpoint.nodeId,
                 mutableSetOf(unrelatedThirdPartyEndpointAddress)
             )
             apply()
@@ -121,7 +121,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             mutableSetOf(unrelatedThirdPartyEndpointAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -131,8 +131,8 @@ internal class ChannelManagerTest {
         val unrelatedThirdPartyEndpointAddress = "i-have-nothing-to-do-with-the-other"
         with(sharedPreferences.edit()) {
             putStringSet(
-                firstPartyEndpoint.privateAddress,
-                mutableSetOf(unrelatedThirdPartyEndpointAddress, thirdPartyEndpoint.privateAddress)
+                firstPartyEndpoint.nodeId,
+                mutableSetOf(unrelatedThirdPartyEndpointAddress, thirdPartyEndpoint.nodeId)
             )
             apply()
         }
@@ -141,7 +141,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             setOf(unrelatedThirdPartyEndpointAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -151,7 +151,7 @@ internal class ChannelManagerTest {
         val malformedValue = "i-should-not-be-here"
         with(sharedPreferences.edit()) {
             putString(
-                firstPartyEndpoint.privateAddress,
+                firstPartyEndpoint.nodeId,
                 malformedValue
             )
             apply()
@@ -161,7 +161,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             malformedValue,
-            sharedPreferences.getString(firstPartyEndpoint.privateAddress, null)
+            sharedPreferences.getString(firstPartyEndpoint.nodeId, null)
         )
     }
 
@@ -171,7 +171,7 @@ internal class ChannelManagerTest {
         val malformedValue = 42
         with(sharedPreferences.edit()) {
             putInt(
-                firstPartyEndpoint.privateAddress,
+                firstPartyEndpoint.nodeId,
                 malformedValue
             )
             apply()
@@ -181,7 +181,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             malformedValue,
-            sharedPreferences.getInt(firstPartyEndpoint.privateAddress, 0)
+            sharedPreferences.getInt(firstPartyEndpoint.nodeId, 0)
         )
     }
 
@@ -201,6 +201,6 @@ internal class ChannelManagerTest {
 
         val linkedEndpoints = manager.getLinkedEndpointAddresses(firstPartyEndpoint)
 
-        assertEquals(setOf(thirdPartyEndpoint.privateAddress), linkedEndpoints)
+        assertEquals(setOf(thirdPartyEndpoint.nodeId), linkedEndpoints)
     }
 }

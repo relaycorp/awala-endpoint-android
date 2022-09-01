@@ -24,17 +24,17 @@ internal class StorageImplTest {
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun gatewayPrivateAddress() = runTest {
+    fun gatewayId() = runTest {
         val charset = Charset.forName("ASCII")
-        storage.gatewayPrivateAddress.testGet(
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress.toByteArray(charset),
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+        storage.gatewayId.testGet(
+            PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
+            PDACertPath.PRIVATE_GW.subjectId
         )
-        storage.gatewayPrivateAddress.testSet(
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress,
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress.toByteArray(charset),
+        storage.gatewayId.testSet(
+            PDACertPath.PRIVATE_GW.subjectId,
+            PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
         )
-        storage.gatewayPrivateAddress.testDelete()
+        storage.gatewayId.testDelete()
     }
 
     @Test
@@ -63,7 +63,7 @@ internal class StorageImplTest {
     fun publicThirdParty() = runTest {
         val data = PublicThirdPartyEndpointData(
             "example.org",
-            KeyPairSet.PUBLIC_GW.public
+            KeyPairSet.INTERNET_GW.public
         )
         val rawData = data.serialize()
 

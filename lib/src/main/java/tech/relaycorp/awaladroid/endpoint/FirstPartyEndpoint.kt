@@ -20,7 +20,7 @@ import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.wrappers.KeyException
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
 
@@ -32,9 +32,7 @@ internal constructor(
     internal val identityPrivateKey: PrivateKey,
     internal val identityCertificate: Certificate,
     internal val identityCertificateChain: List<Certificate>,
-) : Endpoint(identityPrivateKey.privateAddress) {
-
-    public override val address: String get() = privateAddress
+) : Endpoint(identityPrivateKey.nodeId) {
 
     /**
      * The RSA public key of the endpoint.
@@ -153,14 +151,14 @@ internal constructor(
             listOf(registration.gatewayCertificate)
         )
 
-        val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
+        val gatewayId = registration.gatewayCertificate.subjectId
         try {
             context.certificateStore.save(
                 CertificationPath(
                     registration.privateNodeCertificate,
                     listOf(registration.gatewayCertificate),
                 ),
-                gatewayPrivateAddress,
+                gatewayId,
             )
         } catch (exc: KeyStoreBackendException) {
             throw PersistenceException("Failed to save certificate", exc)
@@ -174,7 +172,7 @@ internal constructor(
         val thirdPartyEndpointAddresses = context.channelManager.getLinkedEndpointAddresses(this)
         thirdPartyEndpointAddresses.forEach { thirdPartyEndpointAddress ->
             val thirdPartyEndpoint = ThirdPartyEndpoint.load(
-                this@FirstPartyEndpoint.privateAddress,
+                this@FirstPartyEndpoint.nodeId,
                 thirdPartyEndpointAddress
             )
             if (thirdPartyEndpoint == null) {
@@ -202,8 +200,8 @@ internal constructor(
     @Throws(PersistenceException::class, SetupPendingException::class)
     public suspend fun delete() {
         val context = Awala.getContextOrThrow()
-        context.privateKeyStore.deleteKeys(privateAddress)
-        context.certificateStore.delete(privateAddress, identityCertificate.issuerCommonName)
+        context.privateKeyStore.deleteKeys(nodeId)
+        context.certificateStore.delete(nodeId, identityCertificate.issuerCommonName)
         context.channelManager.delete(this)
     }
 
@@ -236,22 +234,26 @@ internal constructor(
                 throw PersistenceException("Failed to save identity key", exc)
             }
 
-            val gatewayPrivateAddress = registration.gatewayCertificate.subjectPrivateAddress
+            val gatewayId = registration.gatewayCertificate.subjectId
             try {
                 context.certificateStore.save(
                     CertificationPath(
                         registration.privateNodeCertificate,
                         listOf(registration.gatewayCertificate),
                     ),
-                    gatewayPrivateAddress
+                    gatewayId
                 )
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to save certificate", exc)
             }
 
-            context.storage.gatewayPrivateAddress.set(
-                endpoint.privateAddress,
-                gatewayPrivateAddress,
+            context.storage.gatewayId.set(
+                endpoint.nodeId,
+                gatewayId,
+            )
+
+            context.storage.internetAddress.set(
+                registration.gatewayInternetAddress
             )
 
             return endpoint
@@ -261,20 +263,20 @@ internal constructor(
          * Load an endpoint by its address.
          */
         @Throws(PersistenceException::class, SetupPendingException::class)
-        public suspend fun load(privateAddress: String): FirstPartyEndpoint? {
+        public suspend fun load(nodeId: String): FirstPartyEndpoint? {
             val context = Awala.getContextOrThrow()
             val identityPrivateKey = try {
-                context.privateKeyStore.retrieveIdentityKey(privateAddress)
+                context.privateKeyStore.retrieveIdentityKey(nodeId)
             } catch (exc: MissingKeyException) {
                 return null
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to load private key of endpoint", exc)
             }
-            val gatewayPrivateAddress = context.storage.gatewayPrivateAddress.get(privateAddress)
+            val gatewayNodeId = context.storage.gatewayId.get(nodeId)
                 ?: throw PersistenceException("Failed to load gateway address for endpoint")
             val certificatePath = try {
                 context.certificateStore.retrieveLatest(
-                    privateAddress, gatewayPrivateAddress
+                    nodeId, gatewayNodeId
                 )
                     ?: return null
             } catch (exc: KeyStoreBackendException) {
