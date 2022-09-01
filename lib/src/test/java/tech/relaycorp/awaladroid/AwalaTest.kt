@@ -25,7 +25,7 @@ import tech.relaycorp.awaladroid.test.unsetAwalaContext
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 @RunWith(RobolectricTestRunner::class)
 public class AwalaTest {
@@ -102,7 +102,7 @@ public class AwalaTest {
         )
         assertNotNull(
             certificateStore.retrieveLatest(
-                expiringCertificate.subjectPrivateAddress,
+                expiringCertificate.subjectId,
                 expiringCertificate.issuerCommonName,
             )
         )
@@ -113,8 +113,8 @@ public class AwalaTest {
             Awala.setUp(androidContext)
             advanceUntilIdle()
             certificateStore.retrieveLatest(
-                KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress,
-                KeyPairSet.PRIVATE_GW.private.privateAddress
+                KeyPairSet.PRIVATE_ENDPOINT.public.nodeId,
+                KeyPairSet.PRIVATE_GW.private.nodeId
             ) ?: return@runTest
         }
         throw AssertionError("Expired certificate not deleted")

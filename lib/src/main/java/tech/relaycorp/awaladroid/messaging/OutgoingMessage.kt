@@ -9,6 +9,7 @@ import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
+import tech.relaycorp.relaynet.messages.Recipient
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
@@ -78,11 +79,14 @@ private constructor(
         val endpointManager = Awala.getContextOrThrow().endpointManager
         val payload = endpointManager.wrapMessagePayload(
             serviceMessage,
-            recipientEndpoint.privateAddress,
-            senderEndpoint.privateAddress,
+            recipientEndpoint.nodeId,
+            senderEndpoint.nodeId,
         )
         return Parcel(
-            recipientAddress = recipientEndpoint.address,
+            recipient = Recipient(
+                recipientEndpoint.nodeId,
+                (recipientEndpoint as? PublicThirdPartyEndpoint)?.internetAddress
+            ),
             payload = payload,
             senderCertificate = getSenderCertificate(),
             messageId = parcelId.value,

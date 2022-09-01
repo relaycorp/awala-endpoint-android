@@ -28,6 +28,7 @@ import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.awaladroid.test.FirstPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
+import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
@@ -35,18 +36,17 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.pki.CertificationPath
-import tech.relaycorp.relaynet.ramf.RecipientAddressType
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 internal class FirstPartyEndpointTest : MockContextTestCase() {
     @Test
     fun address() {
         val endpoint = FirstPartyEndpointFactory.build()
-        assertEquals(endpoint.identityCertificate.subjectPrivateAddress, endpoint.address)
+        assertEquals(endpoint.identityCertificate.subjectId, endpoint.nodeId)
     }
 
     @Test
@@ -65,27 +65,30 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun register() = runTest {
+        val gatewayInternetAddress = "example.org"
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW
+                PDACertPath.PRIVATE_GW,
+                gatewayInternetAddress
             )
         )
 
         val endpoint = FirstPartyEndpoint.register()
 
         val identityPrivateKey =
-            privateKeyStore.retrieveIdentityKey(endpoint.privateAddress)
+            privateKeyStore.retrieveIdentityKey(endpoint.nodeId)
         assertEquals(endpoint.identityPrivateKey, identityPrivateKey)
         val identityCertificatePath = certificateStore.retrieveLatest(
-            endpoint.identityCertificate.subjectPrivateAddress,
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+            endpoint.identityCertificate.subjectId,
+            PDACertPath.PRIVATE_GW.subjectId
         )
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
-        verify(storage.gatewayPrivateAddress).set(
-            endpoint.privateAddress,
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+        verify(storage.gatewayId).set(
+            endpoint.nodeId,
+            PDACertPath.PRIVATE_GW.subjectId
         )
+        verify(storage.internetAddress).set(gatewayInternetAddress)
     }
 
     @Test
@@ -99,15 +102,16 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 newCertificate,
-                PDACertPath.PRIVATE_GW
+                PDACertPath.PRIVATE_GW,
+                ""
             )
         )
 
         endpoint.reRegister()
 
         val identityCertificatePath = certificateStore.retrieveLatest(
-            endpoint.identityPrivateKey.privateAddress,
-            PDACertPath.PRIVATE_GW.subjectPrivateAddress
+            endpoint.identityPrivateKey.nodeId,
+            PDACertPath.PRIVATE_GW.subjectId
         )
         assertEquals(newCertificate, identityCertificatePath!!.leafCertificate)
     }
@@ -137,7 +141,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW
+                PDACertPath.PRIVATE_GW,
+                ""
             )
         )
         val savingException = Exception("Oh noes")
@@ -164,7 +169,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW
+                PDACertPath.PRIVATE_GW,
+                ""
             )
         )
         val savingException = Exception("Oh noes")
@@ -190,8 +196,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     fun load_withResult(): Unit = runTest {
         createFirstPartyEndpoint()
 
-        val privateAddress = KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress
-        with(FirstPartyEndpoint.load(privateAddress)) {
+        val nodeId = KeyPairSet.PRIVATE_ENDPOINT.public.nodeId
+        with(FirstPartyEndpoint.load(nodeId)) {
             assertNotNull(this)
             assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
@@ -201,8 +207,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun load_withMissingPrivateKey() = runTest {
-        whenever(storage.gatewayPrivateAddress.get())
-            .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
+        whenever(storage.gatewayId.get())
+            .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
         assertNull(FirstPartyEndpoint.load("non-existent"))
     }
@@ -214,11 +220,11 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
                 privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes"))
             )
         )
-        whenever(storage.gatewayPrivateAddress.get())
-            .thenReturn(PDACertPath.PRIVATE_GW.subjectPrivateAddress)
+        whenever(storage.gatewayId.get())
+            .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
         try {
-            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.privateAddress)
+            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
         } catch (exception: PersistenceException) {
             assertEquals("Failed to load private key of endpoint", exception.message)
             assertTrue(exception.cause is KeyStoreBackendException)
@@ -229,13 +235,13 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withMissingGatewayPrivateAddress(): Unit = runTest {
+    fun load_withMissingGatewayId(): Unit = runTest {
         val firstPartyEndpoint = createFirstPartyEndpoint()
-        whenever(storage.gatewayPrivateAddress.get(firstPartyEndpoint.privateAddress))
+        whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
             .thenReturn(null)
 
         try {
-            FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+            FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
         } catch (exception: PersistenceException) {
             assertEquals("Failed to load gateway address for endpoint", exception.message)
             return@runTest
@@ -255,7 +261,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         )
 
         try {
-            FirstPartyEndpoint.load(firstPartyEndpoint.privateAddress)
+            FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
         } catch (exception: PersistenceException) {
             assertEquals("Failed to load certificate for endpoint", exception.message)
             assertEquals(retrievalException, exception.cause?.cause)
@@ -389,8 +395,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             // Verify the parcel
             assertEquals(firstPartyEndpoint, outgoingMessage.senderEndpoint)
             assertEquals(
-                channel.thirdPartyEndpoint.privateAddress,
-                outgoingMessage.recipientEndpoint.privateAddress
+                channel.thirdPartyEndpoint.nodeId,
+                outgoingMessage.recipientEndpoint.nodeId
             )
             // Verify the PDA
             val (serviceMessage) =

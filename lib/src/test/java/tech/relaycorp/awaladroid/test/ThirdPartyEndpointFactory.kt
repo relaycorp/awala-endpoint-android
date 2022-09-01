@@ -12,7 +12,7 @@ internal object ThirdPartyEndpointFactory {
     )
 
     fun buildPrivate(): PrivateThirdPartyEndpoint = PrivateThirdPartyEndpoint(
-        PDACertPath.PRIVATE_ENDPOINT.subjectPrivateAddress,
+        PDACertPath.PRIVATE_ENDPOINT.subjectId,
         KeyPairSet.PDA_GRANTEE.public,
         PDACertPath.PDA,
         listOf(PDACertPath.PRIVATE_GW)

@@ -5,7 +5,7 @@ import java.security.PublicKey
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import tech.relaycorp.relaynet.wrappers.privateAddress
+import tech.relaycorp.relaynet.wrappers.nodeId
 
 internal class ChannelManager(
     internal val coroutineContext: CoroutineContext = Dispatchers.IO,
@@ -17,28 +17,28 @@ internal class ChannelManager(
         firstPartyEndpoint: FirstPartyEndpoint,
         thirdPartyEndpoint: ThirdPartyEndpoint
     ) {
-        create(firstPartyEndpoint, thirdPartyEndpoint.privateAddress)
+        create(firstPartyEndpoint, thirdPartyEndpoint.nodeId)
     }
 
     suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
         thirdPartyEndpointPublicKey: PublicKey
     ) {
-        create(firstPartyEndpoint, thirdPartyEndpointPublicKey.privateAddress)
+        create(firstPartyEndpoint, thirdPartyEndpointPublicKey.nodeId)
     }
 
     private suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
-        thirdPartyEndpointPrivateAddress: String
+        thirdPartyEndpointNodeId: String
     ) {
         withContext(coroutineContext) {
             val originalValue =
-                sharedPreferences.getStringSet(firstPartyEndpoint.privateAddress, null)
+                sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
                     ?: emptySet()
             with(sharedPreferences.edit()) {
                 putStringSet(
-                    firstPartyEndpoint.privateAddress,
-                    originalValue + mutableListOf(thirdPartyEndpointPrivateAddress)
+                    firstPartyEndpoint.nodeId,
+                    originalValue + mutableListOf(thirdPartyEndpointNodeId)
                 )
                 commit()
             }
@@ -50,7 +50,7 @@ internal class ChannelManager(
     ) {
         withContext(coroutineContext) {
             with(sharedPreferences.edit()) {
-                remove(firstPartyEndpoint.privateAddress)
+                remove(firstPartyEndpoint.nodeId)
                 commit()
             }
         }
@@ -70,8 +70,8 @@ internal class ChannelManager(
                     return@forEach
                 }
 
-                if ((value).contains(thirdPartyEndpoint.privateAddress)) {
-                    val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.privateAddress }
+                if ((value).contains(thirdPartyEndpoint.nodeId)) {
+                    val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.nodeId }
                     with(sharedPreferences.edit()) {
                         putStringSet(key, newValue.toMutableSet())
                         commit()
@@ -84,7 +84,7 @@ internal class ChannelManager(
     suspend fun getLinkedEndpointAddresses(firstPartyEndpoint: FirstPartyEndpoint): Set<String> =
         withContext(coroutineContext) {
             return@withContext sharedPreferences.getStringSet(
-                firstPartyEndpoint.privateAddress,
+                firstPartyEndpoint.nodeId,
                 emptySet()
             ) ?: emptySet()
         }
