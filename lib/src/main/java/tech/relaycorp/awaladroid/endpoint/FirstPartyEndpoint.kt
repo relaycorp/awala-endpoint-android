@@ -32,6 +32,7 @@ internal constructor(
     internal val identityPrivateKey: PrivateKey,
     internal val identityCertificate: Certificate,
     internal val identityCertificateChain: List<Certificate>,
+    public val internetAddress: String?,
 ) : Endpoint(identityPrivateKey.nodeId) {
 
     /**
@@ -148,7 +149,8 @@ internal constructor(
         val newEndpoint = FirstPartyEndpoint(
             identityPrivateKey,
             registration.privateNodeCertificate,
-            listOf(registration.gatewayCertificate)
+            listOf(registration.gatewayCertificate),
+            registration.gatewayInternetAddress
         )
 
         val gatewayId = registration.gatewayCertificate.subjectId
@@ -223,7 +225,8 @@ internal constructor(
             val endpoint = FirstPartyEndpoint(
                 keyPair.private,
                 registration.privateNodeCertificate,
-                listOf(registration.gatewayCertificate)
+                listOf(registration.gatewayCertificate),
+                registration.gatewayInternetAddress
             )
 
             try {
@@ -282,10 +285,14 @@ internal constructor(
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to load certificate for endpoint", exc)
             }
+
+            val internetAddress: String? = context.storage.internetAddress.get()
+
             return FirstPartyEndpoint(
                 identityPrivateKey,
                 certificatePath.leafCertificate,
-                certificatePath.certificateAuthorities
+                certificatePath.certificateAuthorities,
+                internetAddress,
             )
         }
     }
