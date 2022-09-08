@@ -9,6 +9,6 @@ internal object FirstPartyEndpointFactory {
         KeyPairSet.PRIVATE_ENDPOINT.private,
         PDACertPath.PRIVATE_ENDPOINT,
         listOf(PDACertPath.PRIVATE_GW),
-        null,
+        "frankfurt.relaycorp.cloud",
     )
 }
