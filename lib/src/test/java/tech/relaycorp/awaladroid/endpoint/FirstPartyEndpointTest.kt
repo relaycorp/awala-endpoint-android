@@ -202,6 +202,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
             assertEquals(listOf(PDACertPath.PRIVATE_GW), this?.identityCertificateChain)
+            assertEquals("example.org", this?.internetAddress)
         }
     }
 
