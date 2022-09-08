@@ -32,7 +32,7 @@ internal constructor(
     internal val identityPrivateKey: PrivateKey,
     internal val identityCertificate: Certificate,
     internal val identityCertificateChain: List<Certificate>,
-    public val internetAddress: String?,
+    public val internetAddress: String,
 ) : Endpoint(identityPrivateKey.nodeId) {
 
     /**
@@ -286,7 +286,10 @@ internal constructor(
                 throw PersistenceException("Failed to load certificate for endpoint", exc)
             }
 
-            val internetAddress: String? = context.storage.internetAddress.get()
+            val internetAddress: String = context.storage.internetAddress.get()
+                ?: throw PersistenceException(
+                    "Failed to load gateway internet address for endpoint"
+                )
 
             return FirstPartyEndpoint(
                 identityPrivateKey,
