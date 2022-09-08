@@ -207,25 +207,6 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withoutInternetAddress() = runTest {
-        createFirstPartyEndpoint()
-        whenever(storage.internetAddress.get())
-            .thenReturn(null)
-
-        try {
-            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
-        } catch (exception: PersistenceException) {
-            assertEquals(
-                "Failed to load gateway internet address for endpoint",
-                exception.message
-            )
-            return@runTest
-        }
-
-        assert(false)
-    }
-
-    @Test
     fun load_withMissingPrivateKey() = runTest {
         whenever(storage.gatewayId.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
@@ -264,6 +245,25 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
         } catch (exception: PersistenceException) {
             assertEquals("Failed to load gateway address for endpoint", exception.message)
+            return@runTest
+        }
+
+        assert(false)
+    }
+
+    @Test
+    fun load_withMissingInternetAddress() = runTest {
+        createFirstPartyEndpoint()
+        whenever(storage.internetAddress.get())
+            .thenReturn(null)
+
+        try {
+            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+        } catch (exception: PersistenceException) {
+            assertEquals(
+                "Failed to load gateway internet address for endpoint",
+                exception.message
+            )
             return@runTest
         }
 
