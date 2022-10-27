@@ -26,12 +26,18 @@ def jacocoConfig = {
 
     executionData.from = fileTree(dir: project.buildDir, includes: [
       'jacoco/testDebugUnitTest.exec',
-      'outputs/code_coverage/debugAndroidTest/connected/**/*.ec'
+      'outputs/code_coverage/debugAndroidTest/connected/**/*.ec',
+      'outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec'
     ])
 
     if (project.hasProperty('codeCoverageDataLocation')) {
         executionData.from += fileTree(dir: codeCoverageDataLocation, includes: ['**/*.ec'])
     }
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
 }
 
 task jacocoTestReport(type: JacocoReport) {
@@ -53,21 +59,21 @@ task jacocoTestCoverageVerification(type: JacocoCoverageVerification) {
                 counter = "CLASS"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "1".toBigDecimal()
+                maximum = "20".toBigDecimal()
             }
 
             limit {
                 counter = "METHOD"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "1".toBigDecimal()
+                maximum = "55".toBigDecimal()
             }
 
             limit {
                 counter = "BRANCH"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/1036
-                maximum = "13".toBigDecimal()
+                maximum = "65".toBigDecimal()
             }
         }
     }
