@@ -66,14 +66,14 @@ task jacocoTestCoverageVerification(type: JacocoCoverageVerification) {
                 counter = "METHOD"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "55".toBigDecimal()
+                maximum = "54".toBigDecimal()
             }
 
             limit {
                 counter = "BRANCH"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/1036
-                maximum = "65".toBigDecimal()
+                maximum = "63".toBigDecimal()
             }
         }
     }
