@@ -29,9 +29,10 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build dokkaHtml --scan
-      # - uses: eskatos/gradle-command-action@v1
-      #   with:
-      #     arguments: jacocoTestCoverageVerification
+      - name: Jacoco Verification
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: jacocoTestCoverageVerification
 
   release:
     needs: ci
