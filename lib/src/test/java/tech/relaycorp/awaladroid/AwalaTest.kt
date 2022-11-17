@@ -100,6 +100,8 @@ public class AwalaTest {
             CertificationPath(expiringCertificate, emptyList()),
             expiringCertificate.issuerCommonName,
         )
+
+        advanceUntilIdle()
         assertNotNull(
             certificateStore.retrieveLatest(
                 expiringCertificate.subjectId,
