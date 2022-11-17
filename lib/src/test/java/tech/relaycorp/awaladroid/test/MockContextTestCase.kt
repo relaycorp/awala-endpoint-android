@@ -112,7 +112,7 @@ internal abstract class MockContextTestCase {
             whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
                 .thenReturn(certificate.issuerCommonName)
 
-            whenever(storage.internetAddress.get(gatewayAddress))
+            whenever(storage.internetAddress.get())
                 .thenReturn(gatewayAddress)
         } else {
             storage.gatewayId.set(
