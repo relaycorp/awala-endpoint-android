@@ -12,6 +12,7 @@ import com.nhaarman.mockitokotlin2.whenever
 import java.security.PublicKey
 import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
@@ -152,16 +153,15 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        try {
-            FirstPartyEndpoint.register()
-        } catch (exception: PersistenceException) {
-            assertEquals("Failed to save identity key", exception.message)
-            assertTrue(exception.cause is KeyStoreBackendException)
-            assertEquals(savingException, exception.cause!!.cause)
-            return@runTest
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.register()
+            }
         }
 
-        assert(false)
+        assertEquals("Failed to save identity key", exception.message)
+        assertTrue(exception.cause is KeyStoreBackendException)
+        assertEquals(savingException, exception.cause!!.cause)
     }
 
     @Test
@@ -180,16 +180,15 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        try {
-            FirstPartyEndpoint.register()
-        } catch (exception: PersistenceException) {
-            assertEquals("Failed to save certificate", exception.message)
-            assertTrue(exception.cause is KeyStoreBackendException)
-            assertEquals(savingException, exception.cause!!.cause)
-            return@runTest
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.register()
+            }
         }
 
-        assert(false)
+        assertEquals("Failed to save certificate", exception.message)
+        assertTrue(exception.cause is KeyStoreBackendException)
+        assertEquals(savingException, exception.cause!!.cause)
     }
 
     @Test
@@ -202,6 +201,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
             assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
             assertEquals(listOf(PDACertPath.PRIVATE_GW), this?.identityCertificateChain)
+            assertEquals("example.org", this?.internetAddress)
         }
     }
 
@@ -223,15 +223,14 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(storage.gatewayId.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
-        try {
-            FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
-        } catch (exception: PersistenceException) {
-            assertEquals("Failed to load private key of endpoint", exception.message)
-            assertTrue(exception.cause is KeyStoreBackendException)
-            return@runTest
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+            }
         }
 
-        assert(false)
+        assertEquals("Failed to load private key of endpoint", exception.message)
+        assertTrue(exception.cause is KeyStoreBackendException)
     }
 
     @Test
@@ -240,14 +239,28 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
             .thenReturn(null)
 
-        try {
-            FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
-        } catch (exception: PersistenceException) {
-            assertEquals("Failed to load gateway address for endpoint", exception.message)
-            return@runTest
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+            }
         }
 
-        assert(false)
+        assertEquals("Failed to load gateway address for endpoint", exception.message)
+    }
+
+    @Test
+    fun load_withMissingInternetAddress() = runBlockingTest {
+        createFirstPartyEndpoint()
+        whenever(storage.internetAddress.get())
+            .thenReturn(null)
+
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+            }
+        }
+
+        assertEquals("Failed to load gateway internet address for endpoint", exception.message)
     }
 
     @Test
@@ -260,13 +273,14 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             )
         )
 
-        try {
-            FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
-        } catch (exception: PersistenceException) {
-            assertEquals("Failed to load certificate for endpoint", exception.message)
-            assertEquals(retrievalException, exception.cause?.cause)
-            return@runTest
+        val exception = assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
+            }
         }
+
+        assertEquals("Failed to load certificate for endpoint", exception.message)
+        assertEquals(retrievalException, exception.cause?.cause)
     }
 
     @Test
