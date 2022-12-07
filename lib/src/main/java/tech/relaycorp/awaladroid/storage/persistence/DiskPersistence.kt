@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
-import android.content.Context
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.CoroutineContext
@@ -8,7 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal class DiskPersistence(
-    private val context: Context,
+    private val fileDir: String,
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
     private val rootFolder: String = "awaladroid"
 ) : Persistence {
@@ -77,7 +76,7 @@ internal class DiskPersistence(
     // Helpers
 
     private fun buildFile(location: String) =
-        File(context.filesDir, "$rootFolder${File.separator}$location").also {
+        File(fileDir, "$rootFolder${File.separator}$location").also {
             it.parentFile?.mkdirs()
         }
 }

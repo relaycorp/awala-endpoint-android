@@ -40,7 +40,7 @@ public object Awala {
         val fileCertificateStore = FileCertificateStore(keystoreRoot)
 
         this.context = AwalaContext(
-            StorageImpl(DiskPersistence(context)),
+            StorageImpl(DiskPersistence(context.filesDir.path.toString())),
             GatewayClientImpl(
                 serviceInteractorBuilder = { ServiceInteractor(context) }
             ),

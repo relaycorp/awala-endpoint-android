@@ -1,8 +1,6 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
+
 import java.io.File
 import java.nio.charset.Charset
 import kotlinx.coroutines.test.TestCoroutineScope
@@ -14,16 +12,14 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
 internal class DiskPersistenceTest {
 
-    private val context: Context = ApplicationProvider.getApplicationContext()
     private val coroutineScope = TestCoroutineScope()
+    private val filesDir = File.createTempFile("rootDir", "droid_test").parent ?: "/temp"
     private val rootFolder = "relaydroid_test"
     private val subject = DiskPersistence(
-        context,
+        filesDir,
         coroutineScope.coroutineContext,
         rootFolder
     )
@@ -62,7 +58,7 @@ internal class DiskPersistenceTest {
         val data = "test"
         subject.set(location, data.toByteArray())
         val fileContent =
-            File(context.filesDir, "$rootFolder${File.separator}$location")
+            File(filesDir, "$rootFolder${File.separator}$location")
                 .readBytes()
                 .toString(Charset.defaultCharset())
         assertEquals(data, fileContent)
@@ -76,10 +72,17 @@ internal class DiskPersistenceTest {
         assertNull(subject.get("file"))
     }
 
-    @Test(expected = PersistenceException::class)
+    @Test
     fun deleteNonExistentFile() = coroutineScope.runBlockingTest {
         assertNull(subject.get("file"))
-        subject.delete("file")
+        try {
+            subject.delete("file")
+        } catch (e: PersistenceException) {
+            assertTrue(true)
+            return@runBlockingTest
+        }
+
+        assertTrue(false)
     }
 
     @Test
@@ -121,3 +124,4 @@ internal class DiskPersistenceTest {
         }
     }
 }
+
