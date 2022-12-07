@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
-
 import java.io.File
 import java.nio.charset.Charset
 import kotlinx.coroutines.test.TestCoroutineScope
@@ -78,11 +77,12 @@ internal class DiskPersistenceTest {
         try {
             subject.delete("file")
         } catch (e: PersistenceException) {
-            assertTrue(true)
             return@runBlockingTest
         }
 
-        assertTrue(false)
+        throw AssertionError(
+            "Delete file should not work, exception PersistenceException should be launched"
+        )
     }
 
     @Test
@@ -124,4 +124,3 @@ internal class DiskPersistenceTest {
         }
     }
 }
-
