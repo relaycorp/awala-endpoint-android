@@ -2,6 +2,7 @@ package tech.relaycorp.awaladroid.storage.persistence
 
 import java.io.File
 import java.nio.charset.Charset
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
@@ -9,13 +10,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 internal class DiskPersistenceTest {
 
     private val coroutineScope = TestCoroutineScope()
-    private val filesDir = File.createTempFile("rootDir", "droid_test").parent ?: "/temp"
+    private val filesDir = File.createTempFile("rootDir", "droid_test").parent
+        ?: throw IllegalArgumentException("filesDir is necessary, createTempFile did not work")
     private val rootFolder = "relaydroid_test"
     private val subject = DiskPersistence(
         filesDir,
@@ -74,15 +77,11 @@ internal class DiskPersistenceTest {
     @Test
     fun deleteNonExistentFile() = coroutineScope.runBlockingTest {
         assertNull(subject.get("file"))
-        try {
-            subject.delete("file")
-        } catch (e: PersistenceException) {
-            return@runBlockingTest
+        assertThrows(PersistenceException::class.java) {
+            runBlocking {
+                subject.delete("file")
+            }
         }
-
-        throw AssertionError(
-            "Delete file should not work, exception PersistenceException should be launched"
-        )
     }
 
     @Test
