@@ -70,7 +70,7 @@ dependencies {
   testImplementation 'tech.relaycorp:awala-testing:1.5.8'
 
   // Security
-  implementation 'androidx.security:security-crypto:1.1.0-alpha03'
+  implementation 'androidx.security:security-crypto:1.1.0-alpha04'
   implementation "org.bouncycastle:bcpkix-jdk15on:1.70"
 
   // Serialization
