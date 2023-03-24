@@ -4,47 +4,22 @@ on:
     branches-ignore: [gh-pages]
 jobs:
   ci:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    name: "ci-${{ matrix.os }}"  # Do not change; used by protected branches
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-java@v1
-        with:
-          java-version: 11
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v2
-        with:
-            path: |
-                ~/.gradle/caches
-                ~/.gradle/wrapper
-            key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-            restore-keys: |
-                ${{ runner.os }}-gradle-
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
-      - name: Build project
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build dokkaHtml --scan
-      - name: Jacoco Verification
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: jacocoTestCoverageVerification
+    uses: relaycorp/shared-workflows/.github/workflows/jvm-lib-ci.yml@main
+    with:
+      java_versions: "[11]"
 
   release:
     needs: ci
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-java@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
         with:
           java-version: 11
+          distribution: zulu
       - name: Cache Gradle dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: |
                 ~/.gradle/caches
@@ -53,14 +28,14 @@ jobs:
             restore-keys: |
                 ${{ runner.os }}-gradle-
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: 16
       - name: Install Node.js dependencies
         run: npm install
 
       - name: Generate docs
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v2
         with:
           arguments: dokkaHtml
 
