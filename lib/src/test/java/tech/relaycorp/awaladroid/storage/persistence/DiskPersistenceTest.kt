@@ -2,51 +2,49 @@ package tech.relaycorp.awaladroid.storage.persistence
 
 import java.io.File
 import java.nio.charset.Charset
+import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.runBlockingTest
-import org.junit.After
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 internal class DiskPersistenceTest {
-
-    private val coroutineScope = TestCoroutineScope()
-    private val filesDir = File.createTempFile("rootDir", "droid_test").parent
-        ?: throw IllegalArgumentException("filesDir is necessary, createTempFile did not work")
+    private val coroutineScope = TestScope()
     private val rootFolder = "relaydroid_test"
-    private val subject = DiskPersistence(
-        filesDir,
-        coroutineScope.coroutineContext,
-        rootFolder
-    )
 
-    @After
-    fun tearDown() {
-        coroutineScope.runBlockingTest {
-            subject.deleteAll()
-        }
+    private lateinit var filesDir: String
+    private lateinit var subject: DiskPersistence
+    @Before
+    fun recreateRootDirectory(): Unit = runBlocking {
+        filesDir = createTempDirectory("rootDir").toString()
+        subject = DiskPersistence(
+            filesDir,
+            coroutineScope.coroutineContext,
+            rootFolder
+        )
     }
 
     @Test
-    fun getNonExistentFile() = coroutineScope.runBlockingTest {
+    fun getNonExistentFile() = coroutineScope.runTest {
         assertNull(subject.get("file"))
     }
 
     @Test
-    fun setNonExistentFileAndGetIt() = coroutineScope.runBlockingTest {
+    fun setNonExistentFileAndGetIt() = coroutineScope.runTest {
         val data = "test"
         subject.set("file", data.toByteArray())
         assertEquals(data, subject.get("file")?.toString(Charset.defaultCharset()))
     }
 
     @Test
-    fun setOnExistingFile() = coroutineScope.runBlockingTest {
+    fun setOnExistingFile() = coroutineScope.runTest {
         val data1 = "test1"
         val data2 = "test2"
         subject.set("file", data1.toByteArray())
@@ -55,7 +53,7 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun setContent() = coroutineScope.runBlockingTest {
+    fun setContent() = coroutineScope.runTest {
         val location = "file"
         val data = "test"
         subject.set(location, data.toByteArray())
@@ -67,7 +65,7 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun deleteExistingFile() = coroutineScope.runBlockingTest {
+    fun deleteExistingFile() = coroutineScope.runTest {
         subject.set("file", "test".toByteArray())
         assertNotNull(subject.get("file"))
         subject.delete("file")
@@ -75,17 +73,16 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun deleteNonExistentFile() = coroutineScope.runBlockingTest {
-        assertNull(subject.get("file"))
+    fun deleteNonExistentFile() {
         assertThrows(PersistenceException::class.java) {
-            runBlocking {
+            coroutineScope.runTest {
                 subject.delete("file")
             }
         }
     }
 
     @Test
-    fun deleteAll() = coroutineScope.runBlockingTest {
+    fun deleteAll() = coroutineScope.runTest {
         subject.set("file1", "test".toByteArray())
         subject.set("file2", "test".toByteArray())
         subject.deleteAll()
@@ -94,7 +91,7 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun deleteAll_withPrefix() = coroutineScope.runBlockingTest {
+    fun deleteAll_withPrefix() = coroutineScope.runTest {
         subject.set("file1", "test".toByteArray())
         subject.set("different2", "test".toByteArray())
         subject.deleteAll("file")
@@ -103,7 +100,7 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun list() = coroutineScope.runBlockingTest {
+    fun list() = coroutineScope.runTest {
         subject.set("file1", "test".toByteArray())
         subject.set("file2", "test".toByteArray())
         subject.set("another", "test".toByteArray())
