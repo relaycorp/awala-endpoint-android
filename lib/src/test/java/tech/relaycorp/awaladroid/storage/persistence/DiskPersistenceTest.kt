@@ -22,7 +22,7 @@ internal class DiskPersistenceTest {
     private lateinit var filesDir: String
     private lateinit var subject: DiskPersistence
     @Before
-    fun recreateRootDirectory(): Unit = runBlocking {
+    fun initDiskPersistence(): Unit = runBlocking {
         filesDir = createTempDirectory("rootDir").toString()
         subject = DiskPersistence(
             filesDir,
@@ -32,12 +32,12 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun getNonExistentFile() = coroutineScope.runTest {
+    fun getNonExistingFile() = coroutineScope.runTest {
         assertNull(subject.get("file"))
     }
 
     @Test
-    fun setNonExistentFileAndGetIt() = coroutineScope.runTest {
+    fun setNonExistingFileAndGetIt() = coroutineScope.runTest {
         val data = "test"
         subject.set("file", data.toByteArray())
         assertEquals(data, subject.get("file")?.toString(Charset.defaultCharset()))
@@ -73,7 +73,7 @@ internal class DiskPersistenceTest {
     }
 
     @Test
-    fun deleteNonExistentFile() {
+    fun deleteNonExistingFile() {
         assertThrows(PersistenceException::class.java) {
             coroutineScope.runTest {
                 subject.delete("file")
