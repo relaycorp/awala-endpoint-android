@@ -10,7 +10,6 @@ jobs:
 
   release:
     needs: ci
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -53,6 +52,7 @@ jobs:
             sed -i 's;href="lib/;href=";g' ./lib/index.html
 
       - name: Release
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,6 +60,7 @@ jobs:
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
 
       - name: Publish documentation
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: peaceiris/actions-gh-pages@v3.6.1
         with:
           publish_branch: gh-pages
