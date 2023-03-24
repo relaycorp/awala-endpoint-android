@@ -38,6 +38,11 @@ def jacocoConfig = {
 tasks.withType(Test) {
     jacoco.includeNoLocationClasses = true
     jacoco.excludes = ['jdk.internal.*']
+    doLast {
+        println("View code coverage at:")
+        println("file://$buildDir/reports/coverage/index.html")
+    }
+    finalizedBy("jacocoTestReport", "jacocoTestCoverageVerification")
 }
 
 task jacocoTestReport(type: JacocoReport) {
@@ -59,21 +64,21 @@ task jacocoTestCoverageVerification(type: JacocoCoverageVerification) {
                 counter = "CLASS"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "20".toBigDecimal()
+                maximum = "14".toBigDecimal()
             }
 
             limit {
                 counter = "METHOD"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "54".toBigDecimal()
+                maximum = "39".toBigDecimal()
             }
 
             limit {
                 counter = "BRANCH"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/1036
-                maximum = "63".toBigDecimal()
+                maximum = "51".toBigDecimal()
             }
         }
     }
