@@ -12,7 +12,6 @@ import com.nhaarman.mockitokotlin2.whenever
 import java.security.PublicKey
 import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
@@ -249,7 +248,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_withMissingInternetAddress() = runBlockingTest {
+    fun load_withMissingInternetAddress() = runTest {
         createFirstPartyEndpoint()
         whenever(storage.internetAddress.get())
             .thenReturn(null)
