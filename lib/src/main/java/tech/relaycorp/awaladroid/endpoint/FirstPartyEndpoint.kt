@@ -172,7 +172,7 @@ internal constructor(
     internal suspend fun reissuePDAs() {
         val context = Awala.getContextOrThrow()
         val thirdPartyEndpointAddresses = context.channelManager.getLinkedEndpointAddresses(this)
-        thirdPartyEndpointAddresses.forEach { thirdPartyEndpointAddress ->
+        for (thirdPartyEndpointAddress in thirdPartyEndpointAddresses) {
             val thirdPartyEndpoint = ThirdPartyEndpoint.load(
                 this@FirstPartyEndpoint.nodeId,
                 thirdPartyEndpointAddress
@@ -182,7 +182,7 @@ internal constructor(
                     Level.INFO,
                     "Ignoring missing third-party endpoint $thirdPartyEndpointAddress"
                 )
-                return@forEach
+                break
             }
 
             val message = OutgoingMessage.build(
