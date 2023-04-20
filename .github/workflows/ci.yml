@@ -11,3 +11,6 @@ jobs:
   release:
     needs: ci
     uses: relaycorp/shared-workflows/.github/workflows/jvm-lib-release-jitpack.yml@main
+    with:
+        dokka_docs: true
+        dokka_docs_path: ./lib/build/dokka/html
