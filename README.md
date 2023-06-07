@@ -17,10 +17,6 @@ android.jetifier.blacklist = bcprov-jdk15on-1.*.jar
 
 The items below summarize the security and privacy considerations specific to this app. For a more general overview of the security considerations in Awala, please refer to [RS-019](https://specs.awala.network/RS-019).
 
-### No encryption at rest on Android 5
-
-We use the [Android Keystore system](https://developer.android.com/training/articles/keystore) to protect sensitive cryptographic material, such as long-term and ephemeral keys. Unfortunately, [Android 5 doesn't actually encrypt anything at rest](https://github.com/relaycorp/relaynet-gateway-android/issues/247).
-
 ### External communication
 
 This library exclusively communicates with the private gateway installed on the device. It does not communicate with other apps or any Internet host.
