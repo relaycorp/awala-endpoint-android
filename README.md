@@ -13,7 +13,7 @@ Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=andro
 android.jetifier.blacklist = bcprov-jdk15on-1.*.jar
 ```
 
-If you use Android Lint, you may want to disable the warnings about BouncyCastle import `javax.naming` (an `InvalidPackage`) by adding the following to your Lint configuration:
+If you use Android Lint, you may want to disable the warnings about BouncyCastle importing `javax.naming` (an `InvalidPackage`) by adding the following to your Lint configuration:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
