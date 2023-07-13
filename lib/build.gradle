@@ -64,7 +64,7 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinCoroutinesVersion"
 
   // Awala
-  implementation 'tech.relaycorp:awala:1.67.0'
+  implementation 'tech.relaycorp:awala:1.67.1'
   implementation 'tech.relaycorp:awala-keystore-file:1.6.13'
   implementation 'tech.relaycorp:poweb:1.5.35'
   testImplementation 'tech.relaycorp:awala-testing:1.5.13'
