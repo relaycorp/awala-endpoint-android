@@ -85,7 +85,10 @@ internal constructor(
         val deliveryAuth = CertificationPath(pda, pdaChain)
 
         val context = Awala.getContextOrThrow()
-        val sessionKeyPair = context.endpointManager.generateSessionKeyPair(nodeId, thirdPartyEndpointPublicKey.nodeId)
+        val sessionKeyPair = context.endpointManager.generateSessionKeyPair(
+            nodeId,
+            thirdPartyEndpointPublicKey.nodeId
+        )
 
         val connParams = PrivateEndpointConnParams(
             this.publicKey,
