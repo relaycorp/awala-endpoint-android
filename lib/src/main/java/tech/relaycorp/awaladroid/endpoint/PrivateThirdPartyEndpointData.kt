@@ -13,7 +13,8 @@ import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 
 internal data class PrivateThirdPartyEndpointData(
     val identityKey: PublicKey,
-    val pdaPath: CertificationPath
+    val pdaPath: CertificationPath,
+    val internetGatewayAddress: String,
 ) {
     @Throws(PersistenceException::class)
     fun serialize(): ByteArray =
@@ -26,6 +27,7 @@ internal data class PrivateThirdPartyEndpointData(
                         BsonBinary(identityKey.encoded)
                     )
                     w.writeBinaryData("pda_path", BsonBinary(pdaPath.serialize()))
+                    w.writeString("internet_address", internetGatewayAddress)
                     w.writeEndDocument()
                 }
                 output.toByteArray()
@@ -44,11 +46,13 @@ internal data class PrivateThirdPartyEndpointData(
                     val identityKey =
                         r.readBinaryData("identity_key").data.deserializeRSAPublicKey()
                     val pdaPathSerialized = r.readBinaryData("pda_path").data
+                    val internetGatewayAddress = r.readString("internet_address")
 
                     r.readEndDocument()
                     PrivateThirdPartyEndpointData(
                         identityKey,
-                        CertificationPath.deserialize(pdaPathSerialized)
+                        CertificationPath.deserialize(pdaPathSerialized),
+                        internetGatewayAddress,
                     )
                 }
             } catch (exp: BSONException) {

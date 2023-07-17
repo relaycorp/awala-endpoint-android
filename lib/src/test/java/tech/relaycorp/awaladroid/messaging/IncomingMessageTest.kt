@@ -23,6 +23,8 @@ import tech.relaycorp.awaladroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.awaladroid.test.EndpointChannel
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.RecipientAddressType
+import tech.relaycorp.relaynet.PrivateEndpointConnParams
+import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
@@ -115,7 +117,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
         val channel = createEndpointChannel(RecipientAddressType.PUBLIC)
         val parcel = Parcel(
             Recipient(channel.firstPartyEndpoint.nodeId, channel.firstPartyEndpoint.nodeId),
-            makePDAPathParcelPayload(channel, "doesn't matter".toByteArray()),
+            encryptParcelPayload(channel, "doesn't matter".toByteArray()),
             PDACertPath.PDA,
         )
         val ack = StubACK()
@@ -127,18 +129,18 @@ internal class IncomingMessageTest : MockContextTestCase() {
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PublicThirdPartyEndpoint
         assertTrue(
             logCaptor.infoLogs.contains(
-                "Ignoring PDA path from public endpoint ${thirdPartyEndpoint.nodeId} " +
+                "Ignoring connection params from public endpoint ${thirdPartyEndpoint.nodeId} " +
                     "(${thirdPartyEndpoint.internetAddress})"
             )
         )
     }
 
     @Test
-    fun build_pdaPath_malformed() = runTest {
+    fun build_connParams_malformed() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val parcel = Parcel(
             Recipient(channel.firstPartyEndpoint.nodeId, channel.firstPartyEndpoint.nodeId),
-            makePDAPathParcelPayload(channel, "malformed".toByteArray()),
+            encryptParcelPayload(channel, "malformed".toByteArray()),
             PDACertPath.PDA,
         )
         val ack = StubACK()
@@ -150,14 +152,14 @@ internal class IncomingMessageTest : MockContextTestCase() {
         verify(storage.privateThirdParty, never()).set(any(), any())
         assertTrue(
             logCaptor.infoLogs.contains(
-                "Ignoring malformed PDA path for ${channel.firstPartyEndpoint.nodeId} " +
+                "Ignoring malformed connection params for ${channel.firstPartyEndpoint.nodeId} " +
                     "from ${channel.thirdPartyEndpoint.nodeId}"
             )
         )
     }
 
     @Test
-    fun build_pdaPath_invalid() = runTest {
+    fun build_connParams_invalid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val now = ZonedDateTime.now()
         val expiredPDA = issueDeliveryAuthorization(
@@ -167,12 +169,11 @@ internal class IncomingMessageTest : MockContextTestCase() {
             thirdPartyEndpointCertificate,
             now.minusSeconds(2),
         )
+        val deliveryAuth = CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
+        val params = makeConnParams(channel, deliveryAuth)
         val parcel = Parcel(
             Recipient(channel.firstPartyEndpoint.nodeId, channel.firstPartyEndpoint.nodeId),
-            makePDAPathParcelPayload(
-                channel,
-                CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
-            ),
+            encryptConnectionParams(channel, params),
             PDACertPath.PDA,
         )
         val ack = StubACK()
@@ -184,14 +185,14 @@ internal class IncomingMessageTest : MockContextTestCase() {
         verify(storage.privateThirdParty, never()).set(any(), any())
         assertTrue(
             logCaptor.infoLogs.contains(
-                "Ignoring invalid PDA path for ${channel.firstPartyEndpoint.nodeId} " +
+                "Ignoring invalid connection params for ${channel.firstPartyEndpoint.nodeId} " +
                     "from ${channel.thirdPartyEndpoint.nodeId}"
             )
         )
     }
 
     @Test
-    fun build_pdaPath_valid() = runTest {
+    fun build_connParams_valid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val pda = issueDeliveryAuthorization(
             channel.firstPartyEndpoint.publicKey,
@@ -199,10 +200,11 @@ internal class IncomingMessageTest : MockContextTestCase() {
             thirdPartyEndpointCertificate.expiryDate,
             thirdPartyEndpointCertificate,
         )
-        val pdaPath = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
+        val deliveryAuth = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
+        val connectionParams = makeConnParams(channel, deliveryAuth)
         val parcel = Parcel(
             Recipient(channel.firstPartyEndpoint.nodeId),
-            makePDAPathParcelPayload(channel, pdaPath),
+            encryptConnectionParams(channel, connectionParams),
             PDACertPath.PDA,
         )
         val ack = StubACK()
@@ -214,7 +216,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
         assertTrue(ack.wasCalled)
         assertTrue(
             logCaptor.infoLogs.contains(
-                "Updated PDA path from ${thirdPartyEndpoint.nodeId} for " +
+                "Updated connection params from ${thirdPartyEndpoint.nodeId} for " +
                     channel.firstPartyEndpoint.nodeId
             )
         )
@@ -223,10 +225,21 @@ internal class IncomingMessageTest : MockContextTestCase() {
             argThat {
                 identityKey == thirdPartyEndpoint.identityKey &&
                     this.pdaPath.leafCertificate == pda &&
-                    this.pdaPath.certificateAuthorities == pdaPath.certificateAuthorities
+                    this.pdaPath.certificateAuthorities == deliveryAuth.certificateAuthorities &&
+                    this.internetGatewayAddress == thirdPartyEndpoint.internetAddress
             },
         )
     }
+
+    private fun makeConnParams(
+        channel: EndpointChannel,
+        deliveryAuth: CertificationPath
+    ) = PrivateEndpointConnParams(
+        channel.thirdPartyEndpoint.identityKey,
+        channel.thirdPartyEndpoint.internetAddress,
+        deliveryAuth,
+        SessionKeyPair.generate().sessionKey,
+    )
 
     private suspend fun makeThirdPartyEndpointManager(channel: EndpointChannel): EndpointManager {
         val thirdPartyPrivateKeyStore = MockPrivateKeyStore()
@@ -247,17 +260,17 @@ internal class IncomingMessageTest : MockContextTestCase() {
         )
     }
 
-    private suspend fun makePDAPathParcelPayload(
+    private suspend fun encryptConnectionParams(
         channel: EndpointChannel,
-        pdaPath: CertificationPath
-    ): ByteArray = makePDAPathParcelPayload(channel, pdaPath.serialize())
+        params: PrivateEndpointConnParams
+    ): ByteArray = encryptParcelPayload(channel, params.serialize())
 
-    private suspend fun makePDAPathParcelPayload(
+    private suspend fun encryptParcelPayload(
         channel: EndpointChannel,
-        pdaPathSerialized: ByteArray
+        plaintext: ByteArray
     ): ByteArray {
         val thirdPartyEndpointManager = makeThirdPartyEndpointManager(channel)
-        val pdaPathServiceMessage = makePDAPathMessage(pdaPathSerialized)
+        val pdaPathServiceMessage = makePDAPathMessage(plaintext)
         return thirdPartyEndpointManager.wrapMessagePayload(
             pdaPathServiceMessage,
             channel.firstPartyEndpoint.nodeId,
