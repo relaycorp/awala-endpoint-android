@@ -13,6 +13,7 @@ import tech.relaycorp.awaladroid.common.Logging.logger
 import tech.relaycorp.awaladroid.common.toKeyPair
 import tech.relaycorp.awaladroid.messaging.OutgoingMessage
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.PrivateEndpointConnParams
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.keystores.MissingKeyException
@@ -48,7 +49,7 @@ internal constructor(
      * Issue a PDA for a third-party endpoint.
      */
     @Throws(CertificateException::class)
-    public fun issueAuthorization(
+    public suspend fun issueAuthorization(
         thirdPartyEndpoint: ThirdPartyEndpoint,
         expiryDate: ZonedDateTime
     ): ByteArray =
@@ -61,7 +62,7 @@ internal constructor(
      * Issue a PDA for a third-party endpoint using its public key.
      */
     @Throws(CertificateException::class)
-    public fun issueAuthorization(
+    public suspend fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
         expiryDate: ZonedDateTime
     ): ByteArray {
@@ -71,7 +72,7 @@ internal constructor(
     }
 
     @Throws(CertificateException::class)
-    private fun issueAuthorization(
+    private suspend fun issueAuthorization(
         thirdPartyEndpointPublicKey: PublicKey,
         expiryDate: ZonedDateTime
     ): ByteArray {
@@ -81,8 +82,21 @@ internal constructor(
             validityEndDate = expiryDate,
             issuerCertificate = identityCertificate
         )
-        val path = CertificationPath(pda, pdaChain)
-        return path.serialize()
+        val deliveryAuth = CertificationPath(pda, pdaChain)
+
+        val context = Awala.getContextOrThrow()
+        val sessionKeyPair = context.endpointManager.generateSessionKeyPair(
+            nodeId,
+            thirdPartyEndpointPublicKey.nodeId
+        )
+
+        val connParams = PrivateEndpointConnParams(
+            this.publicKey,
+            this.internetAddress,
+            deliveryAuth,
+            sessionKeyPair.sessionKey,
+        )
+        return connParams.serialize()
     }
 
     /**
@@ -255,9 +269,7 @@ internal constructor(
                 gatewayId,
             )
 
-            context.storage.internetAddress.set(
-                registration.gatewayInternetAddress
-            )
+            context.storage.internetAddress.set(registration.gatewayInternetAddress)
 
             return endpoint
         }

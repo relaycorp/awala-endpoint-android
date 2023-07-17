@@ -32,10 +32,10 @@ import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.ThirdPartyEndpointFactory
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.awaladroid.test.setAwalaContext
+import tech.relaycorp.relaynet.PrivateEndpointConnParams
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.keystores.KeyStoreBackendException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
-import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.keystores.MockCertificateStore
 import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
@@ -65,12 +65,12 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun register() = runTest {
-        val gatewayInternetAddress = "example.org"
+        val internetGatewayAddress = "example.org"
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                gatewayInternetAddress
+                internetGatewayAddress
             )
         )
 
@@ -88,7 +88,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             endpoint.nodeId,
             PDACertPath.PRIVATE_GW.subjectId
         )
-        verify(storage.internetAddress).set(gatewayInternetAddress)
+        verify(storage.internetAddress).set(internetGatewayAddress)
     }
 
     @Test
@@ -312,10 +312,12 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         val expiryDate = ZonedDateTime.now().plusDays(1)
 
         val exception = assertThrows(AuthorizationIssuanceException::class.java) {
-            firstPartyEndpoint.issueAuthorization(
-                "This is not a key".toByteArray(),
-                expiryDate
-            )
+            runBlocking {
+                firstPartyEndpoint.issueAuthorization(
+                    "This is not a key".toByteArray(),
+                    expiryDate
+                )
+            }
         }
 
         assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
@@ -415,7 +417,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             val (serviceMessage) =
                 outgoingMessage.parcel.unwrapPayload(channel.thirdPartySessionKeyPair.privateKey)
             assertEquals("application/vnd+relaycorp.awala.pda-path", serviceMessage.type)
-            val pdaPath = CertificationPath.deserialize(serviceMessage.content)
+            val params = PrivateEndpointConnParams.deserialize(serviceMessage.content)
+            val pdaPath = params.deliveryAuth
             pdaPath.validate()
             assertEquals(
                 channel.thirdPartyEndpoint.identityKey,
@@ -440,11 +443,23 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 }
 
 private fun validateAuthorization(
-    authorizationSerialized: ByteArray,
+    paramsSerialized: ByteArray,
     firstPartyEndpoint: FirstPartyEndpoint,
     expiryDate: ZonedDateTime
 ) {
-    val authorization = CertificationPath.deserialize(authorizationSerialized)
+    val params = PrivateEndpointConnParams.deserialize(paramsSerialized)
+
+    assertEquals(
+        firstPartyEndpoint.publicKey,
+        params.identityKey
+    )
+
+    assertEquals(
+        firstPartyEndpoint.internetAddress,
+        params.internetGatewayAddress
+    )
+
+    val authorization = params.deliveryAuth
     // PDA
     val pda = authorization.leafCertificate
     assertEquals(

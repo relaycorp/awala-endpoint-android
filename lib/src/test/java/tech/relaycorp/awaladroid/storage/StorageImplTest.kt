@@ -44,14 +44,16 @@ internal class StorageImplTest {
             CertificationPath(
                 PDACertPath.PDA,
                 listOf(PDACertPath.PRIVATE_GW)
-            )
+            ),
+            "gateway.com",
         )
         val rawData = data.serialize()
 
         storage.privateThirdParty.testGet(rawData, data) { a, b ->
             a.identityKey == b.identityKey &&
                 a.pdaPath.leafCertificate == b.pdaPath.leafCertificate &&
-                a.pdaPath.certificateAuthorities == b.pdaPath.certificateAuthorities
+                a.pdaPath.certificateAuthorities == b.pdaPath.certificateAuthorities &&
+                a.internetGatewayAddress == b.internetGatewayAddress
         }
         storage.privateThirdParty.testSet(data, rawData)
         storage.privateThirdParty.testDelete()

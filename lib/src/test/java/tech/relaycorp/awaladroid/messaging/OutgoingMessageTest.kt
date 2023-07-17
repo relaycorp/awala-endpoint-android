@@ -7,7 +7,6 @@ import kotlin.random.Random
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
@@ -126,7 +125,10 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         val message = MessageFactory.buildOutgoing(channel)
 
         assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
-        assertNull(message.parcel.recipient.internetAddress)
+        assertEquals(
+            message.recipientEndpoint.internetAddress,
+            message.parcel.recipient.internetAddress
+        )
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
         assertEquals(message.ttl, message.parcel.ttl)

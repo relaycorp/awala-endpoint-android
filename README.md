@@ -13,6 +13,19 @@ Please refer to the [Android codelabs](https://codelabs.awala.network/?cat=andro
 android.jetifier.blacklist = bcprov-jdk15on-1.*.jar
 ```
 
+If you use Android Lint, you may want to disable the warnings about BouncyCastle importing `javax.naming` (an `InvalidPackage`) by adding the following to your Lint configuration:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- ... -->
+    <issue id="InvalidPackage">
+        <!-- Ignore errors about BC importing javax.naming because it doesn't use it on Android -->
+        <ignore path="**/bcpkix-*.jar" />
+    </issue>
+</lint>
+```
+
 ## Security and privacy considerations
 
 The items below summarize the security and privacy considerations specific to this app. For a more general overview of the security considerations in Awala, please refer to [RS-019](https://specs.awala.network/RS-019).

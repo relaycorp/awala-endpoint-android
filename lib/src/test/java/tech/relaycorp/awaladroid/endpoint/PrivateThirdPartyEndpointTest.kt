@@ -15,6 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.RecipientAddressType
+import tech.relaycorp.relaynet.PrivateEndpointConnParams
 import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
 import tech.relaycorp.relaynet.issueEndpointCertificate
@@ -42,6 +43,23 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     private val sessionKey = SessionKeyPair.generate().sessionKey
 
+    private val internetGatewayAddress = "example.com"
+
+    @Test
+    fun recipient() {
+        val endpoint = PrivateThirdPartyEndpoint(
+            "the id",
+            KeyPairSet.PDA_GRANTEE.public,
+            pda,
+            listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
+            internetGatewayAddress,
+        )
+
+        val recipient = endpoint.recipient
+        assertEquals(endpoint.nodeId, recipient.id)
+        assertEquals(internetGatewayAddress, recipient.internetAddress)
+    }
+
     @Test
     fun load_successful() = runTest {
         whenever(storage.privateThirdParty.get(any())).thenReturn(
@@ -50,7 +68,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 CertificationPath(
                     PDACertPath.PDA,
                     listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
-                )
+                ),
+                internetGatewayAddress,
             )
         )
         val firstAddress = UUID.randomUUID().toString()
@@ -61,6 +80,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             assertEquals(PDACertPath.PRIVATE_ENDPOINT.subjectId, nodeId)
             assertEquals(PDACertPath.PDA, pda)
             assertEquals(listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW), pdaChain)
+            assertEquals(internetGatewayAddress, internetAddress)
         }
 
         verify(storage.privateThirdParty).get("${firstAddress}_$thirdAddress")
@@ -90,6 +110,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             KeyPairSet.PDA_GRANTEE.public.encoded,
             pdaPath.serialize(),
             sessionKey,
+            internetGatewayAddress
         )
 
         assertEquals(
@@ -131,6 +152,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 "123456".toByteArray(),
                 pdaPath.serialize(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: InvalidThirdPartyEndpoint) {
             assertEquals("Identity key is not a well-formed RSA public key", exception.message)
@@ -150,6 +172,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public.encoded,
                 pdaPath.serialize(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: UnknownFirstPartyEndpointException) {
             assertEquals(
@@ -190,6 +213,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public.encoded,
                 pdaPath.serialize(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: InvalidAuthorizationException) {
             assertEquals("PDA path is invalid", exception.message)
@@ -208,6 +232,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public.encoded,
                 "malformed".toByteArray(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: InvalidAuthorizationException) {
             assertEquals("PDA path is malformed", exception.message)
@@ -231,6 +256,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public.encoded,
                 pdaPath.serialize(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: InvalidAuthorizationException) {
             assertEquals("PDA path is invalid", exception.message)
@@ -260,6 +286,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public.encoded,
                 pdaPath.serialize(),
                 sessionKey,
+                internetGatewayAddress,
             )
         } catch (exception: InvalidAuthorizationException) {
             assertEquals("PDA path is invalid", exception.message)
@@ -280,7 +307,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         )
         val dataSerialized = PrivateThirdPartyEndpointData(
             identityKey,
-            pdaPath
+            pdaPath,
+            internetGatewayAddress,
         ).serialize()
         val data = PrivateThirdPartyEndpointData.deserialize(dataSerialized)
 
@@ -290,16 +318,18 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             listOf(PDACertPath.PRIVATE_GW, PDACertPath.INTERNET_GW),
             data.pdaPath.certificateAuthorities
         )
+        assertEquals(internetGatewayAddress, data.internetGatewayAddress)
     }
 
     @Test
-    fun updatePDAPath_invalidPath() = runTest {
+    fun updateConnectionParams_invalidPath() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
-        val path = CertificationPath(pda, listOf())
+        val deliveryAuth = CertificationPath(pda, listOf())
+        val params = makeConnectionParams(thirdPartyEndpoint, deliveryAuth)
 
         try {
-            thirdPartyEndpoint.updatePDAPath(path)
+            thirdPartyEndpoint.updateParams(params)
         } catch (exception: InvalidAuthorizationException) {
             assertEquals("PDA path is invalid", exception.message)
             assertTrue(exception.cause is CertificationPathException)
@@ -310,7 +340,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun updatePDAPath_differentFirstPartyEndpoint() = runTest {
+    fun updateConnectionParams_differentFirstPartyEndpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val invalidSubjectPublicKey = KeyPairSet.INTERNET_GW.public
@@ -320,10 +350,11 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             thirdPartyEndpointCertificate.expiryDate,
             thirdPartyEndpointCertificate,
         )
-        val path = CertificationPath(invalidPDA, listOf(thirdPartyEndpointCertificate))
+        val deliveryAuth = CertificationPath(invalidPDA, listOf(thirdPartyEndpointCertificate))
+        val params = makeConnectionParams(thirdPartyEndpoint, deliveryAuth)
 
         try {
-            thirdPartyEndpoint.updatePDAPath(path)
+            thirdPartyEndpoint.updateParams(params)
         } catch (exception: InvalidAuthorizationException) {
             assertEquals(
                 "PDA subject (${invalidSubjectPublicKey.nodeId}) " +
@@ -337,7 +368,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun updatePDAPath_differentThirdPartyEndpoint() = runTest {
+    fun updateConnectionParams_differentThirdPartyEndpoint() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
         val invalidIssuer = PDACertPath.INTERNET_GW
@@ -347,10 +378,11 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             invalidIssuer.expiryDate,
             invalidIssuer,
         )
-        val path = CertificationPath(invalidPDA, listOf(invalidIssuer))
+        val deliveryAuth = CertificationPath(invalidPDA, listOf(invalidIssuer))
+        val params = makeConnectionParams(thirdPartyEndpoint, deliveryAuth)
 
         try {
-            thirdPartyEndpoint.updatePDAPath(path)
+            thirdPartyEndpoint.updateParams(params)
         } catch (exception: InvalidAuthorizationException) {
             assertEquals(
                 "PDA issuer (${invalidIssuer.subjectId}) is not third-party endpoint",
@@ -363,18 +395,20 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun updatePDAPath_valid() = runTest {
+    fun updateConnectionParams_valid() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
         val thirdPartyEndpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
-        val path = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
+        val deliveryAuth = CertificationPath(pda, listOf(thirdPartyEndpointCertificate))
+        val params = makeConnectionParams(thirdPartyEndpoint, deliveryAuth)
 
-        thirdPartyEndpoint.updatePDAPath(path)
+        thirdPartyEndpoint.updateParams(params)
 
         verify(storage.privateThirdParty).set(
             "${channel.firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}",
             PrivateThirdPartyEndpointData(
                 KeyPairSet.PDA_GRANTEE.public,
-                path
+                deliveryAuth,
+                thirdPartyEndpoint.internetAddress,
             )
         )
     }
@@ -393,4 +427,14 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         assertEquals(0, sessionPublicKeystore.keys.size)
         verify(channelManager).delete(endpoint)
     }
+
+    private fun makeConnectionParams(
+        thirdPartyEndpoint: PrivateThirdPartyEndpoint,
+        deliveryAuth: CertificationPath
+    ) = PrivateEndpointConnParams(
+        thirdPartyEndpoint.identityKey,
+        thirdPartyEndpoint.internetAddress,
+        deliveryAuth,
+        SessionKeyPair.generate().sessionKey,
+    )
 }
