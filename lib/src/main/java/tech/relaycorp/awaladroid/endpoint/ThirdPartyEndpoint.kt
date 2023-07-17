@@ -8,13 +8,9 @@ import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.InvalidNodeConnectionParams
 import tech.relaycorp.relaynet.NodeConnectionParams
 import tech.relaycorp.relaynet.PrivateEndpointConnParams
-import tech.relaycorp.relaynet.SessionKey
 import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.messages.Recipient
-import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.pki.CertificationPathException
-import tech.relaycorp.relaynet.wrappers.KeyException
-import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
 import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
@@ -139,27 +135,16 @@ public class PrivateThirdPartyEndpoint internal constructor(
             SetupPendingException::class,
         )
         public suspend fun import(
-            identityKeySerialized: ByteArray,
-            pdaPathSerialized: ByteArray,
-            sessionKey: SessionKey,
-            internetGatewayAddress: String,
+            connectionParamsSerialized: ByteArray
         ): PrivateThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
 
-            val identityKey = try {
-                identityKeySerialized.deserializeRSAPublicKey()
-            } catch (exp: KeyException) {
-                throw InvalidThirdPartyEndpoint(
-                    "Identity key is not a well-formed RSA public key",
-                    exp,
-                )
+            val params = try {
+                PrivateEndpointConnParams.deserialize(connectionParamsSerialized)
+            } catch (exc: InvalidNodeConnectionParams) {
+                throw InvalidThirdPartyEndpoint("Invalid connection params", exc)
             }
-
-            val pdaPath = try {
-                CertificationPath.deserialize(pdaPathSerialized)
-            } catch (exc: CertificationPathException) {
-                throw InvalidAuthorizationException("PDA path is malformed", exc)
-            }
+            val pdaPath = params.deliveryAuth
             val pda = pdaPath.leafCertificate
             val pdaChain = pdaPath.certificateAuthorities
 
@@ -180,18 +165,20 @@ public class PrivateThirdPartyEndpoint internal constructor(
 
             val endpoint = PrivateThirdPartyEndpoint(
                 firstPartyAddress,
-                identityKey,
+                params.identityKey,
                 pda,
                 pdaChain,
-                internetGatewayAddress,
+                params.internetGatewayAddress,
             )
 
-            context.storage.privateThirdParty.set(
-                endpoint.storageKey,
-                PrivateThirdPartyEndpointData(identityKey, pdaPath, internetGatewayAddress)
+            val data = PrivateThirdPartyEndpointData(
+                params.identityKey,
+                pdaPath,
+                params.internetGatewayAddress
             )
+            context.storage.privateThirdParty.set(endpoint.storageKey, data)
 
-            context.sessionPublicKeyStore.save(sessionKey, endpoint.nodeId)
+            context.sessionPublicKeyStore.save(params.sessionKey, endpoint.nodeId)
 
             return endpoint
         }
