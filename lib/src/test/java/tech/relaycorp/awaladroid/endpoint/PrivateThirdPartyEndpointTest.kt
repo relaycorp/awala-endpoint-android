@@ -199,7 +199,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         try {
             PrivateThirdPartyEndpoint.import("malformed".toByteArray())
         } catch (exception: InvalidThirdPartyEndpoint) {
-            assertEquals("Invalid connection params", exception.message)
+            assertEquals("Malformed connection params", exception.message)
             assertTrue(exception.cause is InvalidNodeConnectionParams)
             return@runTest
         }

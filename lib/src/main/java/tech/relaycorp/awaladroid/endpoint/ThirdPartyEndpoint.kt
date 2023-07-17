@@ -142,7 +142,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
             val params = try {
                 PrivateEndpointConnParams.deserialize(connectionParamsSerialized)
             } catch (exc: InvalidNodeConnectionParams) {
-                throw InvalidThirdPartyEndpoint("Invalid connection params", exc)
+                throw InvalidThirdPartyEndpoint("Malformed connection params", exc)
             }
             val pdaPath = params.deliveryAuth
             val pda = pdaPath.leafCertificate
