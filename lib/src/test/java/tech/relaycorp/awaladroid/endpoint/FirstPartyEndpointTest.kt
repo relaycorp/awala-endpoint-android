@@ -65,12 +65,12 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
     @Test
     fun register() = runTest {
-        val gatewayInternetAddress = "example.org"
+        val internetGatewayAddress = "example.org"
         whenever(gatewayClient.registerEndpoint(any())).thenReturn(
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                gatewayInternetAddress
+                internetGatewayAddress
             )
         )
 
@@ -88,7 +88,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             endpoint.nodeId,
             PDACertPath.PRIVATE_GW.subjectId
         )
-        verify(storage.internetAddress).set(gatewayInternetAddress)
+        verify(storage.internetAddress).set(internetGatewayAddress)
     }
 
     @Test

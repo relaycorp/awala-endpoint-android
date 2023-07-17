@@ -148,7 +148,8 @@ internal abstract class MockContextTestCase {
                 ).thenReturn(
                     PrivateThirdPartyEndpointData(
                         KeyPairSet.PDA_GRANTEE.public,
-                        authBundle
+                        authBundle,
+                        thirdPartyEndpoint.internetAddress,
                     )
                 )
             }

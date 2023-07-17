@@ -12,11 +12,11 @@ import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.UnknownFirstPartyEndpointException
 import tech.relaycorp.awaladroid.endpoint.UnknownThirdPartyEndpointException
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
+import tech.relaycorp.relaynet.InvalidNodeConnectionParams
+import tech.relaycorp.relaynet.PrivateEndpointConnParams
 import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
-import tech.relaycorp.relaynet.pki.CertificationPath
-import tech.relaycorp.relaynet.pki.CertificationPathException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 
 /**
@@ -72,7 +72,7 @@ public class IncomingMessage internal constructor(
                 )
             }
             if (serviceMessage.type == PDA_PATH_TYPE) {
-                processPDAPath(serviceMessage.content, sender, recipientEndpoint)
+                processConnectionParams(serviceMessage.content, sender, recipientEndpoint)
                 ack()
                 return null
             }
@@ -85,24 +85,24 @@ public class IncomingMessage internal constructor(
             )
         }
 
-        private suspend fun processPDAPath(
-            pdaPathSerialized: ByteArray,
+        private suspend fun processConnectionParams(
+            paramsSerialized: ByteArray,
             senderEndpoint: ThirdPartyEndpoint,
             recipientEndpoint: FirstPartyEndpoint,
         ) {
             if (senderEndpoint is PublicThirdPartyEndpoint) {
                 logger.info(
-                    "Ignoring PDA path from public endpoint ${senderEndpoint.nodeId} " +
+                    "Ignoring connection params from public endpoint ${senderEndpoint.nodeId} " +
                         "(${senderEndpoint.internetAddress})"
                 )
                 return
             }
-            val pdaPath = try {
-                CertificationPath.deserialize(pdaPathSerialized)
-            } catch (exc: CertificationPathException) {
+            val params = try {
+                PrivateEndpointConnParams.deserialize(paramsSerialized)
+            } catch (exc: InvalidNodeConnectionParams) {
                 logger.log(
                     Level.INFO,
-                    "Ignoring malformed PDA path for ${recipientEndpoint.nodeId} " +
+                    "Ignoring malformed connection params for ${recipientEndpoint.nodeId} " +
                         "from ${senderEndpoint.nodeId}",
                     exc,
                 )
@@ -110,18 +110,18 @@ public class IncomingMessage internal constructor(
             }
 
             try {
-                (senderEndpoint as PrivateThirdPartyEndpoint).updatePDAPath(pdaPath)
+                (senderEndpoint as PrivateThirdPartyEndpoint).updateParams(params)
             } catch (exc: InvalidAuthorizationException) {
                 logger.log(
                     Level.INFO,
-                    "Ignoring invalid PDA path for ${recipientEndpoint.nodeId} " +
+                    "Ignoring invalid connection params for ${recipientEndpoint.nodeId} " +
                         "from ${senderEndpoint.nodeId}",
                     exc,
                 )
                 return
             }
             logger.info(
-                "Updated PDA path from ${senderEndpoint.nodeId} for " +
+                "Updated connection params from ${senderEndpoint.nodeId} for " +
                     recipientEndpoint.nodeId
             )
         }

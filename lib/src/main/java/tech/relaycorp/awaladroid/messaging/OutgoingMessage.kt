@@ -9,7 +9,6 @@ import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
-import tech.relaycorp.relaynet.messages.Recipient
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 
@@ -83,10 +82,7 @@ private constructor(
             senderEndpoint.nodeId,
         )
         return Parcel(
-            recipient = Recipient(
-                recipientEndpoint.nodeId,
-                (recipientEndpoint as? PublicThirdPartyEndpoint)?.internetAddress
-            ),
+            recipient = recipientEndpoint.recipient,
             payload = payload,
             senderCertificate = getSenderCertificate(),
             messageId = parcelId.value,

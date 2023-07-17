@@ -32,6 +32,18 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
+    fun recipient() {
+        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
+            internetAddress,
+            KeyPairSet.PDA_GRANTEE.public,
+        )
+
+        val recipient = thirdPartyEndpoint.recipient
+        assertEquals(thirdPartyEndpoint.nodeId, recipient.id)
+        assertEquals(internetAddress, recipient.internetAddress)
+    }
+
+    @Test
     fun load_successful() = runTest {
         val id = UUID.randomUUID().toString()
         whenever(storage.publicThirdParty.get(any()))

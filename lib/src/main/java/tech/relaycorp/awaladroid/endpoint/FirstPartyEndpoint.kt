@@ -269,9 +269,7 @@ internal constructor(
                 gatewayId,
             )
 
-            context.storage.internetAddress.set(
-                registration.gatewayInternetAddress
-            )
+            context.storage.internetAddress.set(registration.gatewayInternetAddress)
 
             return endpoint
         }
