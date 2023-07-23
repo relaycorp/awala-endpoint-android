@@ -76,6 +76,7 @@ public class IncomingMessage internal constructor(
                 ack()
                 return null
             }
+            logger.info("Received message ${parcel.id} of type ${serviceMessage.type}")
             return IncomingMessage(
                 type = serviceMessage.type,
                 content = serviceMessage.content,
