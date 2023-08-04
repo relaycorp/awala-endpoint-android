@@ -1,12 +1,12 @@
 package tech.relaycorp.awaladroid.common
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.interfaces.RSAPrivateCrtKey
 import java.security.spec.RSAPublicKeySpec
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 internal fun PrivateKey.toKeyPair(): KeyPair =
     KeyPair(toPublicKey(), this)

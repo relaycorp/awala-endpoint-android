@@ -5,8 +5,6 @@ import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
-import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -27,6 +25,8 @@ import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
+import java.time.ZonedDateTime
+import java.util.UUID
 
 internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     private val thirdPartyEndpointCertificate = issueEndpointCertificate(
@@ -68,10 +68,10 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PRIVATE_ENDPOINT.public,
                 CertificationPath(
                     PDACertPath.PDA,
-                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
+                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
                 ),
                 internetGatewayAddress,
-            )
+            ),
         )
         val firstAddress = UUID.randomUUID().toString()
         val thirdAddress = UUID.randomUUID().toString()
@@ -94,8 +94,8 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         assertNull(
             PrivateThirdPartyEndpoint.load(
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString()
-            )
+                UUID.randomUUID().toString(),
+            ),
         )
     }
 
@@ -105,27 +105,27 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
         val deliveryAuth = CertificationPath(
             pda,
-            listOf(thirdPartyEndpointCertificate)
+            listOf(thirdPartyEndpointCertificate),
         )
         val paramsSerialized = serializeConnectionParams(deliveryAuth)
         val endpoint = PrivateThirdPartyEndpoint.import(paramsSerialized)
 
         assertEquals(
             firstPartyEndpoint.nodeId,
-            endpoint.firstPartyEndpointAddress
+            endpoint.firstPartyEndpointAddress,
         )
         assertEquals(
             KeyPairSet.PDA_GRANTEE.public.nodeId,
-            endpoint.nodeId
+            endpoint.nodeId,
         )
         assertEquals(
             KeyPairSet.PDA_GRANTEE.public,
-            endpoint.identityKey
+            endpoint.identityKey,
         )
         assertEquals(pda, endpoint.pda)
         assertArrayEquals(
             arrayOf(thirdPartyEndpointCertificate),
-            endpoint.pdaChain.toTypedArray()
+            endpoint.pdaChain.toTypedArray(),
         )
 
         verify(storage.privateThirdParty).set(
@@ -135,7 +135,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                     this.pdaPath.leafCertificate == pda &&
                     this.pdaPath.certificateAuthorities == deliveryAuth.certificateAuthorities &&
                     this.internetGatewayAddress == internetGatewayAddress
-            }
+            },
         )
 
         assertEquals(sessionKey, sessionPublicKeystore.retrieve(endpoint.nodeId))
@@ -151,7 +151,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         } catch (exception: UnknownFirstPartyEndpointException) {
             assertEquals(
                 "First-party endpoint ${firstPartyCert.subjectId} is not registered",
-                exception.message
+                exception.message,
             )
             return@runTest
         }
@@ -167,19 +167,19 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         val unrelatedCertificate = issueEndpointCertificate(
             unrelatedKeyPair.public,
             unrelatedKeyPair.private,
-            ZonedDateTime.now().plusDays(1)
+            ZonedDateTime.now().plusDays(1),
         )
 
         val invalidPDA = issueDeliveryAuthorization(
             subjectPublicKey = firstPartyEndpoint.identityCertificate.subjectPublicKey,
             issuerPrivateKey = unrelatedKeyPair.private,
             validityEndDate = ZonedDateTime.now().plusDays(1),
-            issuerCertificate = unrelatedCertificate
+            issuerCertificate = unrelatedCertificate,
         )
 
         val pdaPath = CertificationPath(
             invalidPDA,
-            listOf(thirdPartyEndpointCertificate)
+            listOf(thirdPartyEndpointCertificate),
         )
         val paramsSerialized = serializeConnectionParams(pdaPath)
         try {
@@ -235,7 +235,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             KeyPairSet.PDA_GRANTEE.private,
             now.minusSeconds(1),
             thirdPartyEndpointCertificate,
-            now.minusSeconds(2)
+            now.minusSeconds(2),
         )
 
         val pdaPath = CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
@@ -257,7 +257,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         val identityKey = KeyPairSet.PRIVATE_ENDPOINT.public
         val pdaPath = CertificationPath(
             pda,
-            listOf(PDACertPath.PRIVATE_GW, PDACertPath.INTERNET_GW)
+            listOf(PDACertPath.PRIVATE_GW, PDACertPath.INTERNET_GW),
         )
         val dataSerialized = PrivateThirdPartyEndpointData(
             identityKey,
@@ -270,7 +270,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
         assertEquals(pda, data.pdaPath.leafCertificate)
         assertEquals(
             listOf(PDACertPath.PRIVATE_GW, PDACertPath.INTERNET_GW),
-            data.pdaPath.certificateAuthorities
+            data.pdaPath.certificateAuthorities,
         )
         assertEquals(internetGatewayAddress, data.internetGatewayAddress)
     }
@@ -363,7 +363,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 KeyPairSet.PDA_GRANTEE.public,
                 deliveryAuth,
                 thirdPartyEndpoint.internetAddress,
-            )
+            ),
         )
     }
 
@@ -392,7 +392,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
 
     private fun makeConnectionParams(
         thirdPartyEndpoint: PrivateThirdPartyEndpoint,
-        deliveryAuth: CertificationPath
+        deliveryAuth: CertificationPath,
     ) = PrivateEndpointConnParams(
         thirdPartyEndpoint.identityKey,
         thirdPartyEndpoint.internetAddress,

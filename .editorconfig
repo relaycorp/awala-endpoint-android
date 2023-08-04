@@ -1,6 +1,10 @@
 # http://editorconfig.org
 root = true
 
+[*.{kt,kts}]
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
 [*]
 charset = utf-8
 end_of_line = lf

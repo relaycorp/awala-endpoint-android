@@ -3,9 +3,9 @@ package tech.relaycorp.awaladroid
 import android.content.Context
 import androidx.security.crypto.EncryptedFile
 import androidx.security.crypto.MasterKey
-import java.io.File
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FilePrivateKeyStore
+import java.io.File
 
 internal class AndroidPrivateKeyStore(
     root: FileKeystoreRoot,
@@ -20,7 +20,7 @@ internal class AndroidPrivateKeyStore(
             context,
             file,
             masterKey,
-            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
         ).build()
 
     private val masterKey by lazy {

@@ -8,7 +8,6 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
@@ -40,6 +39,7 @@ import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pdc.RegisterNodeCall
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import java.time.ZonedDateTime
 
 @RunWith(RobolectricTestRunner::class)
 internal class GatewayClientImplTest : MockContextTestCase() {
@@ -51,8 +51,11 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     private val receiveMessages = mock<ReceiveMessages>()
 
     override val gatewayClient = GatewayClientImpl(
-        coroutineScope.coroutineContext, { serviceInteractor }, { pdcClient }, sendMessage,
-        receiveMessages
+        coroutineScope.coroutineContext,
+        { serviceInteractor },
+        { pdcClient },
+        sendMessage,
+        receiveMessages,
     )
 
     // Binding
@@ -64,7 +67,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
         verify(serviceInteractor).bind(
             Awala.GATEWAY_SYNC_ACTION,
             Awala.GATEWAY_PACKAGE,
-            Awala.GATEWAY_SYNC_COMPONENT
+            Awala.GATEWAY_SYNC_COMPONENT,
         )
     }
 
@@ -113,7 +116,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
             .bind(
                 Awala.GATEWAY_PRE_REGISTER_ACTION,
                 Awala.GATEWAY_PACKAGE,
-                Awala.GATEWAY_PRE_REGISTER_COMPONENT
+                Awala.GATEWAY_PRE_REGISTER_COMPONENT,
             )
         verify(serviceInteractor)
             .bind(Awala.GATEWAY_SYNC_ACTION, Awala.GATEWAY_PACKAGE, Awala.GATEWAY_SYNC_COMPONENT)
@@ -167,7 +170,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
 
     private fun buildPnra() = PrivateNodeRegistrationAuthorization(
         ZonedDateTime.now().plusDays(1),
-        PDACertPath.PRIVATE_GW.serialize()
+        PDACertPath.PRIVATE_GW.serialize(),
     )
 
     private fun buildAuthorizationReplyMessage(): Message {
@@ -237,7 +240,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
             .bind(
                 eq(Awala.GATEWAY_SYNC_ACTION),
                 eq(Awala.GATEWAY_PACKAGE),
-                eq(Awala.GATEWAY_SYNC_COMPONENT)
+                eq(Awala.GATEWAY_SYNC_COMPONENT),
             )
         verify(serviceInteractor)
             .unbind()

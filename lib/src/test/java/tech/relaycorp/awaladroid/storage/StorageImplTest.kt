@@ -5,8 +5,6 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.nio.charset.Charset
-import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
@@ -17,6 +15,8 @@ import tech.relaycorp.awaladroid.storage.persistence.Persistence
 import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import java.nio.charset.Charset
+import java.util.UUID
 
 internal class StorageImplTest {
 
@@ -28,7 +28,7 @@ internal class StorageImplTest {
         val charset = Charset.forName("ASCII")
         storage.gatewayId.testGet(
             PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
-            PDACertPath.PRIVATE_GW.subjectId
+            PDACertPath.PRIVATE_GW.subjectId,
         )
         storage.gatewayId.testSet(
             PDACertPath.PRIVATE_GW.subjectId,
@@ -43,7 +43,7 @@ internal class StorageImplTest {
             KeyPairSet.PRIVATE_ENDPOINT.public,
             CertificationPath(
                 PDACertPath.PDA,
-                listOf(PDACertPath.PRIVATE_GW)
+                listOf(PDACertPath.PRIVATE_GW),
             ),
             "gateway.com",
         )
@@ -65,7 +65,7 @@ internal class StorageImplTest {
     fun publicThirdParty() = runTest {
         val data = PublicThirdPartyEndpointData(
             "example.org",
-            KeyPairSet.INTERNET_GW.public
+            KeyPairSet.INTERNET_GW.public,
         )
         val rawData = data.serialize()
 
@@ -81,7 +81,7 @@ internal class StorageImplTest {
     private suspend fun <T : Any> StorageImpl.Module<T>.testGet(
         rawData: ByteArray,
         expectedOutput: T,
-        equalityCheck: ((T, T) -> Boolean) = Any::equals
+        equalityCheck: ((T, T) -> Boolean) = Any::equals,
     ) {
         val key = UUID.randomUUID().toString()
         whenever(persistence.get(any())).thenReturn(rawData)
@@ -89,13 +89,13 @@ internal class StorageImplTest {
         verify(persistence).get(eq("$prefix$key"))
         assertTrue(
             "expected $expectedOutput, got $output",
-            equalityCheck(expectedOutput, output)
+            equalityCheck(expectedOutput, output),
         )
     }
 
     private suspend fun <T> StorageImpl.Module<T>.testSet(
         data: T,
-        expectedRawData: ByteArray
+        expectedRawData: ByteArray,
     ) {
         val key = UUID.randomUUID().toString()
         set(key, data)
@@ -125,20 +125,20 @@ internal class StorageImplTest {
     private suspend fun <T : Any> StorageImpl.SingleModule<T>.testGet(
         rawData: ByteArray,
         expectedOutput: T,
-        equalityCheck: ((T, T) -> Boolean) = Any::equals
+        equalityCheck: ((T, T) -> Boolean) = Any::equals,
     ) {
         whenever(persistence.get(any())).thenReturn(rawData)
         val output = get()!!
         verify(persistence).get(eq("${prefix}base"))
         assertTrue(
             "expected $expectedOutput, got $output",
-            equalityCheck(expectedOutput, output)
+            equalityCheck(expectedOutput, output),
         )
     }
 
     private suspend fun <T> StorageImpl.SingleModule<T>.testSet(
         data: T,
-        expectedRawData: ByteArray
+        expectedRawData: ByteArray,
     ) {
         set(data)
         verify(persistence).set(eq("${prefix}base"), eq(expectedRawData))

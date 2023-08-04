@@ -1,9 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.time.Duration
-import java.time.ZonedDateTime
-import kotlin.math.abs
-import kotlin.random.Random
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -15,6 +11,10 @@ import tech.relaycorp.awaladroid.test.MessageFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.assertSameDateTime
+import java.time.Duration
+import java.time.ZonedDateTime
+import kotlin.math.abs
+import kotlin.random.Random
 
 internal class OutgoingMessageTest : MockContextTestCase() {
 
@@ -37,7 +37,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
 
         val difference = Duration.between(
             message.parcel.expiryDate,
-            message.parcel.creationDate.plusDays(180)
+            message.parcel.creationDate.plusDays(180),
         )
         assertTrue(abs(difference.toDays()) == 0L)
     }
@@ -52,7 +52,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
             Random.Default.nextBytes(10),
             senderEndpoint,
             recipientEndpoint,
-            parcelExpiryDate
+            parcelExpiryDate,
         )
 
         val differenceSeconds =
@@ -72,7 +72,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
         assertEquals(
             recipientPublicEndpoint.internetAddress,
-            message.parcel.recipient.internetAddress
+            message.parcel.recipient.internetAddress,
         )
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
@@ -127,7 +127,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         assertEquals(message.recipientEndpoint.nodeId, message.parcel.recipient.id)
         assertEquals(
             message.recipientEndpoint.internetAddress,
-            message.parcel.recipient.internetAddress
+            message.parcel.recipient.internetAddress,
         )
         assertEquals(message.parcelId.value, message.parcel.id)
         assertSameDateTime(message.parcelCreationDate, message.parcel.creationDate)
@@ -142,7 +142,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
 
         assertEquals(
             (message.recipientEndpoint as PrivateThirdPartyEndpoint).pda,
-            message.parcel.senderCertificate
+            message.parcel.senderCertificate,
         )
     }
 
@@ -154,7 +154,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
 
         assertArrayEquals(
             (message.recipientEndpoint as PrivateThirdPartyEndpoint).pdaChain.toTypedArray(),
-            message.parcel.senderCertificateChain.toTypedArray()
+            message.parcel.senderCertificateChain.toTypedArray(),
         )
     }
 }

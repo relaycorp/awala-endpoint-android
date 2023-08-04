@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
@@ -29,6 +28,7 @@ import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateECDHKeyPair
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.time.ZonedDateTime
 
 internal class ReceiveMessagesTest : MockContextTestCase() {
 
@@ -99,13 +99,13 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         val invalidParcel = Parcel(
             recipient = Recipient(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId),
             payload = "".toByteArray(),
-            senderCertificate = PDACertPath.PRIVATE_ENDPOINT
+            senderCertificate = PDACertPath.PRIVATE_ENDPOINT,
         )
         var ackWasCalled = false
         val parcelCollection = ParcelCollection(
             parcelSerialized = invalidParcel.serialize(KeyPairSet.PRIVATE_ENDPOINT.private),
             trustedCertificates = emptyList(), // sender won't be trusted
-            ack = { ackWasCalled = true }
+            ack = { ackWasCalled = true },
         )
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
@@ -125,7 +125,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         val parcelCollection = ParcelCollection(
             parcelSerialized = "1234".toByteArray(),
             trustedCertificates = emptyList(),
-            ack = { ackWasCalled = true }
+            ack = { ackWasCalled = true },
         )
         val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
         pdcClient = MockPDCClient(collectParcelsCall)
@@ -187,11 +187,11 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             PublicThirdPartyEndpointData(
                 channel.thirdPartyEndpoint.nodeId,
                 channel.thirdPartyEndpoint.identityKey,
-            )
+            ),
         )
         val parcelPayload = serviceMessage.encrypt(
             channel.firstPartySessionKeyPair.sessionKey.copy(
-                publicKey = generateECDHKeyPair().public // Invalid encryption key
+                publicKey = generateECDHKeyPair().public, // Invalid encryption key
             ),
             channel.thirdPartySessionKeyPair,
         )
@@ -199,7 +199,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             recipient = Recipient(PDACertPath.PRIVATE_ENDPOINT.subjectId),
             payload = parcelPayload,
             senderCertificate = PDACertPath.PDA,
-            senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
+            senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
         )
         var ackWasCalled = false
         val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
@@ -213,8 +213,8 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(ackWasCalled)
         assertTrue(
             logCaptor.warnLogs.contains(
-                "Failed to decrypt parcel; sender might have used wrong key"
-            )
+                "Failed to decrypt parcel; sender might have used wrong key",
+            ),
         )
     }
 
@@ -227,7 +227,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             PublicThirdPartyEndpointData(
                 channel.thirdPartyEndpoint.nodeId,
                 channel.thirdPartyEndpoint.identityKey,
-            )
+            ),
         )
         val parcel = Parcel(
             recipient = Recipient(PDACertPath.PRIVATE_ENDPOINT.subjectId),
@@ -236,7 +236,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
                 channel.thirdPartySessionKeyPair,
             ),
             senderCertificate = PDACertPath.PDA,
-            senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
+            senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
         )
         var ackWasCalled = false
         val parcelCollection = parcel.toParcelCollection { ackWasCalled = true }
@@ -250,8 +250,8 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertTrue(ackWasCalled)
         assertTrue(
             logCaptor.warnLogs.contains(
-                "Incoming parcel did not encapsulate a valid service message"
-            )
+                "Incoming parcel did not encapsulate a valid service message",
+            ),
         )
     }
 
@@ -266,14 +266,14 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             issuerPrivateKey = KeyPairSet.PRIVATE_ENDPOINT.private,
             issuerCertificate = PDACertPath.PRIVATE_ENDPOINT,
             validityStartDate = ZonedDateTime.now().minusDays(1),
-            validityEndDate = ZonedDateTime.now().plusDays(1)
+            validityEndDate = ZonedDateTime.now().plusDays(1),
         ),
-        senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
+        senderCertificateChain = setOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
     )
 
     private fun Parcel.toParcelCollection(ack: suspend () -> Unit = {}) = ParcelCollection(
         parcelSerialized = serialize(KeyPairSet.PDA_GRANTEE.private),
         trustedCertificates = listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
-        ack = ack
+        ack = ack,
     )
 }

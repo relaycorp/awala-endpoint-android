@@ -1,7 +1,5 @@
 package tech.relaycorp.awaladroid.endpoint
 
-import java.nio.ByteBuffer
-import java.security.PublicKey
 import org.bson.BSONException
 import org.bson.BsonBinary
 import org.bson.BsonBinaryReader
@@ -10,6 +8,8 @@ import org.bson.io.BasicOutputBuffer
 import tech.relaycorp.awaladroid.storage.persistence.PersistenceException
 import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.wrappers.deserializeRSAPublicKey
+import java.nio.ByteBuffer
+import java.security.PublicKey
 
 internal data class PrivateThirdPartyEndpointData(
     val identityKey: PublicKey,
@@ -24,7 +24,7 @@ internal data class PrivateThirdPartyEndpointData(
                     w.writeStartDocument()
                     w.writeBinaryData(
                         "identity_key",
-                        BsonBinary(identityKey.encoded)
+                        BsonBinary(identityKey.encoded),
                     )
                     w.writeBinaryData("pda_path", BsonBinary(pdaPath.serialize()))
                     w.writeString("internet_address", internetGatewayAddress)
@@ -58,7 +58,7 @@ internal data class PrivateThirdPartyEndpointData(
             } catch (exp: BSONException) {
                 throw PersistenceException(
                     "Could not deserialize PrivateThirdPartyEndpoint",
-                    exp
+                    exp,
                 )
             }
     }

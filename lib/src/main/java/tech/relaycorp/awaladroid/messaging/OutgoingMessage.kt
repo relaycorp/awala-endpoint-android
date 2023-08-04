@@ -1,7 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.time.Duration
-import java.time.ZonedDateTime
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
@@ -11,6 +9,8 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import java.time.Duration
+import java.time.ZonedDateTime
 
 /**
  * An outgoing service message.
@@ -56,7 +56,7 @@ private constructor(
             senderEndpoint: FirstPartyEndpoint,
             recipientEndpoint: ThirdPartyEndpoint,
             parcelExpiryDate: ZonedDateTime = maxExpiryDate(),
-            parcelId: ParcelId = ParcelId.generate()
+            parcelId: ParcelId = ParcelId.generate(),
         ): OutgoingMessage {
             val message = OutgoingMessage(
                 senderEndpoint,
@@ -72,7 +72,7 @@ private constructor(
 
     private suspend fun buildParcel(
         serviceMessageType: String,
-        serviceMessageContent: ByteArray
+        serviceMessageContent: ByteArray,
     ): Parcel {
         val serviceMessage = ServiceMessage(serviceMessageType, serviceMessageContent)
         val endpointManager = Awala.getContextOrThrow().endpointManager
@@ -88,7 +88,7 @@ private constructor(
             messageId = parcelId.value,
             creationDate = parcelCreationDate,
             ttl = ttl,
-            senderCertificateChain = getSenderCertificateChain()
+            senderCertificateChain = getSenderCertificateChain(),
         )
     }
 
@@ -103,7 +103,7 @@ private constructor(
             senderEndpoint.identityCertificate.subjectPublicKey,
             senderEndpoint.identityPrivateKey,
             validityStartDate = parcelCreationDate,
-            validityEndDate = parcelExpiryDate
+            validityEndDate = parcelExpiryDate,
         )
 
     private fun getSenderCertificateChain(): Set<Certificate> =

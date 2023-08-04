@@ -62,14 +62,14 @@ public object FakeAndroidKeyStore {
             alias: String?,
             key: Key?,
             password: CharArray?,
-            chain: Array<out Certificate>?
+            chain: Array<out Certificate>?,
         ): Unit =
             wrapped.setKeyEntry(alias, key, password, chain)
 
         override fun engineSetKeyEntry(
             alias: String?,
             key: ByteArray?,
-            chain: Array<out Certificate>?
+            chain: Array<out Certificate>?,
         ): Unit = wrapped.setKeyEntry(alias, key, chain)
 
         override fun engineStore(stream: OutputStream?, password: CharArray?): Unit =

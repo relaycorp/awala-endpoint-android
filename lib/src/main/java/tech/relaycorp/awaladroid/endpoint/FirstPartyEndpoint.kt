@@ -1,9 +1,5 @@
 package tech.relaycorp.awaladroid.endpoint
 
-import java.security.PrivateKey
-import java.security.PublicKey
-import java.time.ZonedDateTime
-import java.util.logging.Level
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.GatewayProtocolException
@@ -24,6 +20,10 @@ import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import tech.relaycorp.relaynet.wrappers.x509.CertificateException
+import java.security.PrivateKey
+import java.security.PublicKey
+import java.time.ZonedDateTime
+import java.util.logging.Level
 
 /**
  * An endpoint owned by the current instance of the app.
@@ -51,11 +51,11 @@ internal constructor(
     @Throws(CertificateException::class)
     public suspend fun issueAuthorization(
         thirdPartyEndpoint: ThirdPartyEndpoint,
-        expiryDate: ZonedDateTime
+        expiryDate: ZonedDateTime,
     ): ByteArray =
         issueAuthorization(
             thirdPartyEndpoint.identityKey,
-            expiryDate
+            expiryDate,
         )
 
     /**
@@ -64,7 +64,7 @@ internal constructor(
     @Throws(CertificateException::class)
     public suspend fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
-        expiryDate: ZonedDateTime
+        expiryDate: ZonedDateTime,
     ): ByteArray {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
@@ -74,20 +74,20 @@ internal constructor(
     @Throws(CertificateException::class)
     private suspend fun issueAuthorization(
         thirdPartyEndpointPublicKey: PublicKey,
-        expiryDate: ZonedDateTime
+        expiryDate: ZonedDateTime,
     ): ByteArray {
         val pda = issueDeliveryAuthorization(
             subjectPublicKey = thirdPartyEndpointPublicKey,
             issuerPrivateKey = identityPrivateKey,
             validityEndDate = expiryDate,
-            issuerCertificate = identityCertificate
+            issuerCertificate = identityCertificate,
         )
         val deliveryAuth = CertificationPath(pda, pdaChain)
 
         val context = Awala.getContextOrThrow()
         val sessionKeyPair = context.endpointManager.generateSessionKeyPair(
             nodeId,
-            thirdPartyEndpointPublicKey.nodeId
+            thirdPartyEndpointPublicKey.nodeId,
         )
 
         val connParams = PrivateEndpointConnParams(
@@ -104,7 +104,7 @@ internal constructor(
      */
     @Throws(CertificateException::class)
     public suspend fun authorizeIndefinitely(
-        thirdPartyEndpoint: ThirdPartyEndpoint
+        thirdPartyEndpoint: ThirdPartyEndpoint,
     ): ByteArray =
         authorizeIndefinitely(thirdPartyEndpoint.identityKey)
 
@@ -113,7 +113,7 @@ internal constructor(
      */
     @Throws(CertificateException::class)
     public suspend fun authorizeIndefinitely(
-        thirdPartyEndpointPublicKeySerialized: ByteArray
+        thirdPartyEndpointPublicKeySerialized: ByteArray,
     ): ByteArray {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
@@ -134,14 +134,14 @@ internal constructor(
     }
 
     private fun deserializePDAGranteePublicKey(
-        thirdPartyEndpointPublicKeySerialized: ByteArray
+        thirdPartyEndpointPublicKeySerialized: ByteArray,
     ): PublicKey {
         val thirdPartyEndpointPublicKey = try {
             thirdPartyEndpointPublicKeySerialized.deserializeRSAPublicKey()
         } catch (exc: KeyException) {
             throw AuthorizationIssuanceException(
                 "PDA grantee public key is not a valid RSA public key",
-                exc
+                exc,
             )
         }
         return thirdPartyEndpointPublicKey
@@ -164,7 +164,7 @@ internal constructor(
             identityPrivateKey,
             registration.privateNodeCertificate,
             listOf(registration.gatewayCertificate),
-            registration.gatewayInternetAddress
+            registration.gatewayInternetAddress,
         )
 
         val gatewayId = registration.gatewayCertificate.subjectId
@@ -189,12 +189,12 @@ internal constructor(
         for (thirdPartyEndpointAddress in thirdPartyEndpointAddresses) {
             val thirdPartyEndpoint = ThirdPartyEndpoint.load(
                 this@FirstPartyEndpoint.nodeId,
-                thirdPartyEndpointAddress
+                thirdPartyEndpointAddress,
             )
             if (thirdPartyEndpoint == null) {
                 logger.log(
                     Level.INFO,
-                    "Ignoring missing third-party endpoint $thirdPartyEndpointAddress"
+                    "Ignoring missing third-party endpoint $thirdPartyEndpointAddress",
                 )
                 break
             }
@@ -240,7 +240,7 @@ internal constructor(
                 keyPair.private,
                 registration.privateNodeCertificate,
                 listOf(registration.gatewayCertificate),
-                registration.gatewayInternetAddress
+                registration.gatewayInternetAddress,
             )
 
             try {
@@ -258,7 +258,7 @@ internal constructor(
                         registration.privateNodeCertificate,
                         listOf(registration.gatewayCertificate),
                     ),
-                    gatewayId
+                    gatewayId,
                 )
             } catch (exc: KeyStoreBackendException) {
                 throw PersistenceException("Failed to save certificate", exc)
@@ -291,7 +291,7 @@ internal constructor(
                 ?: throw PersistenceException("Failed to load gateway address for endpoint")
             val certificatePath = try {
                 context.certificateStore.retrieveLatest(
-                    nodeId, gatewayNodeId
+                    nodeId, gatewayNodeId,
                 )
                     ?: return null
             } catch (exc: KeyStoreBackendException) {
@@ -300,7 +300,7 @@ internal constructor(
 
             val internetAddress: String = context.storage.internetAddress.get()
                 ?: throw PersistenceException(
-                    "Failed to load gateway internet address for endpoint"
+                    "Failed to load gateway internet address for endpoint",
                 )
 
             return FirstPartyEndpoint(

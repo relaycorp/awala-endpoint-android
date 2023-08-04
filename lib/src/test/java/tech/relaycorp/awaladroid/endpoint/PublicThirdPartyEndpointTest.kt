@@ -3,7 +3,6 @@ package tech.relaycorp.awaladroid.endpoint
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -16,6 +15,7 @@ import tech.relaycorp.relaynet.SessionKeyPair
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.util.UUID
 
 internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     private val internetAddress = "example.org"
@@ -50,8 +50,8 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
             .thenReturn(
                 PublicThirdPartyEndpointData(
                     internetAddress,
-                    KeyPairSet.PDA_GRANTEE.public
-                )
+                    KeyPairSet.PDA_GRANTEE.public,
+                ),
             )
 
         val endpoint = PublicThirdPartyEndpoint.load(id)!!
@@ -71,7 +71,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
         val connectionParams = NodeConnectionParams(
             internetAddress,
             KeyPairSet.PDA_GRANTEE.public,
-            SessionKeyPair.generate().sessionKey
+            SessionKeyPair.generate().sessionKey,
         )
 
         val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
@@ -82,8 +82,8 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
             PDACertPath.PDA.subjectId,
             PublicThirdPartyEndpointData(
                 connectionParams.internetAddress,
-                connectionParams.identityKey
-            )
+                connectionParams.identityKey,
+            ),
         )
         sessionPublicKeystore.retrieve(thirdPartyEndpoint.nodeId)
     }
@@ -92,7 +92,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     fun import_invalidConnectionParams() = runTest {
         try {
             PublicThirdPartyEndpoint.import(
-                "malformed".toByteArray()
+                "malformed".toByteArray(),
             )
         } catch (exception: InvalidThirdPartyEndpoint) {
             assertEquals("Connection params serialization is malformed", exception.message)
@@ -123,7 +123,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
             ownSessionKeyPair.privateKey,
             ownSessionKeyPair.sessionKey.keyId,
             firstPartyEndpoint.nodeId,
-            thirdPartyEndpoint.nodeId
+            thirdPartyEndpoint.nodeId,
         )
         val peerSessionKey = SessionKeyPair.generate().sessionKey
         sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.nodeId)

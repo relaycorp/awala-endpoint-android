@@ -1,8 +1,5 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
-import java.io.File
-import java.nio.charset.Charset
-import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -14,6 +11,9 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
+import java.nio.charset.Charset
+import kotlin.io.path.createTempDirectory
 
 internal class DiskPersistenceTest {
     private val coroutineScope = TestScope()
@@ -21,13 +21,14 @@ internal class DiskPersistenceTest {
 
     private lateinit var filesDir: String
     private lateinit var subject: DiskPersistence
+
     @Before
     fun initDiskPersistence(): Unit = runBlocking {
         filesDir = createTempDirectory("rootDir").toString()
         subject = DiskPersistence(
             filesDir,
             coroutineScope.coroutineContext,
-            rootFolder
+            rootFolder,
         )
     }
 

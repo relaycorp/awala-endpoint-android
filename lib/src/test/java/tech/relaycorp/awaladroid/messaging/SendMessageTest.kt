@@ -49,7 +49,7 @@ internal class SendMessageTest : MockContextTestCase() {
         val signer = deliverParcelCall.arguments!!.deliverySigner
         assertEquals(
             message.senderEndpoint.identityCertificate.subjectId,
-            signer.certificate.subjectId
+            signer.certificate.subjectId,
         )
     }
 
