@@ -1,7 +1,6 @@
 package tech.relaycorp.awaladroid
 
 import android.content.Context
-import java.io.File
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
@@ -15,6 +14,7 @@ import tech.relaycorp.awaladroid.endpoint.RenewExpiringCertificates
 import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.persistence.DiskPersistence
 import tech.relaycorp.relaynet.nodes.EndpointManager
+import java.io.File
 
 public object Awala {
     internal const val POWEB_PORT = 13276
@@ -42,7 +42,7 @@ public object Awala {
         this.context = AwalaContext(
             StorageImpl(DiskPersistence(context.filesDir.path.toString())),
             GatewayClientImpl(
-                serviceInteractorBuilder = { ServiceInteractor(context) }
+                serviceInteractorBuilder = { ServiceInteractor(context) },
             ),
             EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
             ChannelManager {
@@ -51,7 +51,7 @@ public object Awala {
             androidPrivateKeyStore,
             fileSessionPublicKeystore,
             fileCertificateStore,
-            HandleGatewayCertificateChange(androidPrivateKeyStore)
+            HandleGatewayCertificateChange(androidPrivateKeyStore),
         )
 
         coroutineScope {

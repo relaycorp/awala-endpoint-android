@@ -1,11 +1,5 @@
 package tech.relaycorp.awaladroid
 
-import java.security.KeyPair
-import java.util.logging.Level
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +22,12 @@ import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
+import java.security.KeyPair
+import java.util.logging.Level
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Private gateway client.
@@ -39,7 +39,7 @@ internal constructor(
     private val pdcClientBuilder: () -> PDCClient =
         { PoWebClient.initLocal(port = Awala.POWEB_PORT) },
     private val sendMessage: SendMessage = SendMessage(),
-    private val receiveMessages: ReceiveMessages = ReceiveMessages()
+    private val receiveMessages: ReceiveMessages = ReceiveMessages(),
 ) {
 
     // Gateway
@@ -59,12 +59,12 @@ internal constructor(
                     bind(
                         Awala.GATEWAY_SYNC_ACTION,
                         Awala.GATEWAY_PACKAGE,
-                        Awala.GATEWAY_SYNC_COMPONENT
+                        Awala.GATEWAY_SYNC_COMPONENT,
                     )
                 } catch (exp: ServiceInteractor.BindFailedException) {
                     throw GatewayBindingException(
                         "Failed binding to Awala Gateway for registration",
-                        exp
+                        exp,
                     )
                 }
             }
@@ -86,12 +86,11 @@ internal constructor(
 
     @Throws(
         RegistrationFailedException::class,
-        GatewayProtocolException::class
+        GatewayProtocolException::class,
     )
     internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
         withContext(coroutineContext) {
             try {
-
                 val preAuthSerialized = preRegister()
                 val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
                 val requestSerialized = request.serialize(keyPair.private)
@@ -117,14 +116,14 @@ internal constructor(
     @Throws(
         ServiceInteractor.BindFailedException::class,
         ServiceInteractor.SendFailedException::class,
-        GatewayProtocolException::class
+        GatewayProtocolException::class,
     )
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
             bind(
                 Awala.GATEWAY_PRE_REGISTER_ACTION,
                 Awala.GATEWAY_PACKAGE,
-                Awala.GATEWAY_PRE_REGISTER_COMPONENT
+                Awala.GATEWAY_PRE_REGISTER_COMPONENT,
             )
         }
 
@@ -134,7 +133,7 @@ internal constructor(
                 if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
                     interactor.unbind()
                     cont.resumeWithException(
-                        GatewayProtocolException("Pre-registration failed, received wrong reply")
+                        GatewayProtocolException("Pre-registration failed, received wrong reply"),
                     )
                     return@sendMessage
                 }
@@ -150,7 +149,7 @@ internal constructor(
         GatewayBindingException::class,
         GatewayProtocolException::class,
         SendMessageException::class,
-        RejectedMessageException::class
+        RejectedMessageException::class,
     )
     public suspend fun sendMessage(message: OutgoingMessage) {
         if (gwServiceInteractor == null) {
@@ -178,7 +177,7 @@ internal constructor(
                     logger.log(
                         Level.SEVERE,
                         "Could not bind to gateway to receive new messages",
-                        exp
+                        exp,
                     )
                     return@withContext
                 }

@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid
 
-import java.io.File
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -12,6 +11,7 @@ import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awaladroid.test.FakeAndroidKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 public class AndroidPrivateKeyStoreTest {

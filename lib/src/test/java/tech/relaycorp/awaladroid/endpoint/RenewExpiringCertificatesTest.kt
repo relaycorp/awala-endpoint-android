@@ -4,13 +4,13 @@ import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
-import java.time.ZonedDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.keystores.PrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
+import java.time.ZonedDateTime
 
 internal class RenewExpiringCertificatesTest() {
 
@@ -47,7 +47,7 @@ internal class RenewExpiringCertificatesTest() {
         val expiringCert = issueEndpointCertificate(
             KeyPairSet.PRIVATE_ENDPOINT.public,
             KeyPairSet.PRIVATE_GW.private,
-            certExpiryDate
+            certExpiryDate,
         )
         whenever(firstPartyEndpoint.identityCertificate).thenReturn(expiringCert)
         return firstPartyEndpoint

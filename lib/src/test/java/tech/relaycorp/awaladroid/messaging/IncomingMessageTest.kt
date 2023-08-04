@@ -5,7 +5,6 @@ import com.nhaarman.mockitokotlin2.argThat
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
-import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
@@ -36,6 +35,7 @@ import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.keystores.MockSessionPublicKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
+import java.time.ZonedDateTime
 
 internal class IncomingMessageTest : MockContextTestCase() {
     private val thirdPartyEndpointCertificate = issueEndpointCertificate(
@@ -56,14 +56,14 @@ internal class IncomingMessageTest : MockContextTestCase() {
         val parcel = Parcel(
             recipient = Recipient(
                 channel.firstPartyEndpoint.nodeId,
-                channel.firstPartyEndpoint.nodeId
+                channel.firstPartyEndpoint.nodeId,
             ),
             payload = thirdPartyEndpointManager.wrapMessagePayload(
                 serviceMessage,
                 channel.firstPartyEndpoint.nodeId,
-                channel.thirdPartyEndpoint.nodeId
+                channel.thirdPartyEndpoint.nodeId,
             ),
-            senderCertificate = PDACertPath.PDA
+            senderCertificate = PDACertPath.PDA,
         )
 
         val message = IncomingMessage.build(parcel) {}
@@ -130,8 +130,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
         assertTrue(
             logCaptor.infoLogs.contains(
                 "Ignoring connection params from public endpoint ${thirdPartyEndpoint.nodeId} " +
-                    "(${thirdPartyEndpoint.internetAddress})"
-            )
+                    "(${thirdPartyEndpoint.internetAddress})",
+            ),
         )
     }
 
@@ -153,8 +153,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
         assertTrue(
             logCaptor.infoLogs.contains(
                 "Ignoring malformed connection params for ${channel.firstPartyEndpoint.nodeId} " +
-                    "from ${channel.thirdPartyEndpoint.nodeId}"
-            )
+                    "from ${channel.thirdPartyEndpoint.nodeId}",
+            ),
         )
     }
 
@@ -186,8 +186,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
         assertTrue(
             logCaptor.infoLogs.contains(
                 "Ignoring invalid connection params for ${channel.firstPartyEndpoint.nodeId} " +
-                    "from ${channel.thirdPartyEndpoint.nodeId}"
-            )
+                    "from ${channel.thirdPartyEndpoint.nodeId}",
+            ),
         )
     }
 
@@ -217,8 +217,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
         assertTrue(
             logCaptor.infoLogs.contains(
                 "Updated connection params from ${thirdPartyEndpoint.nodeId} for " +
-                    channel.firstPartyEndpoint.nodeId
-            )
+                    channel.firstPartyEndpoint.nodeId,
+            ),
         )
         verify(storage.privateThirdParty).set(
             eq("${channel.firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}"),
@@ -233,7 +233,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
 
     private fun makeConnParams(
         channel: EndpointChannel,
-        deliveryAuth: CertificationPath
+        deliveryAuth: CertificationPath,
     ) = PrivateEndpointConnParams(
         channel.thirdPartyEndpoint.identityKey,
         channel.thirdPartyEndpoint.internetAddress,
@@ -256,25 +256,25 @@ internal class IncomingMessageTest : MockContextTestCase() {
         )
         return EndpointManager(
             thirdPartyPrivateKeyStore,
-            thirdPartySessionPublicKeyStore
+            thirdPartySessionPublicKeyStore,
         )
     }
 
     private suspend fun encryptConnectionParams(
         channel: EndpointChannel,
-        params: PrivateEndpointConnParams
+        params: PrivateEndpointConnParams,
     ): ByteArray = encryptParcelPayload(channel, params.serialize())
 
     private suspend fun encryptParcelPayload(
         channel: EndpointChannel,
-        plaintext: ByteArray
+        plaintext: ByteArray,
     ): ByteArray {
         val thirdPartyEndpointManager = makeThirdPartyEndpointManager(channel)
         val pdaPathServiceMessage = makePDAPathMessage(plaintext)
         return thirdPartyEndpointManager.wrapMessagePayload(
             pdaPathServiceMessage,
             channel.firstPartyEndpoint.nodeId,
-            channel.thirdPartyEndpoint.nodeId
+            channel.thirdPartyEndpoint.nodeId,
         )
     }
 

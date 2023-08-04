@@ -9,8 +9,6 @@ import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.verifyZeroInteractions
 import com.nhaarman.mockitokotlin2.whenever
-import java.security.PublicKey
-import java.time.ZonedDateTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
@@ -41,6 +39,8 @@ import tech.relaycorp.relaynet.testing.keystores.MockPrivateKeyStore
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.security.PublicKey
+import java.time.ZonedDateTime
 
 internal class FirstPartyEndpointTest : MockContextTestCase() {
     @Test
@@ -70,8 +70,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                internetGatewayAddress
-            )
+                internetGatewayAddress,
+            ),
         )
 
         val endpoint = FirstPartyEndpoint.register()
@@ -81,12 +81,12 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         assertEquals(endpoint.identityPrivateKey, identityPrivateKey)
         val identityCertificatePath = certificateStore.retrieveLatest(
             endpoint.identityCertificate.subjectId,
-            PDACertPath.PRIVATE_GW.subjectId
+            PDACertPath.PRIVATE_GW.subjectId,
         )
         assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
         verify(storage.gatewayId).set(
             endpoint.nodeId,
-            PDACertPath.PRIVATE_GW.subjectId
+            PDACertPath.PRIVATE_GW.subjectId,
         )
         verify(storage.internetAddress).set(internetGatewayAddress)
     }
@@ -103,15 +103,15 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             PrivateNodeRegistration(
                 newCertificate,
                 PDACertPath.PRIVATE_GW,
-                ""
-            )
+                "",
+            ),
         )
 
         endpoint.reRegister()
 
         val identityCertificatePath = certificateStore.retrieveLatest(
             endpoint.identityPrivateKey.nodeId,
-            PDACertPath.PRIVATE_GW.subjectId
+            PDACertPath.PRIVATE_GW.subjectId,
         )
         assertEquals(newCertificate, identityCertificatePath!!.leafCertificate)
     }
@@ -142,14 +142,14 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                ""
-            )
+                "",
+            ),
         )
         val savingException = Exception("Oh noes")
         setAwalaContext(
             Awala.getContextOrThrow().copy(
-                privateKeyStore = MockPrivateKeyStore(savingException = savingException)
-            )
+                privateKeyStore = MockPrivateKeyStore(savingException = savingException),
+            ),
         )
 
         val exception = assertThrows(PersistenceException::class.java) {
@@ -169,14 +169,14 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             PrivateNodeRegistration(
                 PDACertPath.PRIVATE_ENDPOINT,
                 PDACertPath.PRIVATE_GW,
-                ""
-            )
+                "",
+            ),
         )
         val savingException = Exception("Oh noes")
         setAwalaContext(
             Awala.getContextOrThrow().copy(
-                certificateStore = MockCertificateStore(savingException = savingException)
-            )
+                certificateStore = MockCertificateStore(savingException = savingException),
+            ),
         )
 
         val exception = assertThrows(PersistenceException::class.java) {
@@ -216,8 +216,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     fun load_withKeystoreError(): Unit = runTest {
         setAwalaContext(
             Awala.getContextOrThrow().copy(
-                privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes"))
-            )
+                privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes")),
+            ),
         )
         whenever(storage.gatewayId.get())
             .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
@@ -268,8 +268,8 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         val retrievalException = Exception("Oh noes")
         setAwalaContext(
             Awala.getContextOrThrow().copy(
-                certificateStore = MockCertificateStore(retrievalException = retrievalException)
-            )
+                certificateStore = MockCertificateStore(retrievalException = retrievalException),
+            ),
         )
 
         val exception = assertThrows(PersistenceException::class.java) {
@@ -300,7 +300,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
         val authorization = firstPartyEndpoint.issueAuthorization(
             KeyPairSet.PDA_GRANTEE.public.encoded,
-            expiryDate
+            expiryDate,
         )
 
         validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
@@ -315,7 +315,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             runBlocking {
                 firstPartyEndpoint.issueAuthorization(
                     "This is not a key".toByteArray(),
-                    expiryDate
+                    expiryDate,
                 )
             }
         }
@@ -349,7 +349,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             eq(firstPartyEndpoint),
             argThat<PublicKey> {
                 encoded.asList() == KeyPairSet.PDA_GRANTEE.public.encoded.asList()
-            }
+            },
         )
     }
 
@@ -360,7 +360,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
         val exception = assertThrows(AuthorizationIssuanceException::class.java) {
             runBlocking {
                 firstPartyEndpoint.authorizeIndefinitely(
-                    "This is not a key".toByteArray()
+                    "This is not a key".toByteArray(),
                 )
             }
         }
@@ -392,7 +392,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 
         verify(gatewayClient, never()).sendMessage(any())
         assertTrue(
-            logCaptor.infoLogs.contains("Ignoring missing third-party endpoint $missingAddress")
+            logCaptor.infoLogs.contains("Ignoring missing third-party endpoint $missingAddress"),
         )
     }
 
@@ -411,7 +411,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             assertEquals(firstPartyEndpoint, outgoingMessage.senderEndpoint)
             assertEquals(
                 channel.thirdPartyEndpoint.nodeId,
-                outgoingMessage.recipientEndpoint.nodeId
+                outgoingMessage.recipientEndpoint.nodeId,
             )
             // Verify the PDA
             val (serviceMessage) =
@@ -422,7 +422,7 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
             pdaPath.validate()
             assertEquals(
                 channel.thirdPartyEndpoint.identityKey,
-                pdaPath.leafCertificate.subjectPublicKey
+                pdaPath.leafCertificate.subjectPublicKey,
             )
             assertEquals(firstPartyEndpoint.pdaChain, pdaPath.certificateAuthorities)
             assertEquals(pdaPath.leafCertificate.expiryDate, outgoingMessage.parcelExpiryDate)
@@ -445,18 +445,18 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 private fun validateAuthorization(
     paramsSerialized: ByteArray,
     firstPartyEndpoint: FirstPartyEndpoint,
-    expiryDate: ZonedDateTime
+    expiryDate: ZonedDateTime,
 ) {
     val params = PrivateEndpointConnParams.deserialize(paramsSerialized)
 
     assertEquals(
         firstPartyEndpoint.publicKey,
-        params.identityKey
+        params.identityKey,
     )
 
     assertEquals(
         firstPartyEndpoint.internetAddress,
-        params.internetGatewayAddress
+        params.internetGatewayAddress,
     )
 
     val authorization = params.deliveryAuth
@@ -464,15 +464,15 @@ private fun validateAuthorization(
     val pda = authorization.leafCertificate
     assertEquals(
         KeyPairSet.PDA_GRANTEE.public.encoded.asList(),
-        pda.subjectPublicKey.encoded.asList()
+        pda.subjectPublicKey.encoded.asList(),
     )
     assertEquals(
         2,
-        pda.getCertificationPath(emptyList(), listOf(PDACertPath.PRIVATE_ENDPOINT)).size
+        pda.getCertificationPath(emptyList(), listOf(PDACertPath.PRIVATE_ENDPOINT)).size,
     )
     assertSameDateTime(
         expiryDate,
-        pda.expiryDate
+        pda.expiryDate,
     )
 
     // PDA chain

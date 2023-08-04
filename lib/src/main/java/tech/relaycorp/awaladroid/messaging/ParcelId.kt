@@ -15,7 +15,7 @@ import java.util.UUID
  */
 public class ParcelId
 internal constructor(
-    public val value: String
+    public val value: String,
 ) {
     public companion object {
         /**

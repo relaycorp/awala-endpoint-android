@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.util.logging.Level
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.common.Logging.logger
@@ -18,6 +17,7 @@ import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
+import java.util.logging.Level
 
 /**
  * An incoming service message.
@@ -33,7 +33,7 @@ public class IncomingMessage internal constructor(
     public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
-    public val ack: suspend () -> Unit
+    public val ack: suspend () -> Unit,
 ) : Message() {
 
     internal companion object {
@@ -50,7 +50,7 @@ public class IncomingMessage internal constructor(
         internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage? {
             val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipient.id)
                 ?: throw UnknownFirstPartyEndpointException(
-                    "Unknown first-party endpoint ${parcel.recipient.id}"
+                    "Unknown first-party endpoint ${parcel.recipient.id}",
                 )
 
             val sender = ThirdPartyEndpoint.load(
@@ -59,7 +59,7 @@ public class IncomingMessage internal constructor(
             ) ?: throw UnknownThirdPartyEndpointException(
                 "Unknown third-party endpoint " +
                     "${parcel.senderCertificate.subjectId} " +
-                    "for first-party endpoint ${parcel.recipient.id}"
+                    "for first-party endpoint ${parcel.recipient.id}",
             )
 
             val context = Awala.getContextOrThrow()
@@ -68,7 +68,7 @@ public class IncomingMessage internal constructor(
                 context.endpointManager.unwrapMessagePayload(parcel)
             } catch (e: MissingKeyException) {
                 throw UnknownThirdPartyEndpointException(
-                    "Missing third-party endpoint session keys"
+                    "Missing third-party endpoint session keys",
                 )
             }
             if (serviceMessage.type == PDA_PATH_TYPE) {
@@ -81,7 +81,7 @@ public class IncomingMessage internal constructor(
                 content = serviceMessage.content,
                 senderEndpoint = sender,
                 recipientEndpoint = recipientEndpoint,
-                ack = ack
+                ack = ack,
             )
         }
 
@@ -93,7 +93,7 @@ public class IncomingMessage internal constructor(
             if (senderEndpoint is PublicThirdPartyEndpoint) {
                 logger.info(
                     "Ignoring connection params from public endpoint ${senderEndpoint.nodeId} " +
-                        "(${senderEndpoint.internetAddress})"
+                        "(${senderEndpoint.internetAddress})",
                 )
                 return
             }
@@ -122,7 +122,7 @@ public class IncomingMessage internal constructor(
             }
             logger.info(
                 "Updated connection params from ${senderEndpoint.nodeId} for " +
-                    recipientEndpoint.nodeId
+                    recipientEndpoint.nodeId,
             )
         }
     }

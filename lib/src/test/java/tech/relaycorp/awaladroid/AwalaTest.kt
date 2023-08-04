@@ -3,9 +3,6 @@ package tech.relaycorp.awaladroid
 import android.content.Context
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
-import java.io.File
-import java.time.Duration
-import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -26,6 +23,9 @@ import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.pki.CertificationPath
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.io.File
+import java.time.Duration
+import java.time.ZonedDateTime
 
 @RunWith(RobolectricTestRunner::class)
 public class AwalaTest {
@@ -106,7 +106,7 @@ public class AwalaTest {
             certificateStore.retrieveLatest(
                 expiringCertificate.subjectId,
                 expiringCertificate.issuerCommonName,
-            )
+            ),
         )
 
         // Retry until expiration
@@ -116,7 +116,7 @@ public class AwalaTest {
             advanceUntilIdle()
             certificateStore.retrieveLatest(
                 KeyPairSet.PRIVATE_ENDPOINT.public.nodeId,
-                KeyPairSet.PRIVATE_GW.private.nodeId
+                KeyPairSet.PRIVATE_GW.private.nodeId,
             ) ?: return@runTest
         }
         throw AssertionError("Expired certificate not deleted")

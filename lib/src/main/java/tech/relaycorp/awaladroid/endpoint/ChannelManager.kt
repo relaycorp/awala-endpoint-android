@@ -1,35 +1,35 @@
 package tech.relaycorp.awaladroid.endpoint
 
 import android.content.SharedPreferences
-import java.security.PublicKey
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.security.PublicKey
+import kotlin.coroutines.CoroutineContext
 
 internal class ChannelManager(
     internal val coroutineContext: CoroutineContext = Dispatchers.IO,
-    sharedPreferencesGetter: () -> SharedPreferences
+    sharedPreferencesGetter: () -> SharedPreferences,
 ) {
     internal val sharedPreferences by lazy(sharedPreferencesGetter)
 
     suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
-        thirdPartyEndpoint: ThirdPartyEndpoint
+        thirdPartyEndpoint: ThirdPartyEndpoint,
     ) {
         create(firstPartyEndpoint, thirdPartyEndpoint.nodeId)
     }
 
     suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
-        thirdPartyEndpointPublicKey: PublicKey
+        thirdPartyEndpointPublicKey: PublicKey,
     ) {
         create(firstPartyEndpoint, thirdPartyEndpointPublicKey.nodeId)
     }
 
     private suspend fun create(
         firstPartyEndpoint: FirstPartyEndpoint,
-        thirdPartyEndpointNodeId: String
+        thirdPartyEndpointNodeId: String,
     ) {
         withContext(coroutineContext) {
             val originalValue =
@@ -38,7 +38,7 @@ internal class ChannelManager(
             with(sharedPreferences.edit()) {
                 putStringSet(
                     firstPartyEndpoint.nodeId,
-                    originalValue + mutableListOf(thirdPartyEndpointNodeId)
+                    originalValue + mutableListOf(thirdPartyEndpointNodeId),
                 )
                 commit()
             }
@@ -57,7 +57,7 @@ internal class ChannelManager(
     }
 
     suspend fun delete(
-        thirdPartyEndpoint: ThirdPartyEndpoint
+        thirdPartyEndpoint: ThirdPartyEndpoint,
     ) {
         withContext(coroutineContext) {
             sharedPreferences.all.forEach { (key, value) ->
@@ -85,7 +85,7 @@ internal class ChannelManager(
         withContext(coroutineContext) {
             return@withContext sharedPreferences.getStringSet(
                 firstPartyEndpoint.nodeId,
-                emptySet()
+                emptySet(),
             ) ?: emptySet()
         }
 }

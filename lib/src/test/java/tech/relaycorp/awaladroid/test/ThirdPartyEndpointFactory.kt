@@ -11,7 +11,7 @@ internal object ThirdPartyEndpointFactory {
     fun buildPublic(): PublicThirdPartyEndpoint {
         return PublicThirdPartyEndpoint(
             internetAddress,
-            KeyPairSet.PDA_GRANTEE.public
+            KeyPairSet.PDA_GRANTEE.public,
         )
     }
 

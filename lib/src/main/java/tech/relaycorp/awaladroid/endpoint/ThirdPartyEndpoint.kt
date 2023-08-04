@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.endpoint
 
-import java.security.PublicKey
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.SetupPendingException
@@ -13,13 +12,14 @@ import tech.relaycorp.relaynet.messages.Recipient
 import tech.relaycorp.relaynet.pki.CertificationPathException
 import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
+import java.security.PublicKey
 
 /**
  * An endpoint owned by a different instance of this app, or a different app in the same service.
  */
 public sealed class ThirdPartyEndpoint(
     internal val identityKey: PublicKey,
-    public val internetAddress: String
+    public val internetAddress: String,
 ) : Endpoint(identityKey.nodeId) {
 
     internal val recipient: Recipient
@@ -40,7 +40,7 @@ public sealed class ThirdPartyEndpoint(
         @Throws(PersistenceException::class)
         internal suspend fun load(
             firstPartyAddress: String,
-            thirdPartyId: String
+            thirdPartyId: String,
         ): ThirdPartyEndpoint? =
             PublicThirdPartyEndpoint.load(thirdPartyId)
                 ?: PrivateThirdPartyEndpoint.load(thirdPartyId, firstPartyAddress)
@@ -58,7 +58,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
     identityKey: PublicKey,
     internal val pda: Certificate,
     internal val pdaChain: List<Certificate>,
-    internetAddress: String
+    internetAddress: String,
 ) : ThirdPartyEndpoint(identityKey, internetAddress) {
 
     private val storageKey = "${firstPartyEndpointAddress}_$nodeId"
@@ -82,14 +82,14 @@ public class PrivateThirdPartyEndpoint internal constructor(
         val pdaSubjectAddress = deliveryAuth.leafCertificate.subjectId
         if (pdaSubjectAddress != firstPartyEndpointAddress) {
             throw InvalidAuthorizationException(
-                "PDA subject ($pdaSubjectAddress) is not first-party endpoint"
+                "PDA subject ($pdaSubjectAddress) is not first-party endpoint",
             )
         }
 
         val pdaIssuerAddress = deliveryAuth.certificateAuthorities.first().subjectId
         if (pdaIssuerAddress != nodeId) {
             throw InvalidAuthorizationException(
-                "PDA issuer ($pdaIssuerAddress) is not third-party endpoint"
+                "PDA issuer ($pdaIssuerAddress) is not third-party endpoint",
             )
         }
 
@@ -97,7 +97,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
         val data = PrivateThirdPartyEndpointData(
             identityKey,
             deliveryAuth,
-            connectionParams.internetGatewayAddress
+            connectionParams.internetGatewayAddress,
         )
         context.storage.privateThirdParty.set(storageKey, data)
     }
@@ -109,7 +109,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
         @Throws(PersistenceException::class, SetupPendingException::class)
         public suspend fun load(
             thirdPartyAddress: String,
-            firstPartyAddress: String
+            firstPartyAddress: String,
         ): PrivateThirdPartyEndpoint? {
             val key = "${firstPartyAddress}_$thirdPartyAddress"
             val storage = Awala.getContextOrThrow().storage
@@ -135,7 +135,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
             SetupPendingException::class,
         )
         public suspend fun import(
-            connectionParamsSerialized: ByteArray
+            connectionParamsSerialized: ByteArray,
         ): PrivateThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
 
@@ -153,7 +153,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 context.privateKeyStore.retrieveIdentityKey(firstPartyAddress)
             } catch (exc: MissingKeyException) {
                 throw UnknownFirstPartyEndpointException(
-                    "First-party endpoint $firstPartyAddress is not registered"
+                    "First-party endpoint $firstPartyAddress is not registered",
                 )
             }
 
@@ -174,7 +174,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
             val data = PrivateThirdPartyEndpointData(
                 params.identityKey,
                 pdaPath,
-                params.internetGatewayAddress
+                params.internetGatewayAddress,
             )
             context.storage.privateThirdParty.set(endpoint.storageKey, data)
 
@@ -192,7 +192,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
  */
 public class PublicThirdPartyEndpoint internal constructor(
     internetAddress: String,
-    identityKey: PublicKey
+    identityKey: PublicKey,
 ) : ThirdPartyEndpoint(identityKey, internetAddress) {
 
     @Throws(PersistenceException::class, SetupPendingException::class)
@@ -225,7 +225,7 @@ public class PublicThirdPartyEndpoint internal constructor(
             SetupPendingException::class,
         )
         public suspend fun import(
-            connectionParamsSerialized: ByteArray
+            connectionParamsSerialized: ByteArray,
         ): PublicThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
             val connectionParams = try {
@@ -241,8 +241,8 @@ public class PublicThirdPartyEndpoint internal constructor(
                 peerNodeId,
                 PublicThirdPartyEndpointData(
                     connectionParams.internetAddress,
-                    connectionParams.identityKey
-                )
+                    connectionParams.identityKey,
+                ),
             )
             context.sessionPublicKeyStore.save(
                 connectionParams.sessionKey,

@@ -17,7 +17,7 @@ internal class ChannelManagerTest {
     private val androidContext = RuntimeEnvironment.getApplication()
     private val sharedPreferences = androidContext.getSharedPreferences(
         "channel-test",
-        Context.MODE_PRIVATE
+        Context.MODE_PRIVATE,
     )
 
     private val firstPartyEndpoint = FirstPartyEndpointFactory.build()
@@ -42,7 +42,7 @@ internal class ChannelManagerTest {
     fun create_non_existing() = runTest {
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
         val manager = ChannelManager(coroutineContext) { sharedPreferences }
 
@@ -50,7 +50,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             setOf(thirdPartyEndpoint.nodeId),
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -63,7 +63,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             setOf(thirdPartyEndpoint.nodeId),
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -76,7 +76,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             setOf(thirdPartyEndpoint.nodeId),
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -88,7 +88,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -101,7 +101,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             null,
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -112,7 +112,7 @@ internal class ChannelManagerTest {
         with(sharedPreferences.edit()) {
             putStringSet(
                 firstPartyEndpoint.nodeId,
-                mutableSetOf(unrelatedThirdPartyEndpointAddress)
+                mutableSetOf(unrelatedThirdPartyEndpointAddress),
             )
             apply()
         }
@@ -121,7 +121,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             mutableSetOf(unrelatedThirdPartyEndpointAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -132,7 +132,7 @@ internal class ChannelManagerTest {
         with(sharedPreferences.edit()) {
             putStringSet(
                 firstPartyEndpoint.nodeId,
-                mutableSetOf(unrelatedThirdPartyEndpointAddress, thirdPartyEndpoint.nodeId)
+                mutableSetOf(unrelatedThirdPartyEndpointAddress, thirdPartyEndpoint.nodeId),
             )
             apply()
         }
@@ -141,7 +141,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             setOf(unrelatedThirdPartyEndpointAddress),
-            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getStringSet(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -152,7 +152,7 @@ internal class ChannelManagerTest {
         with(sharedPreferences.edit()) {
             putString(
                 firstPartyEndpoint.nodeId,
-                malformedValue
+                malformedValue,
             )
             apply()
         }
@@ -161,7 +161,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             malformedValue,
-            sharedPreferences.getString(firstPartyEndpoint.nodeId, null)
+            sharedPreferences.getString(firstPartyEndpoint.nodeId, null),
         )
     }
 
@@ -172,7 +172,7 @@ internal class ChannelManagerTest {
         with(sharedPreferences.edit()) {
             putInt(
                 firstPartyEndpoint.nodeId,
-                malformedValue
+                malformedValue,
             )
             apply()
         }
@@ -181,7 +181,7 @@ internal class ChannelManagerTest {
 
         assertEquals(
             malformedValue,
-            sharedPreferences.getInt(firstPartyEndpoint.nodeId, 0)
+            sharedPreferences.getInt(firstPartyEndpoint.nodeId, 0),
         )
     }
 

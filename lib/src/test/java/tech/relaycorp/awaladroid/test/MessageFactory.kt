@@ -18,6 +18,6 @@ internal object MessageFactory {
         type = serviceMessage.type,
         content = serviceMessage.content,
         senderEndpoint = ThirdPartyEndpointFactory.buildPublic(),
-        recipientEndpoint = FirstPartyEndpointFactory.build()
+        recipientEndpoint = FirstPartyEndpointFactory.build(),
     ) {}
 }

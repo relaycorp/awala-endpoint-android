@@ -10,13 +10,13 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
+import tech.relaycorp.awaladroid.common.Logging.logger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import tech.relaycorp.awaladroid.common.Logging.logger
 
 internal class ServiceInteractor(
-    private val context: Context
+    private val context: Context,
 ) {
 
     private var serviceConnection: ServiceConnection? = null
@@ -66,14 +66,14 @@ internal class ServiceInteractor(
             val intent = Intent(action).apply {
                 component = ComponentName(
                     packageName,
-                    componentName
+                    componentName,
                 )
             }
 
             val bindWasSuccessful = context.bindService(
                 intent,
                 serviceConnection,
-                Context.BIND_AUTO_CREATE
+                Context.BIND_AUTO_CREATE,
             )
             if (!bindWasSuccessful) cont.resumeWithException(BindFailedException("Binding failed"))
         }

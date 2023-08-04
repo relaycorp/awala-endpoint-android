@@ -16,5 +16,5 @@ internal data class AwalaContext(
     val privateKeyStore: PrivateKeyStore,
     val sessionPublicKeyStore: SessionPublicKeyStore,
     val certificateStore: CertificateStore,
-    val handleGatewayCertificateChange: HandleGatewayCertificateChange
+    val handleGatewayCertificateChange: HandleGatewayCertificateChange,
 )

@@ -1,15 +1,15 @@
 package tech.relaycorp.awaladroid.storage.persistence
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 internal class DiskPersistence(
     private val fileDir: String,
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
-    private val rootFolder: String = "awaladroid"
+    private val rootFolder: String = "awaladroid",
 ) : Persistence {
 
     @Suppress("BlockingMethodInNonBlockingContext")

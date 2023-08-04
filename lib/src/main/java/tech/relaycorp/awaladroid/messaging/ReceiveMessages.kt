@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.util.logging.Level
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -26,15 +25,16 @@ import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.util.logging.Level
 
 internal class ReceiveMessages(
-    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
+    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
 ) {
 
     @Throws(
         ReceiveMessageException::class,
         GatewayProtocolException::class,
-        PersistenceException::class
+        PersistenceException::class,
     )
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
@@ -66,7 +66,7 @@ internal class ReceiveMessages(
                         ?: return@flatMap emptyList()
                 context.certificateStore.retrieveAll(
                     nodeId,
-                    privateGatewayId
+                    privateGatewayId,
                 ).map {
                     Signer(
                         it.leafCertificate,
@@ -102,13 +102,13 @@ internal class ReceiveMessages(
                 } catch (exp: EnvelopedDataException) {
                     parcelCollection.disregard(
                         "Failed to decrypt parcel; sender might have used wrong key",
-                        exp
+                        exp,
                     )
                     return@mapNotNull null
                 } catch (exp: InvalidPayloadException) {
                     parcelCollection.disregard(
                         "Incoming parcel did not encapsulate a valid service message",
-                        exp
+                        exp,
                     )
                     return@mapNotNull null
                 }
