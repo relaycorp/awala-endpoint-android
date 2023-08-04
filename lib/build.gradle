@@ -121,6 +121,7 @@ dokkaHtml.configure {
 ktlint {
   verbose = true
   android = true
+  version = "0.43.2"
 }
 
 afterEvaluate {
