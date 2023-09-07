@@ -23,6 +23,7 @@ import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistration
 import tech.relaycorp.relaynet.messages.control.PrivateNodeRegistrationRequest
 import java.security.KeyPair
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Level
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
@@ -45,6 +46,7 @@ internal constructor(
     // Gateway
 
     private var gwServiceInteractor: ServiceInteractor? = null
+    private val isReceivingMessages = AtomicBoolean(false)
 
     /**
      * Bind to the gateway to be able to communicate with it.
@@ -183,6 +185,9 @@ internal constructor(
                 }
             }
 
+            if (isReceivingMessages.get()) return@withContext
+            isReceivingMessages.set(true)
+
             try {
                 receiveMessages
                     .receive()
@@ -194,6 +199,8 @@ internal constructor(
             } catch (exp: PersistenceException) {
                 logger.log(Level.SEVERE, "Could not receive new messages", exp)
             }
+
+            isReceivingMessages.set(false)
 
             if (!wasAlreadyBound) unbind()
         }
