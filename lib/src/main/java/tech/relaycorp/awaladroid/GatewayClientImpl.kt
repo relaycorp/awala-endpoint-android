@@ -185,6 +185,7 @@ internal constructor(
             }
 
             try {
+                logger.log(Level.INFO, "ReceiveMessages receive")
                 receiveMessages
                     .receive()
                     .collect(incomingMessageChannel::emit)

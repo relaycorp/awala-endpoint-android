@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.util.logging.Level
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -26,6 +25,7 @@ import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.util.logging.Level
 
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
@@ -41,8 +41,10 @@ internal class ReceiveMessages(
             .flatMapLatest { nonceSigners ->
                 val pdcClient = pdcClientBuilder()
                 try {
+                    logger.log(Level.INFO, "collectParcels")
                     collectParcels(pdcClient, nonceSigners)
                         .onCompletion {
+                            logger.log(Level.INFO, "collectParcels onCompletion")
                             @Suppress("BlockingMethodInNonBlockingContext")
                             pdcClient.close()
                         }
@@ -82,6 +84,7 @@ internal class ReceiveMessages(
         pdcClient
             .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
             .mapNotNull { parcelCollection ->
+                logger.log(Level.INFO, "Got a parcel: $parcelCollection")
                 val parcel = try {
                     parcelCollection.deserializeAndValidateParcel()
                 } catch (exp: RAMFException) {
