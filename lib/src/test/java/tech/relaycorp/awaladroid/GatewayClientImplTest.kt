@@ -9,6 +9,7 @@ import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -40,6 +41,7 @@ import tech.relaycorp.relaynet.testing.pdc.RegisterNodeCall
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import java.time.ZonedDateTime
+import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 internal class GatewayClientImplTest : MockContextTestCase() {
@@ -283,5 +285,20 @@ internal class GatewayClientImplTest : MockContextTestCase() {
         whenever(receiveMessages.receive()).thenReturn(flow { throw GatewayProtocolException("") })
 
         gatewayClient.checkForNewMessages()
+    }
+
+    @Test
+    fun checkForNewMessages_doesStartSimultaneousReceiveMessages() = coroutineScope.runTest {
+        whenever(receiveMessages.receive()).thenReturn(flow { delay(1.seconds) })
+
+        repeat(10) {
+            coroutineScope.launch {
+                gatewayClient.checkForNewMessages()
+            }
+        }
+
+        delay(1.seconds)
+
+        verify(receiveMessages, times(1)).receive()
     }
 }
