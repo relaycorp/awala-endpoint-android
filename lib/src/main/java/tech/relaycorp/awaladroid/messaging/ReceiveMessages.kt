@@ -2,6 +2,8 @@ package tech.relaycorp.awaladroid.messaging
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
@@ -31,28 +33,43 @@ internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
 ) {
 
-    @Throws(
-        ReceiveMessageException::class,
-        GatewayProtocolException::class,
-        PersistenceException::class,
-    )
+    /**
+     * Flow may throw:
+     * - ReceiveMessageException
+     * - GatewayProtocolException
+     */
+    @Throws(PersistenceException::class)
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
             .flatMapLatest { nonceSigners ->
-                val pdcClient = pdcClientBuilder()
-                try {
-                    collectParcels(pdcClient, nonceSigners)
-                        .onCompletion {
-                            @Suppress("BlockingMethodInNonBlockingContext")
-                            pdcClient.close()
-                        }
-                } catch (exp: ServerException) {
-                    throw ReceiveMessageException("Server error", exp)
-                } catch (exp: ClientBindingException) {
-                    throw GatewayProtocolException("Client error", exp)
-                } catch (exp: NonceSignerException) {
-                    throw GatewayProtocolException("Client signing error", exp)
+                if (nonceSigners.isEmpty()) {
+                    logger.log(
+                        Level.WARNING,
+                        "Skipping parcel collection because there are no first-party endpoints registered yet",
+                    )
+                    return@flatMapLatest emptyFlow()
                 }
+
+                val pdcClient = pdcClientBuilder()
+                collectParcels(pdcClient, nonceSigners)
+                    .catch {
+                        throw when (it) {
+                            is ServerException ->
+                                ReceiveMessageException("Server error", it)
+
+                            is ClientBindingException ->
+                                GatewayProtocolException("Client error", it)
+
+                            is NonceSignerException ->
+                                GatewayProtocolException("Client signing error", it)
+
+                            else -> it
+                        }
+                    }
+                    .onCompletion {
+                        @Suppress("BlockingMethodInNonBlockingContext")
+                        pdcClient.close()
+                    }
             }
 
     @Throws(PersistenceException::class)
@@ -77,6 +94,11 @@ internal class ReceiveMessages(
             .toTypedArray()
     }.asFlow()
 
+    /**
+     * Flow may throw:
+     * - ReceiveMessageException
+     * - GatewayProtocolException
+     */
     @Throws(PersistenceException::class)
     private suspend fun collectParcels(pdcClient: PDCClient, nonceSigners: Array<Signer>) =
         pdcClient

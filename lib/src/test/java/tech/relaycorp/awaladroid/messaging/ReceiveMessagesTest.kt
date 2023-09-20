@@ -1,14 +1,18 @@
 package tech.relaycorp.awaladroid.messaging
 
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runTest
 import nl.altindag.log.LogCaptor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.GatewayProtocolException
+import tech.relaycorp.awaladroid.endpoint.FirstPartyEndpoint
 import tech.relaycorp.awaladroid.endpoint.PublicThirdPartyEndpointData
 import tech.relaycorp.awaladroid.test.EndpointChannel
 import tech.relaycorp.awaladroid.test.MockContextTestCase
@@ -18,6 +22,7 @@ import tech.relaycorp.relaynet.bindings.pdc.NonceSignerException
 import tech.relaycorp.relaynet.bindings.pdc.ParcelCollection
 import tech.relaycorp.relaynet.bindings.pdc.ServerBindingException
 import tech.relaycorp.relaynet.issueDeliveryAuthorization
+import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.Recipient
 import tech.relaycorp.relaynet.messages.payloads.CargoMessageSet
@@ -27,6 +32,7 @@ import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 import tech.relaycorp.relaynet.wrappers.generateECDHKeyPair
+import tech.relaycorp.relaynet.wrappers.generateRSAKeyPair
 import tech.relaycorp.relaynet.wrappers.nodeId
 import java.time.ZonedDateTime
 
@@ -72,7 +78,10 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
 
     @Test(expected = ReceiveMessageException::class)
     fun collectParcelsGetsServerError() = runTest {
-        val collectParcelsCall = CollectParcelsCall(Result.failure(ServerBindingException("")))
+        createFirstPartyEndpoint()
+        val collectParcelsCall = CollectParcelsCall(
+            Result.success(flow { throw ServerBindingException("") }),
+        )
         pdcClient = MockPDCClient(collectParcelsCall)
 
         subject.receive().collect()
@@ -80,7 +89,10 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
 
     @Test(expected = GatewayProtocolException::class)
     fun collectParcelsGetsClientError() = runTest {
-        val collectParcelsCall = CollectParcelsCall(Result.failure(ClientBindingException("")))
+        createFirstPartyEndpoint()
+        val collectParcelsCall = CollectParcelsCall(
+            Result.success(flow { throw ClientBindingException("") }),
+        )
         pdcClient = MockPDCClient(collectParcelsCall)
 
         subject.receive().collect()
@@ -88,14 +100,34 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
 
     @Test(expected = GatewayProtocolException::class)
     fun collectParcelsGetsSigningError() = runTest {
-        val collectParcelsCall = CollectParcelsCall(Result.failure(NonceSignerException("")))
+        createFirstPartyEndpoint()
+        val collectParcelsCall = CollectParcelsCall(
+            Result.success(flow { throw NonceSignerException("") }),
+        )
         pdcClient = MockPDCClient(collectParcelsCall)
 
         subject.receive().collect()
     }
 
     @Test
+    fun collectParcelsWithoutFirstPartyEndpoints() = runTest {
+        val logCaptor = LogCaptor.forClass(ReceiveMessages::class.java)
+        val collectParcelsCall = CollectParcelsCall(Result.success(emptyFlow()))
+        pdcClient = MockPDCClient(collectParcelsCall)
+
+        subject.receive().collect()
+
+        assertFalse(collectParcelsCall.wasCalled)
+        assertTrue(
+            logCaptor.warnLogs.contains(
+                "Skipping parcel collection because there are no first-party endpoints registered yet",
+            ),
+        )
+    }
+
+    @Test
     fun receiveInvalidParcel_ackedButNotDeliveredToApp() = runTest {
+        createFirstPartyEndpoint()
         val invalidParcel = Parcel(
             recipient = Recipient(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId),
             payload = "".toByteArray(),
@@ -121,6 +153,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
 
     @Test
     fun receiveMalformedParcel_ackedButNotDeliveredToApp() = runTest {
+        createFirstPartyEndpoint()
         var ackWasCalled = false
         val parcelCollection = ParcelCollection(
             parcelSerialized = "1234".toByteArray(),
@@ -149,6 +182,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         pdcClient = MockPDCClient(collectParcelsCall)
 
         channel.firstPartyEndpoint.delete()
+        createAnotherFirstPartyEndpoint()
 
         val messages = subject.receive().toCollection(mutableListOf())
 
@@ -276,4 +310,22 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         trustedCertificates = listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
         ack = ack,
     )
+
+    private suspend fun createAnotherFirstPartyEndpoint() {
+        val anotherKey = generateRSAKeyPair()
+        createFirstPartyEndpoint(
+            FirstPartyEndpoint(
+                anotherKey.private, // Different key
+                issueEndpointCertificate(
+                    anotherKey.public,
+                    KeyPairSet.PRIVATE_GW.private,
+                    ZonedDateTime.now().plusHours(1),
+                    PDACertPath.PRIVATE_GW,
+                    validityStartDate = ZonedDateTime.now().minusMinutes(1),
+                ),
+                listOf(PDACertPath.PRIVATE_GW),
+                "frankfurt.relaycorp.cloud",
+            ),
+        )
+    }
 }
