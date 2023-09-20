@@ -92,8 +92,9 @@ internal abstract class MockContextTestCase {
         )
     }
 
-    protected suspend fun createFirstPartyEndpoint(): FirstPartyEndpoint {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    protected suspend fun createFirstPartyEndpoint(
+        firstPartyEndpoint: FirstPartyEndpoint = FirstPartyEndpointFactory.build(),
+    ): FirstPartyEndpoint {
         val gatewayAddress = "example.org"
         privateKeyStore.saveIdentityKey(
             firstPartyEndpoint.identityPrivateKey,
