@@ -45,7 +45,7 @@ internal class ReceiveMessages(
                 if (nonceSigners.isEmpty()) {
                     logger.log(
                         Level.WARNING,
-                        "Skipping parcel collection because there are no first-party endpoints registered yet",
+                        "Skipping parcel collection because there are no first-party endpoints",
                     )
                     return@flatMapLatest emptyFlow()
                 }

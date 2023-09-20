@@ -120,7 +120,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
         assertFalse(collectParcelsCall.wasCalled)
         assertTrue(
             logCaptor.warnLogs.contains(
-                "Skipping parcel collection because there are no first-party endpoints registered yet",
+                "Skipping parcel collection because there are no first-party endpoints",
             ),
         )
     }
