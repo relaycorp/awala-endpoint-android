@@ -232,10 +232,14 @@ internal constructor(
             SetupPendingException::class,
         )
         public suspend fun register(): FirstPartyEndpoint {
+            logger.log(Level.INFO, "First getContextOrThrow")
             val context = Awala.getContextOrThrow()
+            logger.log(Level.INFO, "First generateRSAKeyPair")
             val keyPair = generateRSAKeyPair()
 
+            logger.log(Level.INFO, "First gatewayClient.registerEndpoint")
             val registration = context.gatewayClient.registerEndpoint(keyPair)
+            logger.log(Level.INFO, "First FirstPartyEndpoint")
             val endpoint = FirstPartyEndpoint(
                 keyPair.private,
                 registration.privateNodeCertificate,
@@ -244,6 +248,7 @@ internal constructor(
             )
 
             try {
+                logger.log(Level.INFO, "First saveIdentityKey")
                 context.privateKeyStore.saveIdentityKey(
                     keyPair.private,
                 )
@@ -253,6 +258,7 @@ internal constructor(
 
             val gatewayId = registration.gatewayCertificate.subjectId
             try {
+                logger.log(Level.INFO, "First certificateStore.save")
                 context.certificateStore.save(
                     CertificationPath(
                         registration.privateNodeCertificate,
@@ -264,13 +270,16 @@ internal constructor(
                 throw PersistenceException("Failed to save certificate", exc)
             }
 
+            logger.log(Level.INFO, "First gatewayId.set")
             context.storage.gatewayId.set(
                 endpoint.nodeId,
                 gatewayId,
             )
 
+            logger.log(Level.INFO, "First internetAddress.set")
             context.storage.internetAddress.set(registration.gatewayInternetAddress)
 
+            logger.log(Level.INFO, "First DONE")
             return endpoint
         }
 

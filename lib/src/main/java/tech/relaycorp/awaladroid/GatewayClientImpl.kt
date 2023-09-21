@@ -56,8 +56,10 @@ internal constructor(
         withContext(coroutineContext) {
             if (gwServiceInteractor != null) return@withContext // Already connected
 
+            logger.log(Level.INFO, "bind serviceInteractorBuilder")
             gwServiceInteractor = serviceInteractorBuilder().apply {
                 try {
+                    logger.log(Level.INFO, "bind bind")
                     bind(
                         Awala.GATEWAY_SYNC_ACTION,
                         Awala.GATEWAY_PACKAGE,
@@ -70,7 +72,9 @@ internal constructor(
                     )
                 }
             }
+            logger.log(Level.INFO, "bind delay")
             delay(1_000) // Wait for server to start
+            logger.log(Level.INFO, "bind DONE")
         }
     }
 
@@ -93,14 +97,20 @@ internal constructor(
     internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
         withContext(coroutineContext) {
             try {
+                logger.log(Level.INFO, "preRegister")
                 val preAuthSerialized = preRegister()
+                logger.log(Level.INFO, "PrivateNodeRegistrationRequest serialize")
                 val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
                 val requestSerialized = request.serialize(keyPair.private)
 
+                logger.log(Level.INFO, "bind")
                 bind()
 
                 return@withContext pdcClientBuilder().use {
-                    it.registerNode(requestSerialized)
+                    logger.log(Level.INFO, "registerNode")
+                    it.registerNode(requestSerialized).also {
+                        logger.log(Level.INFO, "gateway registerEndpoint DONE")
+                    }
                 }
             } catch (exp: ServiceInteractor.BindFailedException) {
                 throw RegistrationFailedException("Failed binding to gateway", exp)
@@ -121,7 +131,9 @@ internal constructor(
         GatewayProtocolException::class,
     )
     private suspend fun preRegister(): ByteArray {
+        logger.log(Level.INFO, "preRegister serviceInteractorBuilder")
         val interactor = serviceInteractorBuilder().apply {
+            logger.log(Level.INFO, "preRegister bind")
             bind(
                 Awala.GATEWAY_PRE_REGISTER_ACTION,
                 Awala.GATEWAY_PACKAGE,
@@ -130,7 +142,9 @@ internal constructor(
         }
 
         return suspendCoroutine { cont ->
+            logger.log(Level.INFO, "preRegister Message.obtain")
             val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
+            logger.log(Level.INFO, "preRegister sendMessage")
             interactor.sendMessage(request) { replyMessage ->
                 if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
                     interactor.unbind()
@@ -141,6 +155,7 @@ internal constructor(
                 }
                 interactor.unbind()
                 cont.resume(replyMessage.data.getByteArray("auth")!!)
+                logger.log(Level.INFO, "preRegister DONE")
             }
         }
     }
