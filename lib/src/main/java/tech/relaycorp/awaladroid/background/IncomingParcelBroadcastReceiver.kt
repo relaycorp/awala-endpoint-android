@@ -15,7 +15,7 @@ internal class IncomingParcelBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         CoroutineScope(coroutineContext).launch {
-            Awala.getContextOrThrow().gatewayClient.checkForNewMessages()
+            Awala.awaitContextOrThrow().gatewayClient.checkForNewMessages()
         }
     }
 }

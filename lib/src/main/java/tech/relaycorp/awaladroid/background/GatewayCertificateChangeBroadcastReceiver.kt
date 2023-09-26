@@ -15,7 +15,7 @@ internal class GatewayCertificateChangeBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         CoroutineScope(coroutineContext).launch {
-            Awala.getContextOrThrow().handleGatewayCertificateChange()
+            Awala.awaitContextOrThrow().handleGatewayCertificateChange()
         }
     }
 }
