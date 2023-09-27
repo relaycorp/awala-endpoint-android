@@ -11,6 +11,14 @@ import javax.crypto.AEADBadTagException
 internal class AndroidPrivateKeyStore(
     root: FileKeystoreRoot,
     private val context: Context,
+    private val encryptedFileBuilder: (File, MasterKey) -> EncryptedFile = { file, masterKey ->
+        EncryptedFile.Builder(
+            context,
+            file,
+            masterKey,
+            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
+        ).build()
+    },
 ) : FilePrivateKeyStore(root) {
 
     @Throws(EncryptionInitializationException::class)
@@ -20,17 +28,15 @@ internal class AndroidPrivateKeyStore(
     override fun makeEncryptedOutputStream(file: File) = buildEncryptedFile(file).openFileOutput()
 
     @Throws(EncryptionInitializationException::class)
-    private fun buildEncryptedFile(file: File) =
+    private fun buildEncryptedFile(file: File): EncryptedFile =
         try {
-            EncryptedFile.Builder(
-                context,
-                file,
-                masterKey,
-                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
-            ).build()
-        } catch (e: AEADBadTagException) {
+            encryptedFileBuilder(file, masterKey)
+        } catch (exception: AEADBadTagException) {
             // Known issue: https://issuetracker.google.com/issues/164901843
-            throw EncryptionInitializationException(e)
+            throw EncryptionInitializationException(
+                "Could not build encrypted file due to internal issue",
+                exception,
+            )
         }
 
     private val masterKey by lazy {
@@ -39,9 +45,10 @@ internal class AndroidPrivateKeyStore(
             .build()
     }
 
-    class EncryptionInitializationException(cause: Throwable) : Exception(cause)
-
     companion object {
         private const val MASTER_KEY_ALIAS = "_awaladroid_master_key_"
     }
 }
+
+public class EncryptionInitializationException(message: String, cause: Throwable) :
+    AwaladroidException(message, cause)
