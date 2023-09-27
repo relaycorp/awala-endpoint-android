@@ -3,13 +3,16 @@ package tech.relaycorp.awaladroid
 import android.content.Context
 import com.nhaarman.mockitokotlin2.spy
 import com.nhaarman.mockitokotlin2.verify
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -26,6 +29,7 @@ import tech.relaycorp.relaynet.wrappers.nodeId
 import java.io.File
 import java.time.Duration
 import java.time.ZonedDateTime
+import kotlin.time.Duration.Companion.milliseconds
 
 @RunWith(RobolectricTestRunner::class)
 public class AwalaTest {
@@ -33,9 +37,9 @@ public class AwalaTest {
     @After
     public fun tearDownAwala(): Unit = unsetAwalaContext()
 
-    @Test
+    @Test(expected = SetupPendingException::class)
     public fun useBeforeSetup() {
-        assertThrows(SetupPendingException::class.java) { Awala.getContextOrThrow() }
+        Awala.getContextOrThrow()
     }
 
     @Test
@@ -43,6 +47,29 @@ public class AwalaTest {
         Awala.setUp(RuntimeEnvironment.getApplication())
 
         Awala.getContextOrThrow()
+    }
+
+    @Test(expected = SetupPendingException::class)
+    public fun awaitWithoutSetup(): Unit = runTest {
+        Awala.awaitContextOrThrow(100.milliseconds)
+    }
+
+    @Test(expected = SetupPendingException::class)
+    public fun awaitWithLateSetup(): Unit = runTest {
+        CoroutineScope(UnconfinedTestDispatcher()).launch {
+            delay(200.milliseconds)
+            Awala.setUp(RuntimeEnvironment.getApplication())
+        }
+        Awala.awaitContextOrThrow(100.milliseconds)
+    }
+
+    @Test(expected = SetupPendingException::class)
+    public fun awaitAfterSetup(): Unit = runTest {
+        CoroutineScope(UnconfinedTestDispatcher()).launch {
+            delay(500.milliseconds)
+            Awala.setUp(RuntimeEnvironment.getApplication())
+        }
+        Awala.awaitContextOrThrow(1000.milliseconds)
     }
 
     @Test
