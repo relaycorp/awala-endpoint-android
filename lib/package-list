@@ -76,6 +76,8 @@ $dokka.location:tech.relaycorp.awaladroid/Awala///PointingToDeclaration/lib/tec
 $dokka.location:tech.relaycorp.awaladroid/Awala/setUp/#android.content.Context/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awala/set-up.html
 $dokka.location:tech.relaycorp.awaladroid/AwaladroidException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awaladroid-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid/AwaladroidException/AwaladroidException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-awaladroid-exception/-awaladroid-exception.html
+$dokka.location:tech.relaycorp.awaladroid/EncryptionInitializationException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-encryption-initialization-exception/index.html
+$dokka.location:tech.relaycorp.awaladroid/EncryptionInitializationException/EncryptionInitializationException/#kotlin.String#kotlin.Throwable/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-encryption-initialization-exception/-encryption-initialization-exception.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayBindingException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-binding-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayBindingException/GatewayBindingException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-binding-exception/-gateway-binding-exception.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/index.html
