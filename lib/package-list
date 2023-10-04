@@ -89,6 +89,8 @@ $dokka.location:tech.relaycorp.awaladroid/GatewayException///PointingToDeclarati
 $dokka.location:tech.relaycorp.awaladroid/GatewayException/GatewayException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-exception/-gateway-exception.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayProtocolException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-protocol-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayProtocolException/GatewayProtocolException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-protocol-exception/-gateway-protocol-exception.html
+$dokka.location:tech.relaycorp.awaladroid/GatewayUnregisteredException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-unregistered-exception/index.html
+$dokka.location:tech.relaycorp.awaladroid/GatewayUnregisteredException/GatewayUnregisteredException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-unregistered-exception/-gateway-unregistered-exception.html
 $dokka.location:tech.relaycorp.awaladroid/RegistrationFailedException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-registration-failed-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid/RegistrationFailedException/RegistrationFailedException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-registration-failed-exception/-registration-failed-exception.html
 $dokka.location:tech.relaycorp.awaladroid/SetupPendingException///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-setup-pending-exception/index.html
