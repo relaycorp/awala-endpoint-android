@@ -89,6 +89,7 @@ internal constructor(
     @Throws(
         RegistrationFailedException::class,
         GatewayProtocolException::class,
+        GatewayUnregisteredException::class,
     )
     internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
         withContext(coroutineContext) {
@@ -119,6 +120,7 @@ internal constructor(
         ServiceInteractor.BindFailedException::class,
         ServiceInteractor.SendFailedException::class,
         GatewayProtocolException::class,
+        GatewayUnregisteredException::class,
     )
     private suspend fun preRegister(): ByteArray {
         val interactor = serviceInteractorBuilder().apply {
@@ -132,15 +134,24 @@ internal constructor(
         return suspendCoroutine { cont ->
             val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
             interactor.sendMessage(request) { replyMessage ->
-                if (replyMessage.what != REGISTRATION_AUTHORIZATION) {
-                    interactor.unbind()
-                    cont.resumeWithException(
-                        GatewayProtocolException("Pre-registration failed, received wrong reply"),
-                    )
-                    return@sendMessage
-                }
                 interactor.unbind()
-                cont.resume(replyMessage.data.getByteArray("auth")!!)
+                when (replyMessage.what) {
+                    REGISTRATION_AUTHORIZATION -> {
+                        cont.resume(replyMessage.data.getByteArray("auth")!!)
+                    }
+                    GATEWAY_NOT_REGISTERED -> {
+                        cont.resumeWithException(
+                            GatewayUnregisteredException("Gateway not registered"),
+                        )
+                    }
+                    else -> {
+                        cont.resumeWithException(
+                            GatewayProtocolException(
+                                "Pre-registration failed, received wrong reply",
+                            ),
+                        )
+                    }
+                }
             }
         }
     }
@@ -209,6 +220,7 @@ internal constructor(
     internal companion object {
         internal const val PREREGISTRATION_REQUEST = 1
         internal const val REGISTRATION_AUTHORIZATION = 2
+        internal const val GATEWAY_NOT_REGISTERED = 4
     }
 }
 
@@ -228,6 +240,12 @@ public open class GatewayProtocolException(message: String, cause: Throwable? = 
  * Not bound or failure to bind to the gateway.
  */
 public class GatewayBindingException(message: String, cause: Throwable? = null) :
+    GatewayException(message, cause)
+
+/**
+ * The gateway isn't yet registered with its Internet peer.
+ */
+public class GatewayUnregisteredException(message: String, cause: Throwable? = null) :
     GatewayException(message, cause)
 
 /**

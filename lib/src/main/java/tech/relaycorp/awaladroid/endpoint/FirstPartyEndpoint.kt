@@ -3,6 +3,7 @@ package tech.relaycorp.awaladroid.endpoint
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.AwaladroidException
 import tech.relaycorp.awaladroid.GatewayProtocolException
+import tech.relaycorp.awaladroid.GatewayUnregisteredException
 import tech.relaycorp.awaladroid.RegistrationFailedException
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.common.Logging.logger
@@ -153,6 +154,7 @@ internal constructor(
     @Throws(
         RegistrationFailedException::class,
         GatewayProtocolException::class,
+        GatewayUnregisteredException::class,
         PersistenceException::class,
         SetupPendingException::class,
     )
@@ -228,6 +230,7 @@ internal constructor(
         @Throws(
             RegistrationFailedException::class,
             GatewayProtocolException::class,
+            GatewayUnregisteredException::class,
             PersistenceException::class,
             SetupPendingException::class,
         )
