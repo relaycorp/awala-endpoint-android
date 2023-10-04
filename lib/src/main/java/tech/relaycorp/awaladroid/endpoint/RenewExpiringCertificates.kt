@@ -1,5 +1,6 @@
 package tech.relaycorp.awaladroid.endpoint
 
+import tech.relaycorp.awaladroid.GatewayUnregisteredException
 import tech.relaycorp.relaynet.keystores.PrivateKeyStore
 import tech.relaycorp.relaynet.wrappers.nodeId
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
@@ -11,6 +12,7 @@ internal class RenewExpiringCertificates(
     private val firstPartyEndpointLoader: suspend (String) -> FirstPartyEndpoint?,
 ) {
 
+    @Throws(GatewayUnregisteredException::class)
     suspend operator fun invoke() {
         privateKeyStore.retrieveAllIdentityKeys()
             .mapNotNull { firstPartyEndpointLoader(it.nodeId) }

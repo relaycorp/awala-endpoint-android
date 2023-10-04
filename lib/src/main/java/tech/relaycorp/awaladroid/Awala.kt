@@ -37,6 +37,7 @@ public object Awala {
     /**
      * Set up the endpoint library.
      */
+    @Throws(GatewayUnregisteredException::class)
     public suspend fun setUp(context: Context) {
         val keystoreRoot =
             FileKeystoreRoot(File(context.filesDir, "awaladroid${File.separator}keystores"))

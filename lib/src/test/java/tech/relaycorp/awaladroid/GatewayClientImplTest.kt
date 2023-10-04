@@ -170,6 +170,19 @@ internal class GatewayClientImplTest : MockContextTestCase() {
             gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
 
+    @Test(expected = GatewayUnregisteredException::class)
+    internal fun registerEndpoint_withFailedRegistrationDueToGatewayUnregistered() =
+        coroutineScope.runTest {
+            val replyMessage = Message.obtain(null, GatewayClientImpl.GATEWAY_NOT_REGISTERED)
+            whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
+                it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
+            }
+
+            pdcClient = MockPDCClient()
+
+            gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+        }
+
     private fun buildPnra() = PrivateNodeRegistrationAuthorization(
         ZonedDateTime.now().plusDays(1),
         PDACertPath.PRIVATE_GW.serialize(),
