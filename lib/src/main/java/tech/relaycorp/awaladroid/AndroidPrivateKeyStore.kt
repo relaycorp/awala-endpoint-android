@@ -17,7 +17,11 @@ internal class AndroidPrivateKeyStore(
             file,
             masterKey,
             EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
-        ).build()
+        )
+            // Set a explicit preference name to avoid cryptic `AEADBadTagException`s when multiple
+            // `MasterKey`s are used by the app.
+            .setKeysetPrefName(ENCRYPTED_FILE_PREFERENCE_NAME)
+            .build()
     },
 ) : FilePrivateKeyStore(root) {
 
@@ -47,6 +51,7 @@ internal class AndroidPrivateKeyStore(
 
     companion object {
         private const val MASTER_KEY_ALIAS = "_awaladroid_master_key_"
+        private const val ENCRYPTED_FILE_PREFERENCE_NAME = "awala-private-key-store"
     }
 }
 
