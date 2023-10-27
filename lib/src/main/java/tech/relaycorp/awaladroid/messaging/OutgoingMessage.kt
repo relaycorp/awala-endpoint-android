@@ -8,6 +8,7 @@ import tech.relaycorp.awaladroid.endpoint.ThirdPartyEndpoint
 import tech.relaycorp.relaynet.issueEndpointCertificate
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.messages.payloads.ServiceMessage
+import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.x509.Certificate
 import java.time.Duration
 import java.time.ZonedDateTime
@@ -81,15 +82,20 @@ private constructor(
             recipientEndpoint.nodeId,
             senderEndpoint.nodeId,
         )
-        return Parcel(
-            recipient = recipientEndpoint.recipient,
-            payload = payload,
-            senderCertificate = getSenderCertificate(),
-            messageId = parcelId.value,
-            creationDate = parcelCreationDate,
-            ttl = ttl,
-            senderCertificateChain = getSenderCertificateChain(),
-        )
+        val parcel = try {
+            Parcel(
+                recipient = recipientEndpoint.recipient,
+                payload = payload,
+                senderCertificate = getSenderCertificate(),
+                messageId = parcelId.value,
+                creationDate = parcelCreationDate,
+                ttl = ttl,
+                senderCertificateChain = getSenderCertificateChain(),
+            )
+        } catch (exc: RAMFException) {
+            throw InvalidMessageException("Failed to create parcel", exc)
+        }
+        return parcel
     }
 
     private fun getSenderCertificate(): Certificate =
