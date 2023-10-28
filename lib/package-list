@@ -46,6 +46,10 @@ $dokka.location:tech.relaycorp.awaladroid.messaging/IncomingMessage/content/#/Po
 $dokka.location:tech.relaycorp.awaladroid.messaging/IncomingMessage/recipientEndpoint/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-incoming-message/recipient-endpoint.html
 $dokka.location:tech.relaycorp.awaladroid.messaging/IncomingMessage/senderEndpoint/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-incoming-message/sender-endpoint.html
 $dokka.location:tech.relaycorp.awaladroid.messaging/IncomingMessage/type/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-incoming-message/type.html
+$dokka.location:tech.relaycorp.awaladroid.messaging/InvalidMessageException///PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-invalid-message-exception/index.html
+$dokka.location:tech.relaycorp.awaladroid.messaging/InvalidMessageException/InvalidMessageException/#kotlin.String#kotlin.Throwable/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-invalid-message-exception/-invalid-message-exception.html
+$dokka.location:tech.relaycorp.awaladroid.messaging/Message.Companion///PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-message/-companion/index.html
+$dokka.location:tech.relaycorp.awaladroid.messaging/Message.Companion/MAX_CONTENT_SIZE/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-message/-companion/-m-a-x_-c-o-n-t-e-n-t_-s-i-z-e.html
 $dokka.location:tech.relaycorp.awaladroid.messaging/Message///PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-message/index.html
 $dokka.location:tech.relaycorp.awaladroid.messaging/Message/Message/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-message/-message.html
 $dokka.location:tech.relaycorp.awaladroid.messaging/OutgoingMessage.Companion///PointingToDeclaration/lib/tech.relaycorp.awaladroid.messaging/-outgoing-message/-companion/index.html
