@@ -44,13 +44,14 @@ private constructor(
         /**
          * Create an outgoing service message (but don't send it).
          *
-         * @param type The type of the message (e.g., "application/vnd.relaynet.ping-v1.ping").
+         * @param type The type of the message (e.g., "application/vnd.awala.ping-v1.ping").
          * @param content The contents of the service message.
          * @param senderEndpoint The endpoint used to send the message.
          * @param recipientEndpoint The endpoint that will receive the message.
          * @param parcelExpiryDate The date when the parcel should expire.
          * @param parcelId The id of the parcel.
          */
+        @Throws(InvalidMessageException::class)
         public suspend fun build(
             type: String,
             content: ByteArray,
@@ -71,6 +72,7 @@ private constructor(
         }
     }
 
+    @Throws(InvalidMessageException::class)
     private suspend fun buildParcel(
         serviceMessageType: String,
         serviceMessageContent: ByteArray,

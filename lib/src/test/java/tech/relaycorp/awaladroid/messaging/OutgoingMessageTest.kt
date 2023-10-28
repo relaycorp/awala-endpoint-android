@@ -21,7 +21,6 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 internal class OutgoingMessageTest : MockContextTestCase() {
-
     @Test
     fun build_creationDate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
