@@ -1,8 +1,10 @@
 package tech.relaycorp.awaladroid.messaging
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tech.relaycorp.awaladroid.endpoint.PrivateThirdPartyEndpoint
@@ -11,13 +13,14 @@ import tech.relaycorp.awaladroid.test.MessageFactory
 import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.assertSameDateTime
+import tech.relaycorp.relaynet.ramf.RAMFException
+import tech.relaycorp.relaynet.ramf.RAMFMessage
 import java.time.Duration
 import java.time.ZonedDateTime
 import kotlin.math.abs
 import kotlin.random.Random
 
 internal class OutgoingMessageTest : MockContextTestCase() {
-
     @Test
     fun build_creationDate() = runTest {
         val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
@@ -58,6 +61,25 @@ internal class OutgoingMessageTest : MockContextTestCase() {
         val differenceSeconds =
             Duration.between(message.parcel.expiryDate, parcelExpiryDate).seconds
         assertTrue(abs(differenceSeconds) < 3)
+    }
+
+    @Test
+    fun build_bigServiceMessage() = runTest {
+        val (senderEndpoint, recipientEndpoint) = createEndpointChannel(RecipientAddressType.PUBLIC)
+
+        val exception = assertThrows(InvalidMessageException::class.java) {
+            runBlocking {
+                OutgoingMessage.build(
+                    "the type",
+                    ByteArray(RAMFMessage.MAX_PAYLOAD_LENGTH + 1),
+                    senderEndpoint,
+                    recipientEndpoint,
+                )
+            }
+        }
+
+        assertEquals("Failed to create parcel", exception.message)
+        assertTrue(exception.cause is RAMFException)
     }
 
     // Public Recipient
