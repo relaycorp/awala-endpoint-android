@@ -14,6 +14,7 @@ import tech.relaycorp.awaladroid.test.MockContextTestCase
 import tech.relaycorp.awaladroid.test.RecipientAddressType
 import tech.relaycorp.awaladroid.test.assertSameDateTime
 import tech.relaycorp.relaynet.ramf.RAMFException
+import tech.relaycorp.relaynet.ramf.RAMFMessage
 import java.time.Duration
 import java.time.ZonedDateTime
 import kotlin.math.abs
@@ -71,7 +72,7 @@ internal class OutgoingMessageTest : MockContextTestCase() {
             runBlocking {
                 OutgoingMessage.build(
                     "the type",
-                    ByteArray(8388608 + 1),
+                    ByteArray(RAMFMessage.MAX_PAYLOAD_LENGTH + 1),
                     senderEndpoint,
                     recipientEndpoint,
                 )
