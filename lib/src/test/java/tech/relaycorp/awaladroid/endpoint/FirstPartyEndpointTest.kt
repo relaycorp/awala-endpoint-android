@@ -443,6 +443,19 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
 }
 
 private fun validateAuthorization(
+    auth: ThirdPartyEndpointAuth,
+    firstPartyEndpoint: FirstPartyEndpoint,
+    expiryDate: ZonedDateTime,
+) {
+    assertEquals(
+        auth.endpointId,
+        KeyPairSet.PDA_GRANTEE.public.nodeId,
+    )
+
+    validateAuthorization(auth.auth, firstPartyEndpoint, expiryDate)
+}
+
+private fun validateAuthorization(
     paramsSerialized: ByteArray,
     firstPartyEndpoint: FirstPartyEndpoint,
     expiryDate: ZonedDateTime,
