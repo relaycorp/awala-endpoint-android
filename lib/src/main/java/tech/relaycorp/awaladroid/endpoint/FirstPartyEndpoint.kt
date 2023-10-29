@@ -57,7 +57,7 @@ internal constructor(
         issueAuthorization(
             thirdPartyEndpoint.identityKey,
             expiryDate,
-        )
+        ).auth
 
     /**
      * Issue a PDA for a third-party endpoint using its public key.
@@ -66,7 +66,7 @@ internal constructor(
     public suspend fun issueAuthorization(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
         expiryDate: ZonedDateTime,
-    ): ByteArray {
+    ): ThirdPartyEndpointAuth {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
         return issueAuthorization(thirdPartyEndpointPublicKey, expiryDate)
@@ -76,7 +76,7 @@ internal constructor(
     private suspend fun issueAuthorization(
         thirdPartyEndpointPublicKey: PublicKey,
         expiryDate: ZonedDateTime,
-    ): ByteArray {
+    ): ThirdPartyEndpointAuth {
         val pda = issueDeliveryAuthorization(
             subjectPublicKey = thirdPartyEndpointPublicKey,
             issuerPrivateKey = identityPrivateKey,
@@ -97,7 +97,8 @@ internal constructor(
             deliveryAuth,
             sessionKeyPair.sessionKey,
         )
-        return connParams.serialize()
+        val authSerialized = connParams.serialize()
+        return ThirdPartyEndpointAuth(thirdPartyEndpointPublicKey.nodeId, authSerialized)
     }
 
     /**
@@ -107,7 +108,7 @@ internal constructor(
     public suspend fun authorizeIndefinitely(
         thirdPartyEndpoint: ThirdPartyEndpoint,
     ): ByteArray =
-        authorizeIndefinitely(thirdPartyEndpoint.identityKey)
+        authorizeIndefinitely(thirdPartyEndpoint.identityKey).auth
 
     /**
      * Issue a PDA for a third-party endpoint (using its public key) and renew it indefinitely.
@@ -115,7 +116,7 @@ internal constructor(
     @Throws(CertificateException::class)
     public suspend fun authorizeIndefinitely(
         thirdPartyEndpointPublicKeySerialized: ByteArray,
-    ): ByteArray {
+    ): ThirdPartyEndpointAuth {
         val thirdPartyEndpointPublicKey =
             deserializePDAGranteePublicKey(thirdPartyEndpointPublicKeySerialized)
         return authorizeIndefinitely(thirdPartyEndpointPublicKey)
@@ -124,7 +125,7 @@ internal constructor(
     @Throws(CertificateException::class)
     private suspend fun authorizeIndefinitely(
         thirdPartyEndpointPublicKey: PublicKey,
-    ): ByteArray {
+    ): ThirdPartyEndpointAuth {
         val authorization =
             issueAuthorization(thirdPartyEndpointPublicKey, identityCertificate.expiryDate)
 
