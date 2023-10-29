@@ -35,6 +35,10 @@ $dokka.location:tech.relaycorp.awaladroid.endpoint/PublicThirdPartyEndpoint/dele
 $dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpoint///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpoint/delete/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint/delete.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpoint/internetAddress/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint/internet-address.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpointAuth///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint-auth/index.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpointAuth/ThirdPartyEndpointAuth/#kotlin.String#kotlin.ByteArray/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint-auth/-third-party-endpoint-auth.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpointAuth/auth/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint-auth/auth.html
+$dokka.location:tech.relaycorp.awaladroid.endpoint/ThirdPartyEndpointAuth/endpointId/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-third-party-endpoint-auth/endpoint-id.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/UnknownFirstPartyEndpointException///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-unknown-first-party-endpoint-exception/index.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/UnknownFirstPartyEndpointException/UnknownFirstPartyEndpointException/#kotlin.String/PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-unknown-first-party-endpoint-exception/-unknown-first-party-endpoint-exception.html
 $dokka.location:tech.relaycorp.awaladroid.endpoint/UnknownThirdPartyEndpointException///PointingToDeclaration/lib/tech.relaycorp.awaladroid.endpoint/-unknown-third-party-endpoint-exception/index.html
