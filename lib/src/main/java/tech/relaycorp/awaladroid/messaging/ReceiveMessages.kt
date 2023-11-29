@@ -32,7 +32,6 @@ import java.util.logging.Level
 internal class ReceiveMessages(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
 ) {
-
     /**
      * Flow may throw:
      * - ReceiveMessageException
@@ -73,26 +72,27 @@ internal class ReceiveMessages(
             }
 
     @Throws(PersistenceException::class)
-    private fun getNonceSigners() = suspend {
-        val context = Awala.getContextOrThrow()
-        context.privateKeyStore.retrieveAllIdentityKeys()
-            .flatMap { identityPrivateKey ->
-                val nodeId = identityPrivateKey.nodeId
-                val privateGatewayId =
-                    context.storage.gatewayId.get(nodeId)
-                        ?: return@flatMap emptyList()
-                context.certificateStore.retrieveAll(
-                    nodeId,
-                    privateGatewayId,
-                ).map {
-                    Signer(
-                        it.leafCertificate,
-                        identityPrivateKey,
-                    )
+    private fun getNonceSigners() =
+        suspend {
+            val context = Awala.getContextOrThrow()
+            context.privateKeyStore.retrieveAllIdentityKeys()
+                .flatMap { identityPrivateKey ->
+                    val nodeId = identityPrivateKey.nodeId
+                    val privateGatewayId =
+                        context.storage.gatewayId.get(nodeId)
+                            ?: return@flatMap emptyList()
+                    context.certificateStore.retrieveAll(
+                        nodeId,
+                        privateGatewayId,
+                    ).map {
+                        Signer(
+                            it.leafCertificate,
+                            identityPrivateKey,
+                        )
+                    }
                 }
-            }
-            .toTypedArray()
-    }.asFlow()
+                .toTypedArray()
+        }.asFlow()
 
     /**
      * Flow may throw:
@@ -100,11 +100,14 @@ internal class ReceiveMessages(
      * - GatewayProtocolException
      */
     @Throws(PersistenceException::class)
-    private suspend fun collectParcels(pdcClient: PDCClient, nonceSigners: Array<Signer>) =
-        pdcClient
-            .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
-            .mapNotNull { parcelCollection ->
-                val parcel = try {
+    private suspend fun collectParcels(
+        pdcClient: PDCClient,
+        nonceSigners: Array<Signer>,
+    ) = pdcClient
+        .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
+        .mapNotNull { parcelCollection ->
+            val parcel =
+                try {
                     parcelCollection.deserializeAndValidateParcel()
                 } catch (exp: RAMFException) {
                     parcelCollection.disregard("Malformed incoming parcel", exp)
@@ -113,31 +116,34 @@ internal class ReceiveMessages(
                     parcelCollection.disregard("Invalid incoming parcel", exp)
                     return@mapNotNull null
                 }
-                try {
-                    IncomingMessage.build(parcel) { parcelCollection.ack() }
-                } catch (exp: UnknownFirstPartyEndpointException) {
-                    parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
-                    return@mapNotNull null
-                } catch (exp: UnknownThirdPartyEndpointException) {
-                    parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
-                    return@mapNotNull null
-                } catch (exp: EnvelopedDataException) {
-                    parcelCollection.disregard(
-                        "Failed to decrypt parcel; sender might have used wrong key",
-                        exp,
-                    )
-                    return@mapNotNull null
-                } catch (exp: InvalidPayloadException) {
-                    parcelCollection.disregard(
-                        "Incoming parcel did not encapsulate a valid service message",
-                        exp,
-                    )
-                    return@mapNotNull null
-                }
+            try {
+                IncomingMessage.build(parcel) { parcelCollection.ack() }
+            } catch (exp: UnknownFirstPartyEndpointException) {
+                parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
+                return@mapNotNull null
+            } catch (exp: UnknownThirdPartyEndpointException) {
+                parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
+                return@mapNotNull null
+            } catch (exp: EnvelopedDataException) {
+                parcelCollection.disregard(
+                    "Failed to decrypt parcel; sender might have used wrong key",
+                    exp,
+                )
+                return@mapNotNull null
+            } catch (exp: InvalidPayloadException) {
+                parcelCollection.disregard(
+                    "Incoming parcel did not encapsulate a valid service message",
+                    exp,
+                )
+                return@mapNotNull null
             }
+        }
 }
 
-private suspend fun ParcelCollection.disregard(reason: String, exc: Throwable) {
+private suspend fun ParcelCollection.disregard(
+    reason: String,
+    exc: Throwable,
+) {
     logger.log(Level.WARNING, reason, exc)
     ack()
 }

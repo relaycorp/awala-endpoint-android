@@ -45,9 +45,7 @@ internal class ChannelManager(
         }
     }
 
-    suspend fun delete(
-        firstPartyEndpoint: FirstPartyEndpoint,
-    ) {
+    suspend fun delete(firstPartyEndpoint: FirstPartyEndpoint) {
         withContext(coroutineContext) {
             with(sharedPreferences.edit()) {
                 remove(firstPartyEndpoint.nodeId)
@@ -56,9 +54,7 @@ internal class ChannelManager(
         }
     }
 
-    suspend fun delete(
-        thirdPartyEndpoint: ThirdPartyEndpoint,
-    ) {
+    suspend fun delete(thirdPartyEndpoint: ThirdPartyEndpoint) {
         withContext(coroutineContext) {
             sharedPreferences.all.forEach { (key, value) ->
                 // Skip malformed values

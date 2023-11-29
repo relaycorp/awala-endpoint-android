@@ -7,7 +7,6 @@ import tech.relaycorp.relaynet.wrappers.nodeId
 internal class HandleGatewayCertificateChange(
     private val privateKeyStore: PrivateKeyStore,
 ) {
-
     @Throws(GatewayUnregisteredException::class)
     suspend operator fun invoke() {
         privateKeyStore.retrieveAllIdentityKeys()

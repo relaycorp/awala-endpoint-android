@@ -5,10 +5,11 @@ import tech.relaycorp.relaynet.testing.pki.KeyPairSet
 import tech.relaycorp.relaynet.testing.pki.PDACertPath
 
 internal object FirstPartyEndpointFactory {
-    fun build(): FirstPartyEndpoint = FirstPartyEndpoint(
-        KeyPairSet.PRIVATE_ENDPOINT.private,
-        PDACertPath.PRIVATE_ENDPOINT,
-        listOf(PDACertPath.PRIVATE_GW),
-        "frankfurt.relaycorp.cloud",
-    )
+    fun build(): FirstPartyEndpoint =
+        FirstPartyEndpoint(
+            KeyPairSet.PRIVATE_ENDPOINT.private,
+            PDACertPath.PRIVATE_ENDPOINT,
+            listOf(PDACertPath.PRIVATE_GW),
+            "frankfurt.relaycorp.cloud",
+        )
 }

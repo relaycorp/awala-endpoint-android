@@ -72,19 +72,21 @@ public object Awala {
 
     internal var contextDeferred: CompletableDeferred<AwalaContext> = CompletableDeferred()
 
-    internal fun getContextOrThrow(): AwalaContext = try {
-        contextDeferred.getCompleted()
-    } catch (e: IllegalStateException) {
-        throw SetupPendingException()
-    }
-
-    internal suspend fun awaitContextOrThrow(timeout: Duration = 3.seconds): AwalaContext = try {
-        withTimeout(timeout) {
-            contextDeferred.await()
+    internal fun getContextOrThrow(): AwalaContext =
+        try {
+            contextDeferred.getCompleted()
+        } catch (e: IllegalStateException) {
+            throw SetupPendingException()
         }
-    } catch (e: TimeoutCancellationException) {
-        throw SetupPendingException()
-    }
+
+    internal suspend fun awaitContextOrThrow(timeout: Duration = 3.seconds): AwalaContext =
+        try {
+            withTimeout(timeout) {
+                contextDeferred.await()
+            }
+        } catch (e: TimeoutCancellationException) {
+            throw SetupPendingException()
+        }
 }
 
 /**

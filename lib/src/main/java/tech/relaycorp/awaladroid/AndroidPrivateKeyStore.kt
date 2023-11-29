@@ -24,7 +24,6 @@ internal class AndroidPrivateKeyStore(
             .build()
     },
 ) : FilePrivateKeyStore(root) {
-
     @Throws(EncryptionInitializationException::class)
     override fun makeEncryptedInputStream(file: File) = buildEncryptedFile(file).openFileInput()
 

@@ -17,7 +17,6 @@ internal class SendMessage(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
 ) {
-
     @Throws(
         SendMessageException::class,
         RejectedMessageException::class,

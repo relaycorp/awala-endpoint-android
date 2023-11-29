@@ -3,9 +3,11 @@ package tech.relaycorp.awaladroid.storage.persistence
 import tech.relaycorp.awaladroid.AwaladroidException
 
 internal interface Persistence {
-
     @Throws(PersistenceException::class)
-    suspend fun set(location: String, data: ByteArray)
+    suspend fun set(
+        location: String,
+        data: ByteArray,
+    )
 
     @Throws(PersistenceException::class)
     suspend fun get(location: String): ByteArray?

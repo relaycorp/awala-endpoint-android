@@ -8,7 +8,6 @@ public class ThirdPartyEndpointAuth(
      * Id of the third-party endpoint.
      */
     public val endpointId: String,
-
     /**
      * The authorization serialized.
      */
