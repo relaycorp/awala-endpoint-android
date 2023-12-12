@@ -11,7 +11,6 @@ internal class RenewExpiringCertificates(
     private val privateKeyStore: PrivateKeyStore,
     private val firstPartyEndpointLoader: suspend (String) -> FirstPartyEndpoint?,
 ) {
-
     @Throws(GatewayUnregisteredException::class)
     suspend operator fun invoke() {
         privateKeyStore.retrieveAllIdentityKeys()

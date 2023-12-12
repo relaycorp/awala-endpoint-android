@@ -64,382 +64,433 @@ internal class FirstPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun register() = runTest {
-        val internetGatewayAddress = "example.org"
-        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
-            PrivateNodeRegistration(
-                PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW,
-                internetGatewayAddress,
-            ),
-        )
+    fun register() =
+        runTest {
+            val internetGatewayAddress = "example.org"
+            whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+                PrivateNodeRegistration(
+                    PDACertPath.PRIVATE_ENDPOINT,
+                    PDACertPath.PRIVATE_GW,
+                    internetGatewayAddress,
+                ),
+            )
 
-        val endpoint = FirstPartyEndpoint.register()
+            val endpoint = FirstPartyEndpoint.register()
 
-        val identityPrivateKey =
-            privateKeyStore.retrieveIdentityKey(endpoint.nodeId)
-        assertEquals(endpoint.identityPrivateKey, identityPrivateKey)
-        val identityCertificatePath = certificateStore.retrieveLatest(
-            endpoint.identityCertificate.subjectId,
-            PDACertPath.PRIVATE_GW.subjectId,
-        )
-        assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
-        verify(storage.gatewayId).set(
-            endpoint.nodeId,
-            PDACertPath.PRIVATE_GW.subjectId,
-        )
-        verify(storage.internetAddress).set(internetGatewayAddress)
-    }
+            val identityPrivateKey =
+                privateKeyStore.retrieveIdentityKey(endpoint.nodeId)
+            assertEquals(endpoint.identityPrivateKey, identityPrivateKey)
+            val identityCertificatePath =
+                certificateStore.retrieveLatest(
+                    endpoint.identityCertificate.subjectId,
+                    PDACertPath.PRIVATE_GW.subjectId,
+                )
+            assertEquals(PDACertPath.PRIVATE_ENDPOINT, identityCertificatePath!!.leafCertificate)
+            verify(storage.gatewayId).set(
+                endpoint.nodeId,
+                PDACertPath.PRIVATE_GW.subjectId,
+            )
+            verify(storage.internetAddress).set(internetGatewayAddress)
+        }
 
     @Test
-    fun reRegister() = runTest {
-        val endpoint = FirstPartyEndpointFactory.build()
-        val newCertificate = issueEndpointCertificate(
-            subjectPublicKey = endpoint.identityPrivateKey.toPublicKey(),
-            issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
-            validityEndDate = ZonedDateTime.now().plusYears(1),
-        )
-        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
-            PrivateNodeRegistration(
-                newCertificate,
-                PDACertPath.PRIVATE_GW,
-                "",
-            ),
-        )
+    fun reRegister() =
+        runTest {
+            val endpoint = FirstPartyEndpointFactory.build()
+            val newCertificate =
+                issueEndpointCertificate(
+                    subjectPublicKey = endpoint.identityPrivateKey.toPublicKey(),
+                    issuerPrivateKey = KeyPairSet.PRIVATE_GW.private,
+                    validityEndDate = ZonedDateTime.now().plusYears(1),
+                )
+            whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+                PrivateNodeRegistration(
+                    newCertificate,
+                    PDACertPath.PRIVATE_GW,
+                    "",
+                ),
+            )
 
-        endpoint.reRegister()
+            endpoint.reRegister()
 
-        val identityCertificatePath = certificateStore.retrieveLatest(
-            endpoint.identityPrivateKey.nodeId,
-            PDACertPath.PRIVATE_GW.subjectId,
-        )
-        assertEquals(newCertificate, identityCertificatePath!!.leafCertificate)
-    }
+            val identityCertificatePath =
+                certificateStore.retrieveLatest(
+                    endpoint.identityPrivateKey.nodeId,
+                    PDACertPath.PRIVATE_GW.subjectId,
+                )
+            assertEquals(newCertificate, identityCertificatePath!!.leafCertificate)
+        }
 
     @Test(expected = RegistrationFailedException::class)
-    fun register_failed() = runTest {
-        whenever(gatewayClient.registerEndpoint(any())).thenThrow(RegistrationFailedException(""))
+    fun register_failed() =
+        runTest {
+            whenever(
+                gatewayClient.registerEndpoint(any()),
+            ).thenThrow(RegistrationFailedException(""))
 
-        FirstPartyEndpoint.register()
+            FirstPartyEndpoint.register()
 
-        verifyZeroInteractions(storage)
-        assertEquals(0, privateKeyStore.identityKeys.size)
-    }
+            verifyZeroInteractions(storage)
+            assertEquals(0, privateKeyStore.identityKeys.size)
+        }
 
     @Test(expected = GatewayProtocolException::class)
-    fun register_failedDueToProtocol(): Unit = runTest {
-        whenever(gatewayClient.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
+    fun register_failedDueToProtocol(): Unit =
+        runTest {
+            whenever(gatewayClient.registerEndpoint(any())).thenThrow(GatewayProtocolException(""))
 
-        FirstPartyEndpoint.register()
+            FirstPartyEndpoint.register()
 
-        verifyZeroInteractions(storage)
-        assertEquals(0, privateKeyStore.identityKeys.size)
-    }
+            verifyZeroInteractions(storage)
+            assertEquals(0, privateKeyStore.identityKeys.size)
+        }
 
     @Test
-    fun register_failedDueToPrivateKeystore(): Unit = runTest {
-        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
-            PrivateNodeRegistration(
-                PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW,
-                "",
-            ),
-        )
-        val savingException = Exception("Oh noes")
-        setAwalaContext(
-            Awala.getContextOrThrow().copy(
-                privateKeyStore = MockPrivateKeyStore(savingException = savingException),
-            ),
-        )
+    fun register_failedDueToPrivateKeystore(): Unit =
+        runTest {
+            whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+                PrivateNodeRegistration(
+                    PDACertPath.PRIVATE_ENDPOINT,
+                    PDACertPath.PRIVATE_GW,
+                    "",
+                ),
+            )
+            val savingException = Exception("Oh noes")
+            setAwalaContext(
+                Awala.getContextOrThrow().copy(
+                    privateKeyStore = MockPrivateKeyStore(savingException = savingException),
+                ),
+            )
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.register()
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.register()
+                    }
+                }
+
+            assertEquals("Failed to save identity key", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
+            assertEquals(savingException, exception.cause!!.cause)
+        }
+
+    @Test
+    fun register_failedDueToCertStore(): Unit =
+        runTest {
+            whenever(gatewayClient.registerEndpoint(any())).thenReturn(
+                PrivateNodeRegistration(
+                    PDACertPath.PRIVATE_ENDPOINT,
+                    PDACertPath.PRIVATE_GW,
+                    "",
+                ),
+            )
+            val savingException = Exception("Oh noes")
+            setAwalaContext(
+                Awala.getContextOrThrow().copy(
+                    certificateStore = MockCertificateStore(savingException = savingException),
+                ),
+            )
+
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.register()
+                    }
+                }
+
+            assertEquals("Failed to save certificate", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
+            assertEquals(savingException, exception.cause!!.cause)
+        }
+
+    @Test
+    fun load_withResult(): Unit =
+        runTest {
+            createFirstPartyEndpoint()
+
+            val nodeId = KeyPairSet.PRIVATE_ENDPOINT.public.nodeId
+            with(FirstPartyEndpoint.load(nodeId)) {
+                assertNotNull(this)
+                assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
+                assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
+                assertEquals(listOf(PDACertPath.PRIVATE_GW), this?.identityCertificateChain)
+                assertEquals("example.org", this?.internetAddress)
             }
         }
 
-        assertEquals("Failed to save identity key", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
-        assertEquals(savingException, exception.cause!!.cause)
-    }
-
     @Test
-    fun register_failedDueToCertStore(): Unit = runTest {
-        whenever(gatewayClient.registerEndpoint(any())).thenReturn(
-            PrivateNodeRegistration(
-                PDACertPath.PRIVATE_ENDPOINT,
-                PDACertPath.PRIVATE_GW,
-                "",
-            ),
-        )
-        val savingException = Exception("Oh noes")
-        setAwalaContext(
-            Awala.getContextOrThrow().copy(
-                certificateStore = MockCertificateStore(savingException = savingException),
-            ),
-        )
+    fun load_withMissingPrivateKey() =
+        runTest {
+            whenever(storage.gatewayId.get())
+                .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.register()
-            }
+            assertNull(FirstPartyEndpoint.load("non-existent"))
         }
 
-        assertEquals("Failed to save certificate", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
-        assertEquals(savingException, exception.cause!!.cause)
-    }
-
     @Test
-    fun load_withResult(): Unit = runTest {
-        createFirstPartyEndpoint()
+    fun load_withKeystoreError(): Unit =
+        runTest {
+            setAwalaContext(
+                Awala.getContextOrThrow().copy(
+                    privateKeyStore =
+                        MockPrivateKeyStore(
+                            retrievalException = Exception("Oh noes"),
+                        ),
+                ),
+            )
+            whenever(storage.gatewayId.get())
+                .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
 
-        val nodeId = KeyPairSet.PRIVATE_ENDPOINT.public.nodeId
-        with(FirstPartyEndpoint.load(nodeId)) {
-            assertNotNull(this)
-            assertEquals(KeyPairSet.PRIVATE_ENDPOINT.private, this?.identityPrivateKey)
-            assertEquals(PDACertPath.PRIVATE_ENDPOINT, this?.identityCertificate)
-            assertEquals(listOf(PDACertPath.PRIVATE_GW), this?.identityCertificateChain)
-            assertEquals("example.org", this?.internetAddress)
-        }
-    }
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+                    }
+                }
 
-    @Test
-    fun load_withMissingPrivateKey() = runTest {
-        whenever(storage.gatewayId.get())
-            .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
-
-        assertNull(FirstPartyEndpoint.load("non-existent"))
-    }
-
-    @Test
-    fun load_withKeystoreError(): Unit = runTest {
-        setAwalaContext(
-            Awala.getContextOrThrow().copy(
-                privateKeyStore = MockPrivateKeyStore(retrievalException = Exception("Oh noes")),
-            ),
-        )
-        whenever(storage.gatewayId.get())
-            .thenReturn(PDACertPath.PRIVATE_GW.subjectId)
-
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
-            }
+            assertEquals("Failed to load private key of endpoint", exception.message)
+            assertTrue(exception.cause is KeyStoreBackendException)
         }
 
-        assertEquals("Failed to load private key of endpoint", exception.message)
-        assertTrue(exception.cause is KeyStoreBackendException)
-    }
-
     @Test
-    fun load_withMissingGatewayId(): Unit = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
-            .thenReturn(null)
+    fun load_withMissingGatewayId(): Unit =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            whenever(storage.gatewayId.get(firstPartyEndpoint.nodeId))
+                .thenReturn(null)
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
-            }
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+                    }
+                }
+
+            assertEquals("Failed to load gateway address for endpoint", exception.message)
         }
 
-        assertEquals("Failed to load gateway address for endpoint", exception.message)
-    }
-
     @Test
-    fun load_withMissingInternetAddress() = runTest {
-        createFirstPartyEndpoint()
-        whenever(storage.internetAddress.get())
-            .thenReturn(null)
+    fun load_withMissingInternetAddress() =
+        runTest {
+            createFirstPartyEndpoint()
+            whenever(storage.internetAddress.get())
+                .thenReturn(null)
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
-            }
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.load(KeyPairSet.PRIVATE_ENDPOINT.public.nodeId)
+                    }
+                }
+
+            assertEquals("Failed to load gateway internet address for endpoint", exception.message)
         }
 
-        assertEquals("Failed to load gateway internet address for endpoint", exception.message)
-    }
-
     @Test
-    fun load_withCertStoreError(): Unit = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val retrievalException = Exception("Oh noes")
-        setAwalaContext(
-            Awala.getContextOrThrow().copy(
-                certificateStore = MockCertificateStore(retrievalException = retrievalException),
-            ),
-        )
+    fun load_withCertStoreError(): Unit =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val retrievalException = Exception("Oh noes")
+            setAwalaContext(
+                Awala.getContextOrThrow().copy(
+                    certificateStore =
+                        MockCertificateStore(
+                            retrievalException = retrievalException,
+                        ),
+                ),
+            )
 
-        val exception = assertThrows(PersistenceException::class.java) {
-            runBlocking {
-                FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
-            }
+            val exception =
+                assertThrows(PersistenceException::class.java) {
+                    runBlocking {
+                        FirstPartyEndpoint.load(firstPartyEndpoint.nodeId)
+                    }
+                }
+
+            assertEquals("Failed to load certificate for endpoint", exception.message)
+            assertEquals(retrievalException, exception.cause?.cause)
         }
 
-        assertEquals("Failed to load certificate for endpoint", exception.message)
-        assertEquals(retrievalException, exception.cause?.cause)
-    }
-
     @Test
-    fun issueAuthorization_thirdPartyEndpoint() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
+    fun issueAuthorization_thirdPartyEndpoint() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+            val expiryDate = ZonedDateTime.now().plusDays(1)
 
-        val authorization = firstPartyEndpoint.issueAuthorization(thirdPartyEndpoint, expiryDate)
-
-        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
-    }
-
-    @Test
-    fun issueAuthorization_publicKey_valid() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
-
-        val authorization = firstPartyEndpoint.issueAuthorization(
-            KeyPairSet.PDA_GRANTEE.public.encoded,
-            expiryDate,
-        )
-
-        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
-    }
-
-    @Test
-    fun issueAuthorization_publicKey_invalid() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
-
-        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
-            runBlocking {
+            val authorization =
                 firstPartyEndpoint.issueAuthorization(
-                    "This is not a key".toByteArray(),
+                    thirdPartyEndpoint,
                     expiryDate,
                 )
-            }
+
+            validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
         }
 
-        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
-    }
-
     @Test
-    fun authorizeIndefinitely_thirdPartyEndpoint() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
+    fun issueAuthorization_publicKey_valid() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val expiryDate = ZonedDateTime.now().plusDays(1)
 
-        val authorization = firstPartyEndpoint.authorizeIndefinitely(thirdPartyEndpoint)
-
-        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
-        verify(channelManager).create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
-    }
-
-    @Test
-    fun authorizeIndefinitely_publicKey_valid() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val expiryDate = ZonedDateTime.now().plusDays(1)
-
-        val authorization = firstPartyEndpoint.authorizeIndefinitely(
-            KeyPairSet.PDA_GRANTEE.public.encoded,
-        )
-
-        validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
-        verify(channelManager).create(
-            eq(firstPartyEndpoint),
-            argThat<PublicKey> {
-                encoded.asList() == KeyPairSet.PDA_GRANTEE.public.encoded.asList()
-            },
-        )
-    }
-
-    @Test
-    fun authorizeIndefinitely_publicKey_invalid() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-
-        val exception = assertThrows(AuthorizationIssuanceException::class.java) {
-            runBlocking {
-                firstPartyEndpoint.authorizeIndefinitely(
-                    "This is not a key".toByteArray(),
+            val authorization =
+                firstPartyEndpoint.issueAuthorization(
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
+                    expiryDate,
                 )
+
+            validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+        }
+
+    @Test
+    fun issueAuthorization_publicKey_invalid() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val expiryDate = ZonedDateTime.now().plusDays(1)
+
+            val exception =
+                assertThrows(AuthorizationIssuanceException::class.java) {
+                    runBlocking {
+                        firstPartyEndpoint.issueAuthorization(
+                            "This is not a key".toByteArray(),
+                            expiryDate,
+                        )
+                    }
+                }
+
+            assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+        }
+
+    @Test
+    fun authorizeIndefinitely_thirdPartyEndpoint() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+            val expiryDate = ZonedDateTime.now().plusDays(1)
+
+            val authorization = firstPartyEndpoint.authorizeIndefinitely(thirdPartyEndpoint)
+
+            validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+            verify(channelManager).create(firstPartyEndpoint, thirdPartyEndpoint.identityKey)
+        }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_valid() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val expiryDate = ZonedDateTime.now().plusDays(1)
+
+            val authorization =
+                firstPartyEndpoint.authorizeIndefinitely(
+                    KeyPairSet.PDA_GRANTEE.public.encoded,
+                )
+
+            validateAuthorization(authorization, firstPartyEndpoint, expiryDate)
+            verify(channelManager).create(
+                eq(firstPartyEndpoint),
+                argThat<PublicKey> {
+                    encoded.asList() == KeyPairSet.PDA_GRANTEE.public.encoded.asList()
+                },
+            )
+        }
+
+    @Test
+    fun authorizeIndefinitely_publicKey_invalid() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+
+            val exception =
+                assertThrows(AuthorizationIssuanceException::class.java) {
+                    runBlocking {
+                        firstPartyEndpoint.authorizeIndefinitely(
+                            "This is not a key".toByteArray(),
+                        )
+                    }
+                }
+
+            assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
+            verify(channelManager, never()).create(any(), any<PublicKey>())
+        }
+
+    @Test
+    fun reissuePDAs_with_no_channel() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
+                .thenReturn(emptySet())
+
+            firstPartyEndpoint.reissuePDAs()
+
+            verify(gatewayClient, never()).sendMessage(any())
+        }
+
+    @Test
+    fun reissuePDAs_with_missing_third_party_endpoint() =
+        runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            val missingAddress = "non existing address"
+            whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
+                .thenReturn(setOf(missingAddress))
+            val logCaptor = LogCaptor.forClass(FirstPartyEndpoint::class.java)
+
+            firstPartyEndpoint.reissuePDAs()
+
+            verify(gatewayClient, never()).sendMessage(any())
+            assertTrue(
+                logCaptor.infoLogs.contains(
+                    "Ignoring missing third-party endpoint $missingAddress",
+                ),
+            )
+        }
+
+    @Test
+    fun reissuePDAs_with_existing_third_party_endpoint() =
+        runTest {
+            val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+            val firstPartyEndpoint = channel.firstPartyEndpoint
+
+            firstPartyEndpoint.reissuePDAs()
+
+            argumentCaptor<OutgoingMessage>().apply {
+                verify(gatewayClient, times(1)).sendMessage(capture())
+
+                val outgoingMessage = firstValue
+                // Verify the parcel
+                assertEquals(firstPartyEndpoint, outgoingMessage.senderEndpoint)
+                assertEquals(
+                    channel.thirdPartyEndpoint.nodeId,
+                    outgoingMessage.recipientEndpoint.nodeId,
+                )
+                // Verify the PDA
+                val (serviceMessage) =
+                    outgoingMessage.parcel.unwrapPayload(
+                        channel.thirdPartySessionKeyPair.privateKey,
+                    )
+                assertEquals("application/vnd+relaycorp.awala.pda-path", serviceMessage.type)
+                val params = PrivateEndpointConnParams.deserialize(serviceMessage.content)
+                val pdaPath = params.deliveryAuth
+                pdaPath.validate()
+                assertEquals(
+                    channel.thirdPartyEndpoint.identityKey,
+                    pdaPath.leafCertificate.subjectPublicKey,
+                )
+                assertEquals(firstPartyEndpoint.pdaChain, pdaPath.certificateAuthorities)
+                assertEquals(pdaPath.leafCertificate.expiryDate, outgoingMessage.parcelExpiryDate)
             }
         }
 
-        assertEquals("PDA grantee public key is not a valid RSA public key", exception.message)
-        verify(channelManager, never()).create(any(), any<PublicKey>())
-    }
-
     @Test
-    fun reissuePDAs_with_no_channel() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
-            .thenReturn(emptySet())
+    fun delete() =
+        runTest {
+            val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
+            val endpoint = channel.firstPartyEndpoint
 
-        firstPartyEndpoint.reissuePDAs()
+            endpoint.delete()
 
-        verify(gatewayClient, never()).sendMessage(any())
-    }
-
-    @Test
-    fun reissuePDAs_with_missing_third_party_endpoint() = runTest {
-        val firstPartyEndpoint = createFirstPartyEndpoint()
-        val missingAddress = "non existing address"
-        whenever(channelManager.getLinkedEndpointAddresses(firstPartyEndpoint))
-            .thenReturn(setOf(missingAddress))
-        val logCaptor = LogCaptor.forClass(FirstPartyEndpoint::class.java)
-
-        firstPartyEndpoint.reissuePDAs()
-
-        verify(gatewayClient, never()).sendMessage(any())
-        assertTrue(
-            logCaptor.infoLogs.contains("Ignoring missing third-party endpoint $missingAddress"),
-        )
-    }
-
-    @Test
-    fun reissuePDAs_with_existing_third_party_endpoint() = runTest {
-        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
-        val firstPartyEndpoint = channel.firstPartyEndpoint
-
-        firstPartyEndpoint.reissuePDAs()
-
-        argumentCaptor<OutgoingMessage>().apply {
-            verify(gatewayClient, times(1)).sendMessage(capture())
-
-            val outgoingMessage = firstValue
-            // Verify the parcel
-            assertEquals(firstPartyEndpoint, outgoingMessage.senderEndpoint)
-            assertEquals(
-                channel.thirdPartyEndpoint.nodeId,
-                outgoingMessage.recipientEndpoint.nodeId,
-            )
-            // Verify the PDA
-            val (serviceMessage) =
-                outgoingMessage.parcel.unwrapPayload(channel.thirdPartySessionKeyPair.privateKey)
-            assertEquals("application/vnd+relaycorp.awala.pda-path", serviceMessage.type)
-            val params = PrivateEndpointConnParams.deserialize(serviceMessage.content)
-            val pdaPath = params.deliveryAuth
-            pdaPath.validate()
-            assertEquals(
-                channel.thirdPartyEndpoint.identityKey,
-                pdaPath.leafCertificate.subjectPublicKey,
-            )
-            assertEquals(firstPartyEndpoint.pdaChain, pdaPath.certificateAuthorities)
-            assertEquals(pdaPath.leafCertificate.expiryDate, outgoingMessage.parcelExpiryDate)
+            assertEquals(0, privateKeyStore.identityKeys.size)
+            assertEquals(0, certificateStore.certificationPaths.size)
+            verify(channelManager).delete(endpoint)
         }
-    }
-
-    @Test
-    fun delete() = runTest {
-        val channel = createEndpointChannel(RecipientAddressType.PRIVATE)
-        val endpoint = channel.firstPartyEndpoint
-
-        endpoint.delete()
-
-        assertEquals(0, privateKeyStore.identityKeys.size)
-        assertEquals(0, certificateStore.certificationPaths.size)
-        verify(channelManager).delete(endpoint)
-    }
 }
 
 private fun validateAuthorization(

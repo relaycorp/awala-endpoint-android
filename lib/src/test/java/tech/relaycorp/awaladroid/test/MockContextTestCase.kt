@@ -67,11 +67,12 @@ internal abstract class MockContextTestCase {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val thirdPartySessionKeyPair = SessionKeyPair.generate()
-        val thirdPartyEndpoint = createThirdPartyEndpoint(
-            thirdPartyEndpointType,
-            thirdPartySessionKeyPair.sessionKey,
-            firstPartyEndpoint,
-        )
+        val thirdPartyEndpoint =
+            createThirdPartyEndpoint(
+                thirdPartyEndpointType,
+                thirdPartySessionKeyPair.sessionKey,
+                firstPartyEndpoint,
+            )
 
         val firstPartySessionKeyPair = SessionKeyPair.generate()
         privateKeyStore.saveSessionKey(
@@ -138,10 +139,11 @@ internal abstract class MockContextTestCase {
         when (thirdPartyEndpointType) {
             RecipientAddressType.PRIVATE -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPrivate()
-                val authBundle = CertificationPath(
-                    PDACertPath.PDA,
-                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
-                )
+                val authBundle =
+                    CertificationPath(
+                        PDACertPath.PDA,
+                        listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
+                    )
                 whenever(
                     storage.privateThirdParty.get(
                         "${firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}",

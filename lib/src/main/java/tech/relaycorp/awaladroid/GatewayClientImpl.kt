@@ -34,195 +34,196 @@ import kotlin.coroutines.suspendCoroutine
  * Private gateway client.
  */
 public class GatewayClientImpl
-internal constructor(
-    private val coroutineContext: CoroutineContext = Dispatchers.IO,
-    private val serviceInteractorBuilder: () -> ServiceInteractor,
-    private val pdcClientBuilder: () -> PDCClient =
-        { PoWebClient.initLocal(port = Awala.POWEB_PORT) },
-    private val sendMessage: SendMessage = SendMessage(),
-    private val receiveMessages: ReceiveMessages = ReceiveMessages(),
-) {
+    internal constructor(
+        private val coroutineContext: CoroutineContext = Dispatchers.IO,
+        private val serviceInteractorBuilder: () -> ServiceInteractor,
+        private val pdcClientBuilder: () -> PDCClient =
+            { PoWebClient.initLocal(port = Awala.POWEB_PORT) },
+        private val sendMessage: SendMessage = SendMessage(),
+        private val receiveMessages: ReceiveMessages = ReceiveMessages(),
+    ) {
+        // Gateway
 
-    // Gateway
+        private var gwServiceInteractor: ServiceInteractor? = null
+        private val isReceivingMessages = AtomicBoolean(false)
 
-    private var gwServiceInteractor: ServiceInteractor? = null
-    private val isReceivingMessages = AtomicBoolean(false)
+        /**
+         * Bind to the gateway to be able to communicate with it.
+         */
+        @Throws(GatewayBindingException::class)
+        public suspend fun bind() {
+            withContext(coroutineContext) {
+                if (gwServiceInteractor != null) return@withContext // Already connected
 
-    /**
-     * Bind to the gateway to be able to communicate with it.
-     */
-    @Throws(GatewayBindingException::class)
-    public suspend fun bind() {
-        withContext(coroutineContext) {
-            if (gwServiceInteractor != null) return@withContext // Already connected
+                gwServiceInteractor =
+                    serviceInteractorBuilder().apply {
+                        try {
+                            bind(
+                                Awala.GATEWAY_SYNC_ACTION,
+                                Awala.GATEWAY_PACKAGE,
+                                Awala.GATEWAY_SYNC_COMPONENT,
+                            )
+                        } catch (exp: ServiceInteractor.BindFailedException) {
+                            throw GatewayBindingException(
+                                "Failed binding to Awala Gateway for registration",
+                                exp,
+                            )
+                        }
+                    }
+                delay(1_000) // Wait for server to start
+            }
+        }
 
-            gwServiceInteractor = serviceInteractorBuilder().apply {
+        /**
+         * Unbind from the gateway.
+         *
+         * Make sure to call this when you no longer need to communicate with the gateway.
+         */
+        public fun unbind() {
+            gwServiceInteractor?.unbind()
+            gwServiceInteractor = null
+        }
+
+        // First-Party Endpoints
+
+        @Throws(
+            RegistrationFailedException::class,
+            GatewayProtocolException::class,
+            GatewayUnregisteredException::class,
+        )
+        internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
+            withContext(coroutineContext) {
                 try {
-                    bind(
-                        Awala.GATEWAY_SYNC_ACTION,
-                        Awala.GATEWAY_PACKAGE,
-                        Awala.GATEWAY_SYNC_COMPONENT,
-                    )
-                } catch (exp: ServiceInteractor.BindFailedException) {
-                    throw GatewayBindingException(
-                        "Failed binding to Awala Gateway for registration",
-                        exp,
-                    )
-                }
-            }
-            delay(1_000) // Wait for server to start
-        }
-    }
+                    val preAuthSerialized = preRegister()
+                    val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
+                    val requestSerialized = request.serialize(keyPair.private)
 
-    /**
-     * Unbind from the gateway.
-     *
-     * Make sure to call this when you no longer need to communicate with the gateway.
-     */
-    public fun unbind() {
-        gwServiceInteractor?.unbind()
-        gwServiceInteractor = null
-    }
-
-    // First-Party Endpoints
-
-    @Throws(
-        RegistrationFailedException::class,
-        GatewayProtocolException::class,
-        GatewayUnregisteredException::class,
-    )
-    internal suspend fun registerEndpoint(keyPair: KeyPair): PrivateNodeRegistration =
-        withContext(coroutineContext) {
-            try {
-                val preAuthSerialized = preRegister()
-                val request = PrivateNodeRegistrationRequest(keyPair.public, preAuthSerialized)
-                val requestSerialized = request.serialize(keyPair.private)
-
-                bind()
-
-                return@withContext pdcClientBuilder().use {
-                    it.registerNode(requestSerialized)
-                }
-            } catch (exp: ServiceInteractor.BindFailedException) {
-                throw RegistrationFailedException("Failed binding to gateway", exp)
-            } catch (exp: ServiceInteractor.SendFailedException) {
-                throw RegistrationFailedException("Failed communicating with gateway", exp)
-            } catch (exp: ServerException) {
-                throw RegistrationFailedException("Registration failed due to server", exp)
-            } catch (exp: ClientBindingException) {
-                throw GatewayProtocolException("Registration failed due to client", exp)
-            } catch (exp: GatewayBindingException) {
-                throw RegistrationFailedException("Failed binding to gateway", exp)
-            }
-        }
-
-    @Throws(
-        ServiceInteractor.BindFailedException::class,
-        ServiceInteractor.SendFailedException::class,
-        GatewayProtocolException::class,
-        GatewayUnregisteredException::class,
-    )
-    private suspend fun preRegister(): ByteArray {
-        val interactor = serviceInteractorBuilder().apply {
-            bind(
-                Awala.GATEWAY_PRE_REGISTER_ACTION,
-                Awala.GATEWAY_PACKAGE,
-                Awala.GATEWAY_PRE_REGISTER_COMPONENT,
-            )
-        }
-
-        return suspendCoroutine { cont ->
-            val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
-            interactor.sendMessage(request) { replyMessage ->
-                interactor.unbind()
-                when (replyMessage.what) {
-                    REGISTRATION_AUTHORIZATION -> {
-                        cont.resume(replyMessage.data.getByteArray("auth")!!)
-                    }
-                    GATEWAY_NOT_REGISTERED -> {
-                        cont.resumeWithException(
-                            GatewayUnregisteredException("Gateway not registered"),
-                        )
-                    }
-                    else -> {
-                        cont.resumeWithException(
-                            GatewayProtocolException(
-                                "Pre-registration failed, received wrong reply",
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // Messaging
-
-    @Throws(
-        GatewayBindingException::class,
-        GatewayProtocolException::class,
-        SendMessageException::class,
-        RejectedMessageException::class,
-    )
-    public suspend fun sendMessage(message: OutgoingMessage) {
-        if (gwServiceInteractor == null) {
-            throw GatewayBindingException("Gateway not bound")
-        }
-        sendMessage.send(message)
-    }
-
-    private val incomingMessageChannel = MutableSharedFlow<IncomingMessage>(1)
-
-    /**
-     * Receive messages from the gateway.
-     */
-    public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asSharedFlow()
-
-    // Internal
-
-    internal suspend fun checkForNewMessages() {
-        withContext(coroutineContext) {
-            val wasAlreadyBound = gwServiceInteractor != null
-            if (!wasAlreadyBound) {
-                try {
                     bind()
+
+                    return@withContext pdcClientBuilder().use {
+                        it.registerNode(requestSerialized)
+                    }
+                } catch (exp: ServiceInteractor.BindFailedException) {
+                    throw RegistrationFailedException("Failed binding to gateway", exp)
+                } catch (exp: ServiceInteractor.SendFailedException) {
+                    throw RegistrationFailedException("Failed communicating with gateway", exp)
+                } catch (exp: ServerException) {
+                    throw RegistrationFailedException("Registration failed due to server", exp)
+                } catch (exp: ClientBindingException) {
+                    throw GatewayProtocolException("Registration failed due to client", exp)
                 } catch (exp: GatewayBindingException) {
-                    logger.log(
-                        Level.SEVERE,
-                        "Could not bind to gateway to receive new messages",
-                        exp,
-                    )
-                    return@withContext
+                    throw RegistrationFailedException("Failed binding to gateway", exp)
                 }
             }
 
-            if (isReceivingMessages.get()) return@withContext
-            isReceivingMessages.set(true)
+        @Throws(
+            ServiceInteractor.BindFailedException::class,
+            ServiceInteractor.SendFailedException::class,
+            GatewayProtocolException::class,
+            GatewayUnregisteredException::class,
+        )
+        private suspend fun preRegister(): ByteArray {
+            val interactor =
+                serviceInteractorBuilder().apply {
+                    bind(
+                        Awala.GATEWAY_PRE_REGISTER_ACTION,
+                        Awala.GATEWAY_PACKAGE,
+                        Awala.GATEWAY_PRE_REGISTER_COMPONENT,
+                    )
+                }
 
-            try {
-                receiveMessages
-                    .receive()
-                    .collect(incomingMessageChannel::emit)
-            } catch (exp: ReceiveMessageException) {
-                logger.log(Level.SEVERE, "Could not receive new messages", exp)
-            } catch (exp: GatewayProtocolException) {
-                logger.log(Level.SEVERE, "Could not receive new messages", exp)
-            } catch (exp: PersistenceException) {
-                logger.log(Level.SEVERE, "Could not receive new messages", exp)
+            return suspendCoroutine { cont ->
+                val request = android.os.Message.obtain(null, PREREGISTRATION_REQUEST)
+                interactor.sendMessage(request) { replyMessage ->
+                    interactor.unbind()
+                    when (replyMessage.what) {
+                        REGISTRATION_AUTHORIZATION -> {
+                            cont.resume(replyMessage.data.getByteArray("auth")!!)
+                        }
+                        GATEWAY_NOT_REGISTERED -> {
+                            cont.resumeWithException(
+                                GatewayUnregisteredException("Gateway not registered"),
+                            )
+                        }
+                        else -> {
+                            cont.resumeWithException(
+                                GatewayProtocolException(
+                                    "Pre-registration failed, received wrong reply",
+                                ),
+                            )
+                        }
+                    }
+                }
             }
+        }
 
-            isReceivingMessages.set(false)
+        // Messaging
 
-            if (!wasAlreadyBound) unbind()
+        @Throws(
+            GatewayBindingException::class,
+            GatewayProtocolException::class,
+            SendMessageException::class,
+            RejectedMessageException::class,
+        )
+        public suspend fun sendMessage(message: OutgoingMessage) {
+            if (gwServiceInteractor == null) {
+                throw GatewayBindingException("Gateway not bound")
+            }
+            sendMessage.send(message)
+        }
+
+        private val incomingMessageChannel = MutableSharedFlow<IncomingMessage>(1)
+
+        /**
+         * Receive messages from the gateway.
+         */
+        public fun receiveMessages(): Flow<IncomingMessage> = incomingMessageChannel.asSharedFlow()
+
+        // Internal
+
+        internal suspend fun checkForNewMessages() {
+            withContext(coroutineContext) {
+                val wasAlreadyBound = gwServiceInteractor != null
+                if (!wasAlreadyBound) {
+                    try {
+                        bind()
+                    } catch (exp: GatewayBindingException) {
+                        logger.log(
+                            Level.SEVERE,
+                            "Could not bind to gateway to receive new messages",
+                            exp,
+                        )
+                        return@withContext
+                    }
+                }
+
+                if (isReceivingMessages.get()) return@withContext
+                isReceivingMessages.set(true)
+
+                try {
+                    receiveMessages
+                        .receive()
+                        .collect(incomingMessageChannel::emit)
+                } catch (exp: ReceiveMessageException) {
+                    logger.log(Level.SEVERE, "Could not receive new messages", exp)
+                } catch (exp: GatewayProtocolException) {
+                    logger.log(Level.SEVERE, "Could not receive new messages", exp)
+                } catch (exp: PersistenceException) {
+                    logger.log(Level.SEVERE, "Could not receive new messages", exp)
+                }
+
+                isReceivingMessages.set(false)
+
+                if (!wasAlreadyBound) unbind()
+            }
+        }
+
+        internal companion object {
+            internal const val PREREGISTRATION_REQUEST = 1
+            internal const val REGISTRATION_AUTHORIZATION = 2
+            internal const val GATEWAY_NOT_REGISTERED = 4
         }
     }
-
-    internal companion object {
-        internal const val PREREGISTRATION_REQUEST = 1
-        internal const val REGISTRATION_AUTHORIZATION = 2
-        internal const val GATEWAY_NOT_REGISTERED = 4
-    }
-}
 
 /**
  * General class for all exceptions deriving from interactions with the gateway.

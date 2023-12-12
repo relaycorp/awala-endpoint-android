@@ -5,7 +5,10 @@ import tech.relaycorp.awaladroid.storage.persistence.Persistence
 internal class MockPersistence : Persistence {
     private val values: MutableMap<String, ByteArray> = mutableMapOf()
 
-    override suspend fun set(location: String, data: ByteArray) {
+    override suspend fun set(
+        location: String,
+        data: ByteArray,
+    ) {
         values[location] = data
     }
 
