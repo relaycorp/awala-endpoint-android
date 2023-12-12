@@ -1,15 +1,15 @@
 buildscript {
     ext {
-        kotlinVersion = '1.8.21'
+        kotlinVersion = '1.9.21'
         kotlinCoroutinesVersion = '1.7.3'
     }
     repositories {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.1'
+        classpath 'com.android.tools.build:gradle:8.1.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath("org.jetbrains.dokka:dokka-core:1.7.10")
+        classpath 'org.jetbrains.dokka:dokka-core:1.9.10'
     }
 }
 

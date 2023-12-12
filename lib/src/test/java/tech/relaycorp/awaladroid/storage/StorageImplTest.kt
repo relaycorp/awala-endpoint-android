@@ -19,62 +19,66 @@ import java.nio.charset.Charset
 import java.util.UUID
 
 internal class StorageImplTest {
-
     private val persistence = mock<Persistence>()
     private val storage = StorageImpl(persistence)
 
     @Test
-    fun gatewayId() = runTest {
-        val charset = Charset.forName("ASCII")
-        storage.gatewayId.testGet(
-            PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
-            PDACertPath.PRIVATE_GW.subjectId,
-        )
-        storage.gatewayId.testSet(
-            PDACertPath.PRIVATE_GW.subjectId,
-            PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
-        )
-        storage.gatewayId.testDelete()
-    }
-
-    @Test
-    fun privateThirdParty() = runTest {
-        val data = PrivateThirdPartyEndpointData(
-            KeyPairSet.PRIVATE_ENDPOINT.public,
-            CertificationPath(
-                PDACertPath.PDA,
-                listOf(PDACertPath.PRIVATE_GW),
-            ),
-            "gateway.com",
-        )
-        val rawData = data.serialize()
-
-        storage.privateThirdParty.testGet(rawData, data) { a, b ->
-            a.identityKey == b.identityKey &&
-                a.pdaPath.leafCertificate == b.pdaPath.leafCertificate &&
-                a.pdaPath.certificateAuthorities == b.pdaPath.certificateAuthorities &&
-                a.internetGatewayAddress == b.internetGatewayAddress
+    fun gatewayId() =
+        runTest {
+            val charset = Charset.forName("ASCII")
+            storage.gatewayId.testGet(
+                PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
+                PDACertPath.PRIVATE_GW.subjectId,
+            )
+            storage.gatewayId.testSet(
+                PDACertPath.PRIVATE_GW.subjectId,
+                PDACertPath.PRIVATE_GW.subjectId.toByteArray(charset),
+            )
+            storage.gatewayId.testDelete()
         }
-        storage.privateThirdParty.testSet(data, rawData)
-        storage.privateThirdParty.testDelete()
-        storage.privateThirdParty.testDeleteAll()
-        storage.privateThirdParty.testList()
-    }
 
     @Test
-    fun publicThirdParty() = runTest {
-        val data = PublicThirdPartyEndpointData(
-            "example.org",
-            KeyPairSet.INTERNET_GW.public,
-        )
-        val rawData = data.serialize()
+    fun privateThirdParty() =
+        runTest {
+            val data =
+                PrivateThirdPartyEndpointData(
+                    KeyPairSet.PRIVATE_ENDPOINT.public,
+                    CertificationPath(
+                        PDACertPath.PDA,
+                        listOf(PDACertPath.PRIVATE_GW),
+                    ),
+                    "gateway.com",
+                )
+            val rawData = data.serialize()
 
-        storage.publicThirdParty.testGet(rawData, data)
-        storage.publicThirdParty.testSet(data, rawData)
-        storage.publicThirdParty.testDelete()
-        storage.publicThirdParty.testDeleteAll()
-        storage.publicThirdParty.testList()
-    }
+            storage.privateThirdParty.testGet(rawData, data) { a, b ->
+                a.identityKey == b.identityKey &&
+                    a.pdaPath.leafCertificate == b.pdaPath.leafCertificate &&
+                    a.pdaPath.certificateAuthorities == b.pdaPath.certificateAuthorities &&
+                    a.internetGatewayAddress == b.internetGatewayAddress
+            }
+            storage.privateThirdParty.testSet(data, rawData)
+            storage.privateThirdParty.testDelete()
+            storage.privateThirdParty.testDeleteAll()
+            storage.privateThirdParty.testList()
+        }
+
+    @Test
+    fun publicThirdParty() =
+        runTest {
+            val data =
+                PublicThirdPartyEndpointData(
+                    "example.org",
+                    KeyPairSet.INTERNET_GW.public,
+                )
+            val rawData = data.serialize()
+
+            storage.publicThirdParty.testGet(rawData, data)
+            storage.publicThirdParty.testSet(data, rawData)
+            storage.publicThirdParty.testDelete()
+            storage.publicThirdParty.testDeleteAll()
+            storage.publicThirdParty.testList()
+        }
 
     // Helpers
 

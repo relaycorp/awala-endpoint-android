@@ -35,7 +35,6 @@ public class IncomingMessage internal constructor(
     public val recipientEndpoint: FirstPartyEndpoint,
     public val ack: suspend () -> Unit,
 ) : Message() {
-
     internal companion object {
         private const val PDA_PATH_TYPE = "application/vnd+relaycorp.awala.pda-path"
 
@@ -47,30 +46,36 @@ public class IncomingMessage internal constructor(
             InvalidMessageException::class,
             SetupPendingException::class,
         )
-        internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage? {
-            val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipient.id)
-                ?: throw UnknownFirstPartyEndpointException(
-                    "Unknown first-party endpoint ${parcel.recipient.id}",
-                )
+        internal suspend fun build(
+            parcel: Parcel,
+            ack: suspend () -> Unit,
+        ): IncomingMessage? {
+            val recipientEndpoint =
+                FirstPartyEndpoint.load(parcel.recipient.id)
+                    ?: throw UnknownFirstPartyEndpointException(
+                        "Unknown first-party endpoint ${parcel.recipient.id}",
+                    )
 
-            val sender = ThirdPartyEndpoint.load(
-                parcel.recipient.id,
-                parcel.senderCertificate.subjectId,
-            ) ?: throw UnknownThirdPartyEndpointException(
-                "Unknown third-party endpoint " +
-                    "${parcel.senderCertificate.subjectId} " +
-                    "for first-party endpoint ${parcel.recipient.id}",
-            )
+            val sender =
+                ThirdPartyEndpoint.load(
+                    parcel.recipient.id,
+                    parcel.senderCertificate.subjectId,
+                ) ?: throw UnknownThirdPartyEndpointException(
+                    "Unknown third-party endpoint " +
+                        "${parcel.senderCertificate.subjectId} " +
+                        "for first-party endpoint ${parcel.recipient.id}",
+                )
 
             val context = Awala.getContextOrThrow()
 
-            val serviceMessage = try {
-                context.endpointManager.unwrapMessagePayload(parcel)
-            } catch (e: MissingKeyException) {
-                throw UnknownThirdPartyEndpointException(
-                    "Missing third-party endpoint session keys",
-                )
-            }
+            val serviceMessage =
+                try {
+                    context.endpointManager.unwrapMessagePayload(parcel)
+                } catch (e: MissingKeyException) {
+                    throw UnknownThirdPartyEndpointException(
+                        "Missing third-party endpoint session keys",
+                    )
+                }
             if (serviceMessage.type == PDA_PATH_TYPE) {
                 processConnectionParams(serviceMessage.content, sender, recipientEndpoint)
                 ack()
@@ -97,17 +102,18 @@ public class IncomingMessage internal constructor(
                 )
                 return
             }
-            val params = try {
-                PrivateEndpointConnParams.deserialize(paramsSerialized)
-            } catch (exc: InvalidNodeConnectionParams) {
-                logger.log(
-                    Level.INFO,
-                    "Ignoring malformed connection params for ${recipientEndpoint.nodeId} " +
-                        "from ${senderEndpoint.nodeId}",
-                    exc,
-                )
-                return
-            }
+            val params =
+                try {
+                    PrivateEndpointConnParams.deserialize(paramsSerialized)
+                } catch (exc: InvalidNodeConnectionParams) {
+                    logger.log(
+                        Level.INFO,
+                        "Ignoring malformed connection params for ${recipientEndpoint.nodeId} " +
+                            "from ${senderEndpoint.nodeId}",
+                        exc,
+                    )
+                    return
+                }
 
             try {
                 (senderEndpoint as PrivateThirdPartyEndpoint).updateParams(params)

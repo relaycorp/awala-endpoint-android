@@ -23,20 +23,22 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     @Test
     fun nodeId() {
         val identityKey = KeyPairSet.PDA_GRANTEE.public
-        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
-            internetAddress,
-            identityKey,
-        )
+        val thirdPartyEndpoint =
+            PublicThirdPartyEndpoint(
+                internetAddress,
+                identityKey,
+            )
 
         assertEquals(identityKey.nodeId, thirdPartyEndpoint.nodeId)
     }
 
     @Test
     fun recipient() {
-        val thirdPartyEndpoint = PublicThirdPartyEndpoint(
-            internetAddress,
-            KeyPairSet.PDA_GRANTEE.public,
-        )
+        val thirdPartyEndpoint =
+            PublicThirdPartyEndpoint(
+                internetAddress,
+                KeyPairSet.PDA_GRANTEE.public,
+            )
 
         val recipient = thirdPartyEndpoint.recipient
         assertEquals(thirdPartyEndpoint.nodeId, recipient.id)
@@ -44,64 +46,69 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun load_successful() = runTest {
-        val id = UUID.randomUUID().toString()
-        whenever(storage.publicThirdParty.get(any()))
-            .thenReturn(
-                PublicThirdPartyEndpointData(
-                    internetAddress,
-                    KeyPairSet.PDA_GRANTEE.public,
-                ),
-            )
+    fun load_successful() =
+        runTest {
+            val id = UUID.randomUUID().toString()
+            whenever(storage.publicThirdParty.get(any()))
+                .thenReturn(
+                    PublicThirdPartyEndpointData(
+                        internetAddress,
+                        KeyPairSet.PDA_GRANTEE.public,
+                    ),
+                )
 
-        val endpoint = PublicThirdPartyEndpoint.load(id)!!
-        assertEquals(internetAddress, endpoint.internetAddress)
-        assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
-    }
-
-    @Test
-    fun load_nonExistent() = runTest {
-        whenever(storage.publicThirdParty.get(any())).thenReturn(null)
-
-        assertNull(PublicThirdPartyEndpoint.load(UUID.randomUUID().toString()))
-    }
-
-    @Test
-    fun import_validConnectionParams() = runTest {
-        val connectionParams = NodeConnectionParams(
-            internetAddress,
-            KeyPairSet.PDA_GRANTEE.public,
-            SessionKeyPair.generate().sessionKey,
-        )
-
-        val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
-
-        assertEquals(connectionParams.internetAddress, thirdPartyEndpoint.internetAddress)
-        assertEquals(connectionParams.identityKey, thirdPartyEndpoint.identityKey)
-        verify(storage.publicThirdParty).set(
-            PDACertPath.PDA.subjectId,
-            PublicThirdPartyEndpointData(
-                connectionParams.internetAddress,
-                connectionParams.identityKey,
-            ),
-        )
-        sessionPublicKeystore.retrieve(thirdPartyEndpoint.nodeId)
-    }
-
-    @Test
-    fun import_invalidConnectionParams() = runTest {
-        try {
-            PublicThirdPartyEndpoint.import(
-                "malformed".toByteArray(),
-            )
-        } catch (exception: InvalidThirdPartyEndpoint) {
-            assertEquals("Connection params serialization is malformed", exception.message)
-            assertEquals(0, sessionPublicKeystore.keys.size)
-            return@runTest
+            val endpoint = PublicThirdPartyEndpoint.load(id)!!
+            assertEquals(internetAddress, endpoint.internetAddress)
+            assertEquals(KeyPairSet.PDA_GRANTEE.public, endpoint.identityKey)
         }
 
-        assert(false)
-    }
+    @Test
+    fun load_nonExistent() =
+        runTest {
+            whenever(storage.publicThirdParty.get(any())).thenReturn(null)
+
+            assertNull(PublicThirdPartyEndpoint.load(UUID.randomUUID().toString()))
+        }
+
+    @Test
+    fun import_validConnectionParams() =
+        runTest {
+            val connectionParams =
+                NodeConnectionParams(
+                    internetAddress,
+                    KeyPairSet.PDA_GRANTEE.public,
+                    SessionKeyPair.generate().sessionKey,
+                )
+
+            val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
+
+            assertEquals(connectionParams.internetAddress, thirdPartyEndpoint.internetAddress)
+            assertEquals(connectionParams.identityKey, thirdPartyEndpoint.identityKey)
+            verify(storage.publicThirdParty).set(
+                PDACertPath.PDA.subjectId,
+                PublicThirdPartyEndpointData(
+                    connectionParams.internetAddress,
+                    connectionParams.identityKey,
+                ),
+            )
+            sessionPublicKeystore.retrieve(thirdPartyEndpoint.nodeId)
+        }
+
+    @Test
+    fun import_invalidConnectionParams() =
+        runTest {
+            try {
+                PublicThirdPartyEndpoint.import(
+                    "malformed".toByteArray(),
+                )
+            } catch (exception: InvalidThirdPartyEndpoint) {
+                assertEquals("Connection params serialization is malformed", exception.message)
+                assertEquals(0, sessionPublicKeystore.keys.size)
+                return@runTest
+            }
+
+            assert(false)
+        }
 
     @Test
     fun dataSerialization() {
@@ -115,24 +122,25 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
     }
 
     @Test
-    fun delete() = runTest {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
-        val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
-        val ownSessionKeyPair = SessionKeyPair.generate()
-        privateKeyStore.saveSessionKey(
-            ownSessionKeyPair.privateKey,
-            ownSessionKeyPair.sessionKey.keyId,
-            firstPartyEndpoint.nodeId,
-            thirdPartyEndpoint.nodeId,
-        )
-        val peerSessionKey = SessionKeyPair.generate().sessionKey
-        sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.nodeId)
+    fun delete() =
+        runTest {
+            val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+            val thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
+            val ownSessionKeyPair = SessionKeyPair.generate()
+            privateKeyStore.saveSessionKey(
+                ownSessionKeyPair.privateKey,
+                ownSessionKeyPair.sessionKey.keyId,
+                firstPartyEndpoint.nodeId,
+                thirdPartyEndpoint.nodeId,
+            )
+            val peerSessionKey = SessionKeyPair.generate().sessionKey
+            sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.nodeId)
 
-        thirdPartyEndpoint.delete()
+            thirdPartyEndpoint.delete()
 
-        verify(storage.publicThirdParty).delete(thirdPartyEndpoint.nodeId)
-        assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
-        assertEquals(0, sessionPublicKeystore.keys.size)
-        verify(channelManager).delete(thirdPartyEndpoint)
-    }
+            verify(storage.publicThirdParty).delete(thirdPartyEndpoint.nodeId)
+            assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
+            assertEquals(0, sessionPublicKeystore.keys.size)
+            verify(channelManager).delete(thirdPartyEndpoint)
+        }
 }

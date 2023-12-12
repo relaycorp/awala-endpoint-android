@@ -1,8 +1,11 @@
 package tech.relaycorp.awaladroid
 
 import android.content.Context
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import tech.relaycorp.awala.keystores.file.FileCertificateStore
 import tech.relaycorp.awala.keystores.file.FileKeystoreRoot
 import tech.relaycorp.awala.keystores.file.FileSessionPublicKeystore
@@ -15,6 +18,8 @@ import tech.relaycorp.awaladroid.storage.StorageImpl
 import tech.relaycorp.awaladroid.storage.persistence.DiskPersistence
 import tech.relaycorp.relaynet.nodes.EndpointManager
 import java.io.File
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 public object Awala {
     internal const val POWEB_PORT = 13276
@@ -32,6 +37,7 @@ public object Awala {
     /**
      * Set up the endpoint library.
      */
+    @Throws(GatewayUnregisteredException::class)
     public suspend fun setUp(context: Context) {
         val keystoreRoot =
             FileKeystoreRoot(File(context.filesDir, "awaladroid${File.separator}keystores"))
@@ -39,19 +45,21 @@ public object Awala {
         val fileSessionPublicKeystore = FileSessionPublicKeystore(keystoreRoot)
         val fileCertificateStore = FileCertificateStore(keystoreRoot)
 
-        this.context = AwalaContext(
-            StorageImpl(DiskPersistence(context.filesDir.path.toString())),
-            GatewayClientImpl(
-                serviceInteractorBuilder = { ServiceInteractor(context) },
+        contextDeferred.complete(
+            AwalaContext(
+                StorageImpl(DiskPersistence(context.filesDir.path.toString())),
+                GatewayClientImpl(
+                    serviceInteractorBuilder = { ServiceInteractor(context) },
+                ),
+                EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
+                ChannelManager {
+                    context.getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
+                },
+                androidPrivateKeyStore,
+                fileSessionPublicKeystore,
+                fileCertificateStore,
+                HandleGatewayCertificateChange(androidPrivateKeyStore),
             ),
-            EndpointManager(androidPrivateKeyStore, fileSessionPublicKeystore),
-            ChannelManager {
-                context.getSharedPreferences("awaladroid-channels", Context.MODE_PRIVATE)
-            },
-            androidPrivateKeyStore,
-            fileSessionPublicKeystore,
-            fileCertificateStore,
-            HandleGatewayCertificateChange(androidPrivateKeyStore),
         )
 
         coroutineScope {
@@ -62,8 +70,23 @@ public object Awala {
         }
     }
 
-    internal var context: AwalaContext? = null
-    internal fun getContextOrThrow(): AwalaContext = context ?: throw SetupPendingException()
+    internal var contextDeferred: CompletableDeferred<AwalaContext> = CompletableDeferred()
+
+    internal fun getContextOrThrow(): AwalaContext =
+        try {
+            contextDeferred.getCompleted()
+        } catch (e: IllegalStateException) {
+            throw SetupPendingException()
+        }
+
+    internal suspend fun awaitContextOrThrow(timeout: Duration = 3.seconds): AwalaContext =
+        try {
+            withTimeout(timeout) {
+                contextDeferred.await()
+            }
+        } catch (e: TimeoutCancellationException) {
+            throw SetupPendingException()
+        }
 }
 
 /**

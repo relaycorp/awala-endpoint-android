@@ -6,7 +6,7 @@ jobs:
   ci:
     uses: relaycorp/shared-workflows/.github/workflows/jvm-lib-ci.yml@main
     with:
-      java_versions: "[11]"
+      java_versions: "[17]"
 
   release:
     needs: ci

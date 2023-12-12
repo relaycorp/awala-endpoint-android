@@ -10,12 +10,14 @@ import tech.relaycorp.awaladroid.Awala
 import kotlin.coroutines.CoroutineContext
 
 internal class IncomingParcelBroadcastReceiver : BroadcastReceiver() {
-
     internal var coroutineContext: CoroutineContext = Dispatchers.IO
 
-    override fun onReceive(context: Context?, intent: Intent?) {
+    override fun onReceive(
+        context: Context?,
+        intent: Intent?,
+    ) {
         CoroutineScope(coroutineContext).launch {
-            Awala.getContextOrThrow().gatewayClient.checkForNewMessages()
+            Awala.awaitContextOrThrow().gatewayClient.checkForNewMessages()
         }
     }
 }

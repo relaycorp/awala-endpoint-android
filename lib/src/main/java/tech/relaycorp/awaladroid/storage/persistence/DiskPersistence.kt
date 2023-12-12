@@ -11,10 +11,12 @@ internal class DiskPersistence(
     private val coroutineContext: CoroutineContext = Dispatchers.IO,
     private val rootFolder: String = "awaladroid",
 ) : Persistence {
-
     @Suppress("BlockingMethodInNonBlockingContext")
     @Throws(PersistenceException::class)
-    override suspend fun set(location: String, data: ByteArray) {
+    override suspend fun set(
+        location: String,
+        data: ByteArray,
+    ) {
         withContext(coroutineContext) {
             deleteIfExists(location)
             try {
@@ -29,18 +31,19 @@ internal class DiskPersistence(
 
     @Suppress("BlockingMethodInNonBlockingContext")
     @Throws(PersistenceException::class)
-    override suspend fun get(location: String): ByteArray? = withContext(coroutineContext) {
-        try {
-            buildFile(location)
-                .inputStream()
-                .use { it.readBytes() }
-        } catch (exception: IOException) {
-            if (buildFile(location).exists()) {
-                throw PersistenceException("Failed to read file at $location", exception)
+    override suspend fun get(location: String): ByteArray? =
+        withContext(coroutineContext) {
+            try {
+                buildFile(location)
+                    .inputStream()
+                    .use { it.readBytes() }
+            } catch (exception: IOException) {
+                if (buildFile(location).exists()) {
+                    throw PersistenceException("Failed to read file at $location", exception)
+                }
+                null
             }
-            null
         }
-    }
 
     @Throws(PersistenceException::class)
     override suspend fun delete(location: String) {
@@ -63,15 +66,16 @@ internal class DiskPersistence(
         }
     }
 
-    override suspend fun list(locationPrefix: String) = withContext(coroutineContext) {
-        val rootFolder = buildFile("")
-        rootFolder
-            .walkTopDown()
-            .toList()
-            .let { it.subList(1, it.size) } // skip first, the root
-            .map { it.absolutePath.replace(rootFolder.absolutePath + File.separator, "") }
-            .filter { it.startsWith(locationPrefix) }
-    }
+    override suspend fun list(locationPrefix: String) =
+        withContext(coroutineContext) {
+            val rootFolder = buildFile("")
+            rootFolder
+                .walkTopDown()
+                .toList()
+                .let { it.subList(1, it.size) } // skip first, the root
+                .map { it.absolutePath.replace(rootFolder.absolutePath + File.separator, "") }
+                .filter { it.startsWith(locationPrefix) }
+        }
 
     // Helpers
 

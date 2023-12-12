@@ -10,12 +10,14 @@ import tech.relaycorp.awaladroid.Awala
 import kotlin.coroutines.CoroutineContext
 
 internal class GatewayCertificateChangeBroadcastReceiver : BroadcastReceiver() {
-
     internal var coroutineContext: CoroutineContext = Dispatchers.IO
 
-    override fun onReceive(context: Context?, intent: Intent?) {
+    override fun onReceive(
+        context: Context?,
+        intent: Intent?,
+    ) {
         CoroutineScope(coroutineContext).launch {
-            Awala.getContextOrThrow().handleGatewayCertificateChange()
+            Awala.awaitContextOrThrow().handleGatewayCertificateChange()
         }
     }
 }
