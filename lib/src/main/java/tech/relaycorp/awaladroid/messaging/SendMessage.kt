@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tech.relaycorp.awaladroid.Awala
@@ -12,16 +11,16 @@ import tech.relaycorp.relaynet.bindings.pdc.PDCClient
 import tech.relaycorp.relaynet.bindings.pdc.RejectedParcelException
 import tech.relaycorp.relaynet.bindings.pdc.ServerException
 import tech.relaycorp.relaynet.bindings.pdc.Signer
+import kotlin.coroutines.CoroutineContext
 
 internal class SendMessage(
     private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
-    private val coroutineContext: CoroutineContext = Dispatchers.IO
+    private val coroutineContext: CoroutineContext = Dispatchers.IO,
 ) {
-
     @Throws(
         SendMessageException::class,
         RejectedMessageException::class,
-        GatewayProtocolException::class
+        GatewayProtocolException::class,
     )
     suspend fun send(message: OutgoingMessage) {
         withContext(coroutineContext) {
@@ -33,8 +32,8 @@ internal class SendMessage(
                         message.parcel.serialize(senderPrivateKey),
                         Signer(
                             message.senderEndpoint.identityCertificate,
-                            senderPrivateKey
-                        )
+                            senderPrivateKey,
+                        ),
                     )
                 }
             } catch (e: ServerException) {

@@ -47,8 +47,8 @@ internal abstract class MockContextTestCase {
                 privateKeyStore,
                 sessionPublicKeystore,
                 certificateStore,
-                handleGatewayCertificateChange
-            )
+                handleGatewayCertificateChange,
+            ),
         )
     }
 
@@ -62,16 +62,17 @@ internal abstract class MockContextTestCase {
     fun unsetContext(): Unit = unsetAwalaContext()
 
     protected suspend fun createEndpointChannel(
-        thirdPartyEndpointType: RecipientAddressType
+        thirdPartyEndpointType: RecipientAddressType,
     ): EndpointChannel {
         val firstPartyEndpoint = createFirstPartyEndpoint()
 
         val thirdPartySessionKeyPair = SessionKeyPair.generate()
-        val thirdPartyEndpoint = createThirdPartyEndpoint(
-            thirdPartyEndpointType,
-            thirdPartySessionKeyPair.sessionKey,
-            firstPartyEndpoint,
-        )
+        val thirdPartyEndpoint =
+            createThirdPartyEndpoint(
+                thirdPartyEndpointType,
+                thirdPartySessionKeyPair.sessionKey,
+                firstPartyEndpoint,
+            )
 
         val firstPartySessionKeyPair = SessionKeyPair.generate()
         privateKeyStore.saveSessionKey(
@@ -92,8 +93,9 @@ internal abstract class MockContextTestCase {
         )
     }
 
-    protected suspend fun createFirstPartyEndpoint(): FirstPartyEndpoint {
-        val firstPartyEndpoint = FirstPartyEndpointFactory.build()
+    protected suspend fun createFirstPartyEndpoint(
+        firstPartyEndpoint: FirstPartyEndpoint = FirstPartyEndpointFactory.build(),
+    ): FirstPartyEndpoint {
         val gatewayAddress = "example.org"
         privateKeyStore.saveIdentityKey(
             firstPartyEndpoint.identityPrivateKey,
@@ -103,7 +105,7 @@ internal abstract class MockContextTestCase {
         certificateStore.save(
             CertificationPath(
                 certificate,
-                firstPartyEndpoint.identityCertificateChain
+                firstPartyEndpoint.identityCertificateChain,
             ),
             certificate.issuerCommonName,
         )
@@ -117,11 +119,11 @@ internal abstract class MockContextTestCase {
         } else {
             storage.gatewayId.set(
                 firstPartyEndpoint.nodeId,
-                certificate.issuerCommonName
+                certificate.issuerCommonName,
             )
 
             storage.internetAddress.set(
-                gatewayAddress
+                gatewayAddress,
             )
         }
 
@@ -131,44 +133,45 @@ internal abstract class MockContextTestCase {
     private suspend fun createThirdPartyEndpoint(
         thirdPartyEndpointType: RecipientAddressType,
         sessionKey: SessionKey,
-        firstPartyEndpoint: FirstPartyEndpoint
+        firstPartyEndpoint: FirstPartyEndpoint,
     ): ThirdPartyEndpoint {
         val thirdPartyEndpoint: ThirdPartyEndpoint
         when (thirdPartyEndpointType) {
             RecipientAddressType.PRIVATE -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPrivate()
-                val authBundle = CertificationPath(
-                    PDACertPath.PDA,
-                    listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW)
-                )
+                val authBundle =
+                    CertificationPath(
+                        PDACertPath.PDA,
+                        listOf(PDACertPath.PRIVATE_ENDPOINT, PDACertPath.PRIVATE_GW),
+                    )
                 whenever(
                     storage.privateThirdParty.get(
-                        "${firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}"
-                    )
+                        "${firstPartyEndpoint.nodeId}_${thirdPartyEndpoint.nodeId}",
+                    ),
                 ).thenReturn(
                     PrivateThirdPartyEndpointData(
                         KeyPairSet.PDA_GRANTEE.public,
                         authBundle,
                         thirdPartyEndpoint.internetAddress,
-                    )
+                    ),
                 )
             }
             else -> {
                 thirdPartyEndpoint = ThirdPartyEndpointFactory.buildPublic()
                 whenever(
-                    storage.publicThirdParty.get(thirdPartyEndpoint.nodeId)
+                    storage.publicThirdParty.get(thirdPartyEndpoint.nodeId),
                 ).thenReturn(
                     PublicThirdPartyEndpointData(
                         thirdPartyEndpoint.internetAddress,
-                        thirdPartyEndpoint.identityKey
-                    )
+                        thirdPartyEndpoint.identityKey,
+                    ),
                 )
             }
         }
 
         sessionPublicKeystore.save(
             sessionKey,
-            thirdPartyEndpoint.nodeId
+            thirdPartyEndpoint.nodeId,
         )
         return thirdPartyEndpoint
     }

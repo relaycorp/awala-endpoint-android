@@ -13,11 +13,12 @@ import tech.relaycorp.awaladroid.test.MockContextTestCase
 @RunWith(RobolectricTestRunner::class)
 internal class IncomingParcelBroadcastReceiverTest : MockContextTestCase() {
     @Test
-    fun name() = runTest {
-        val receiver = IncomingParcelBroadcastReceiver()
-        receiver.coroutineContext = coroutineContext
-        receiver.onReceive(RuntimeEnvironment.getApplication(), Intent())
-        advanceUntilIdle()
-        verify(gatewayClient).checkForNewMessages()
-    }
+    fun name() =
+        runTest {
+            val receiver = IncomingParcelBroadcastReceiver()
+            receiver.coroutineContext = coroutineContext
+            receiver.onReceive(RuntimeEnvironment.getApplication(), Intent())
+            advanceUntilIdle()
+            verify(gatewayClient).checkForNewMessages()
+        }
 }

@@ -1,8 +1,9 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.util.logging.Level
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
@@ -26,63 +27,87 @@ import tech.relaycorp.relaynet.ramf.InvalidPayloadException
 import tech.relaycorp.relaynet.ramf.RAMFException
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
 import tech.relaycorp.relaynet.wrappers.nodeId
+import java.util.logging.Level
 
 internal class ReceiveMessages(
-    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) }
+    private val pdcClientBuilder: () -> PDCClient = { PoWebClient.initLocal(Awala.POWEB_PORT) },
 ) {
-
-    @Throws(
-        ReceiveMessageException::class,
-        GatewayProtocolException::class,
-        PersistenceException::class
-    )
+    /**
+     * Flow may throw:
+     * - ReceiveMessageException
+     * - GatewayProtocolException
+     */
+    @Throws(PersistenceException::class)
     fun receive(): Flow<IncomingMessage> =
         getNonceSigners()
             .flatMapLatest { nonceSigners ->
-                val pdcClient = pdcClientBuilder()
-                try {
-                    collectParcels(pdcClient, nonceSigners)
-                        .onCompletion {
-                            @Suppress("BlockingMethodInNonBlockingContext")
-                            pdcClient.close()
-                        }
-                } catch (exp: ServerException) {
-                    throw ReceiveMessageException("Server error", exp)
-                } catch (exp: ClientBindingException) {
-                    throw GatewayProtocolException("Client error", exp)
-                } catch (exp: NonceSignerException) {
-                    throw GatewayProtocolException("Client signing error", exp)
-                }
-            }
-
-    @Throws(PersistenceException::class)
-    private fun getNonceSigners() = suspend {
-        val context = Awala.getContextOrThrow()
-        context.privateKeyStore.retrieveAllIdentityKeys()
-            .flatMap { identityPrivateKey ->
-                val nodeId = identityPrivateKey.nodeId
-                val privateGatewayId =
-                    context.storage.gatewayId.get(nodeId)
-                        ?: return@flatMap emptyList()
-                context.certificateStore.retrieveAll(
-                    nodeId,
-                    privateGatewayId
-                ).map {
-                    Signer(
-                        it.leafCertificate,
-                        identityPrivateKey,
+                if (nonceSigners.isEmpty()) {
+                    logger.log(
+                        Level.WARNING,
+                        "Skipping parcel collection because there are no first-party endpoints",
                     )
+                    return@flatMapLatest emptyFlow()
                 }
+
+                val pdcClient = pdcClientBuilder()
+                collectParcels(pdcClient, nonceSigners)
+                    .catch {
+                        throw when (it) {
+                            is ServerException ->
+                                ReceiveMessageException("Server error", it)
+
+                            is ClientBindingException ->
+                                GatewayProtocolException("Client error", it)
+
+                            is NonceSignerException ->
+                                GatewayProtocolException("Client signing error", it)
+
+                            else -> it
+                        }
+                    }
+                    .onCompletion {
+                        @Suppress("BlockingMethodInNonBlockingContext")
+                        pdcClient.close()
+                    }
             }
-            .toTypedArray()
-    }.asFlow()
 
     @Throws(PersistenceException::class)
-    private suspend fun collectParcels(pdcClient: PDCClient, nonceSigners: Array<Signer>) =
-        pdcClient
-            .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
-            .mapNotNull { parcelCollection ->
-                val parcel = try {
+    private fun getNonceSigners() =
+        suspend {
+            val context = Awala.getContextOrThrow()
+            context.privateKeyStore.retrieveAllIdentityKeys()
+                .flatMap { identityPrivateKey ->
+                    val nodeId = identityPrivateKey.nodeId
+                    val privateGatewayId =
+                        context.storage.gatewayId.get(nodeId)
+                            ?: return@flatMap emptyList()
+                    context.certificateStore.retrieveAll(
+                        nodeId,
+                        privateGatewayId,
+                    ).map {
+                        Signer(
+                            it.leafCertificate,
+                            identityPrivateKey,
+                        )
+                    }
+                }
+                .toTypedArray()
+        }.asFlow()
+
+    /**
+     * Flow may throw:
+     * - ReceiveMessageException
+     * - GatewayProtocolException
+     */
+    @Throws(PersistenceException::class)
+    private suspend fun collectParcels(
+        pdcClient: PDCClient,
+        nonceSigners: Array<Signer>,
+    ) = pdcClient
+        .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
+        .mapNotNull { parcelCollection ->
+            val parcel =
+                try {
                     parcelCollection.deserializeAndValidateParcel()
                 } catch (exp: RAMFException) {
                     parcelCollection.disregard("Malformed incoming parcel", exp)
@@ -91,31 +116,34 @@ internal class ReceiveMessages(
                     parcelCollection.disregard("Invalid incoming parcel", exp)
                     return@mapNotNull null
                 }
-                try {
-                    IncomingMessage.build(parcel) { parcelCollection.ack() }
-                } catch (exp: UnknownFirstPartyEndpointException) {
-                    parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
-                    return@mapNotNull null
-                } catch (exp: UnknownThirdPartyEndpointException) {
-                    parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
-                    return@mapNotNull null
-                } catch (exp: EnvelopedDataException) {
-                    parcelCollection.disregard(
-                        "Failed to decrypt parcel; sender might have used wrong key",
-                        exp
-                    )
-                    return@mapNotNull null
-                } catch (exp: InvalidPayloadException) {
-                    parcelCollection.disregard(
-                        "Incoming parcel did not encapsulate a valid service message",
-                        exp
-                    )
-                    return@mapNotNull null
-                }
+            try {
+                IncomingMessage.build(parcel) { parcelCollection.ack() }
+            } catch (exp: UnknownFirstPartyEndpointException) {
+                parcelCollection.disregard("Incoming parcel with invalid recipient", exp)
+                return@mapNotNull null
+            } catch (exp: UnknownThirdPartyEndpointException) {
+                parcelCollection.disregard("Incoming parcel issues with invalid sender", exp)
+                return@mapNotNull null
+            } catch (exp: EnvelopedDataException) {
+                parcelCollection.disregard(
+                    "Failed to decrypt parcel; sender might have used wrong key",
+                    exp,
+                )
+                return@mapNotNull null
+            } catch (exp: InvalidPayloadException) {
+                parcelCollection.disregard(
+                    "Incoming parcel did not encapsulate a valid service message",
+                    exp,
+                )
+                return@mapNotNull null
             }
+        }
 }
 
-private suspend fun ParcelCollection.disregard(reason: String, exc: Throwable) {
+private suspend fun ParcelCollection.disregard(
+    reason: String,
+    exc: Throwable,
+) {
     logger.log(Level.WARNING, reason, exc)
     ack()
 }

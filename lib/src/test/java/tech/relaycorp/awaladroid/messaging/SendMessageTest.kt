@@ -17,69 +17,73 @@ import tech.relaycorp.relaynet.testing.pdc.DeliverParcelCall
 import tech.relaycorp.relaynet.testing.pdc.MockPDCClient
 
 internal class SendMessageTest : MockContextTestCase() {
-
     private lateinit var pdcClient: MockPDCClient
     private val coroutineScope = TestScope()
     private val subject = SendMessage({ pdcClient }, coroutineScope.coroutineContext)
 
     @Test
-    fun deliverParcelToPublicEndpoint() = coroutineScope.runTest {
-        val deliverParcelCall = DeliverParcelCall()
-        pdcClient = MockPDCClient(deliverParcelCall)
-        val message =
-            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+    fun deliverParcelToPublicEndpoint() =
+        coroutineScope.runTest {
+            val deliverParcelCall = DeliverParcelCall()
+            pdcClient = MockPDCClient(deliverParcelCall)
+            val message =
+                MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.send(message)
+            subject.send(message)
 
-        assertTrue(deliverParcelCall.wasCalled)
-        val parcel = Parcel.deserialize(deliverParcelCall.arguments!!.parcelSerialized)
-        assertEquals(message.parcel.id, parcel.id)
-    }
+            assertTrue(deliverParcelCall.wasCalled)
+            val parcel = Parcel.deserialize(deliverParcelCall.arguments!!.parcelSerialized)
+            assertEquals(message.parcel.id, parcel.id)
+        }
 
     @Test
-    fun deliverParcelSigner() = coroutineScope.runTest {
-        val deliverParcelCall = DeliverParcelCall()
-        pdcClient = MockPDCClient(deliverParcelCall)
-        val message =
-            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+    fun deliverParcelSigner() =
+        coroutineScope.runTest {
+            val deliverParcelCall = DeliverParcelCall()
+            pdcClient = MockPDCClient(deliverParcelCall)
+            val message =
+                MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
 
-        subject.send(message)
+            subject.send(message)
 
-        assertTrue(deliverParcelCall.wasCalled)
-        val signer = deliverParcelCall.arguments!!.deliverySigner
-        assertEquals(
-            message.senderEndpoint.identityCertificate.subjectId,
-            signer.certificate.subjectId
-        )
-    }
+            assertTrue(deliverParcelCall.wasCalled)
+            val signer = deliverParcelCall.arguments!!.deliverySigner
+            assertEquals(
+                message.senderEndpoint.identityCertificate.subjectId,
+                signer.certificate.subjectId,
+            )
+        }
 
     @Test(expected = SendMessageException::class)
-    fun deliverParcelWithServerError() = coroutineScope.runTest {
-        val deliverParcelCall = DeliverParcelCall(ServerConnectionException(""))
-        pdcClient = MockPDCClient(deliverParcelCall)
+    fun deliverParcelWithServerError() =
+        coroutineScope.runTest {
+            val deliverParcelCall = DeliverParcelCall(ServerConnectionException(""))
+            pdcClient = MockPDCClient(deliverParcelCall)
 
-        val message =
-            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
-        subject.send(message)
-    }
+            val message =
+                MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+            subject.send(message)
+        }
 
     @Test(expected = GatewayProtocolException::class)
-    fun deliverParcelWithClientError() = coroutineScope.runTest {
-        val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
-        pdcClient = MockPDCClient(deliverParcelCall)
+    fun deliverParcelWithClientError() =
+        coroutineScope.runTest {
+            val deliverParcelCall = DeliverParcelCall(ClientBindingException(""))
+            pdcClient = MockPDCClient(deliverParcelCall)
 
-        val message =
-            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
-        subject.send(message)
-    }
+            val message =
+                MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+            subject.send(message)
+        }
 
     @Test(expected = RejectedMessageException::class)
-    fun deliverParcelWithRejectedParcelError() = coroutineScope.runTest {
-        val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
-        pdcClient = MockPDCClient(deliverParcelCall)
+    fun deliverParcelWithRejectedParcelError() =
+        coroutineScope.runTest {
+            val deliverParcelCall = DeliverParcelCall(RejectedParcelException(""))
+            pdcClient = MockPDCClient(deliverParcelCall)
 
-        val message =
-            MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
-        subject.send(message)
-    }
+            val message =
+                MessageFactory.buildOutgoing(createEndpointChannel(RecipientAddressType.PUBLIC))
+            subject.send(message)
+        }
 }

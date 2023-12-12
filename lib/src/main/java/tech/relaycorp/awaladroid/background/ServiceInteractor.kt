@@ -10,25 +10,31 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
+import tech.relaycorp.awaladroid.common.Logging.logger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import tech.relaycorp.awaladroid.common.Logging.logger
 
 internal class ServiceInteractor(
-    private val context: Context
+    private val context: Context,
 ) {
-
     private var serviceConnection: ServiceConnection? = null
     private var binder: IBinder? = null
 
     @Throws(BindFailedException::class)
-    suspend fun bind(action: String, packageName: String, componentName: String) =
-        suspendCoroutine<Unit> { cont ->
-            var isResumed = false
+    suspend fun bind(
+        action: String,
+        packageName: String,
+        componentName: String,
+    ) = suspendCoroutine<Unit> { cont ->
+        var isResumed = false
 
-            val serviceConnection = object : ServiceConnection {
-                override fun onServiceConnected(p0: ComponentName?, binder: IBinder) {
+        val serviceConnection =
+            object : ServiceConnection {
+                override fun onServiceConnected(
+                    p0: ComponentName?,
+                    binder: IBinder,
+                ) {
                     logger.info("Connected to service $packageName - $componentName")
                     serviceConnection = this
                     this@ServiceInteractor.binder = binder
@@ -63,20 +69,23 @@ internal class ServiceInteractor(
                 }
             }
 
-            val intent = Intent(action).apply {
-                component = ComponentName(
-                    packageName,
-                    componentName
-                )
+        val intent =
+            Intent(action).apply {
+                component =
+                    ComponentName(
+                        packageName,
+                        componentName,
+                    )
             }
 
-            val bindWasSuccessful = context.bindService(
+        val bindWasSuccessful =
+            context.bindService(
                 intent,
                 serviceConnection,
-                Context.BIND_AUTO_CREATE
+                Context.BIND_AUTO_CREATE,
             )
-            if (!bindWasSuccessful) cont.resumeWithException(BindFailedException("Binding failed"))
-        }
+        if (!bindWasSuccessful) cont.resumeWithException(BindFailedException("Binding failed"))
+    }
 
     fun unbind() {
         serviceConnection?.let { context.unbindService(it) }
@@ -84,16 +93,22 @@ internal class ServiceInteractor(
     }
 
     @Throws(BindFailedException::class, SendFailedException::class)
-    fun sendMessage(message: Message, reply: ((Message) -> Unit)? = null) {
+    fun sendMessage(
+        message: Message,
+        reply: ((Message) -> Unit)? = null,
+    ) {
         val binder = binder ?: throw BindFailedException("Service not bound")
 
         val looper = Looper.myLooper() ?: Looper.getMainLooper()
         reply?.let {
-            message.replyTo = Messenger(object : Handler(looper) {
-                override fun handleMessage(msg: Message) {
-                    reply(msg)
-                }
-            })
+            message.replyTo =
+                Messenger(
+                    object : Handler(looper) {
+                        override fun handleMessage(msg: Message) {
+                            reply(msg)
+                        }
+                    },
+                )
         }
         try {
             Messenger(binder).send(message)
@@ -103,5 +118,6 @@ internal class ServiceInteractor(
     }
 
     class BindFailedException(message: String) : Exception(message)
+
     class SendFailedException(throwable: Throwable) : Exception(throwable)
 }

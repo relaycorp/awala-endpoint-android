@@ -1,6 +1,5 @@
 package tech.relaycorp.awaladroid.messaging
 
-import java.util.logging.Level
 import tech.relaycorp.awaladroid.Awala
 import tech.relaycorp.awaladroid.SetupPendingException
 import tech.relaycorp.awaladroid.common.Logging.logger
@@ -18,6 +17,7 @@ import tech.relaycorp.relaynet.keystores.MissingKeyException
 import tech.relaycorp.relaynet.messages.InvalidMessageException
 import tech.relaycorp.relaynet.messages.Parcel
 import tech.relaycorp.relaynet.wrappers.cms.EnvelopedDataException
+import java.util.logging.Level
 
 /**
  * An incoming service message.
@@ -33,9 +33,8 @@ public class IncomingMessage internal constructor(
     public val content: ByteArray,
     public val senderEndpoint: ThirdPartyEndpoint,
     public val recipientEndpoint: FirstPartyEndpoint,
-    public val ack: suspend () -> Unit
+    public val ack: suspend () -> Unit,
 ) : Message() {
-
     internal companion object {
         private const val PDA_PATH_TYPE = "application/vnd+relaycorp.awala.pda-path"
 
@@ -47,30 +46,36 @@ public class IncomingMessage internal constructor(
             InvalidMessageException::class,
             SetupPendingException::class,
         )
-        internal suspend fun build(parcel: Parcel, ack: suspend () -> Unit): IncomingMessage? {
-            val recipientEndpoint = FirstPartyEndpoint.load(parcel.recipient.id)
-                ?: throw UnknownFirstPartyEndpointException(
-                    "Unknown first-party endpoint ${parcel.recipient.id}"
-                )
+        internal suspend fun build(
+            parcel: Parcel,
+            ack: suspend () -> Unit,
+        ): IncomingMessage? {
+            val recipientEndpoint =
+                FirstPartyEndpoint.load(parcel.recipient.id)
+                    ?: throw UnknownFirstPartyEndpointException(
+                        "Unknown first-party endpoint ${parcel.recipient.id}",
+                    )
 
-            val sender = ThirdPartyEndpoint.load(
-                parcel.recipient.id,
-                parcel.senderCertificate.subjectId,
-            ) ?: throw UnknownThirdPartyEndpointException(
-                "Unknown third-party endpoint " +
-                    "${parcel.senderCertificate.subjectId} " +
-                    "for first-party endpoint ${parcel.recipient.id}"
-            )
+            val sender =
+                ThirdPartyEndpoint.load(
+                    parcel.recipient.id,
+                    parcel.senderCertificate.subjectId,
+                ) ?: throw UnknownThirdPartyEndpointException(
+                    "Unknown third-party endpoint " +
+                        "${parcel.senderCertificate.subjectId} " +
+                        "for first-party endpoint ${parcel.recipient.id}",
+                )
 
             val context = Awala.getContextOrThrow()
 
-            val serviceMessage = try {
-                context.endpointManager.unwrapMessagePayload(parcel)
-            } catch (e: MissingKeyException) {
-                throw UnknownThirdPartyEndpointException(
-                    "Missing third-party endpoint session keys"
-                )
-            }
+            val serviceMessage =
+                try {
+                    context.endpointManager.unwrapMessagePayload(parcel)
+                } catch (e: MissingKeyException) {
+                    throw UnknownThirdPartyEndpointException(
+                        "Missing third-party endpoint session keys",
+                    )
+                }
             if (serviceMessage.type == PDA_PATH_TYPE) {
                 processConnectionParams(serviceMessage.content, sender, recipientEndpoint)
                 ack()
@@ -81,7 +86,7 @@ public class IncomingMessage internal constructor(
                 content = serviceMessage.content,
                 senderEndpoint = sender,
                 recipientEndpoint = recipientEndpoint,
-                ack = ack
+                ack = ack,
             )
         }
 
@@ -93,21 +98,22 @@ public class IncomingMessage internal constructor(
             if (senderEndpoint is PublicThirdPartyEndpoint) {
                 logger.info(
                     "Ignoring connection params from public endpoint ${senderEndpoint.nodeId} " +
-                        "(${senderEndpoint.internetAddress})"
+                        "(${senderEndpoint.internetAddress})",
                 )
                 return
             }
-            val params = try {
-                PrivateEndpointConnParams.deserialize(paramsSerialized)
-            } catch (exc: InvalidNodeConnectionParams) {
-                logger.log(
-                    Level.INFO,
-                    "Ignoring malformed connection params for ${recipientEndpoint.nodeId} " +
-                        "from ${senderEndpoint.nodeId}",
-                    exc,
-                )
-                return
-            }
+            val params =
+                try {
+                    PrivateEndpointConnParams.deserialize(paramsSerialized)
+                } catch (exc: InvalidNodeConnectionParams) {
+                    logger.log(
+                        Level.INFO,
+                        "Ignoring malformed connection params for ${recipientEndpoint.nodeId} " +
+                            "from ${senderEndpoint.nodeId}",
+                        exc,
+                    )
+                    return
+                }
 
             try {
                 (senderEndpoint as PrivateThirdPartyEndpoint).updateParams(params)
@@ -122,7 +128,7 @@ public class IncomingMessage internal constructor(
             }
             logger.info(
                 "Updated connection params from ${senderEndpoint.nodeId} for " +
-                    recipientEndpoint.nodeId
+                    recipientEndpoint.nodeId,
             )
         }
     }
