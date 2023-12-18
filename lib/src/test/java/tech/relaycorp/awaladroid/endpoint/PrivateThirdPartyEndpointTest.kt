@@ -145,7 +145,10 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 },
             )
 
-            assertEquals(sessionKey, sessionPublicKeystore.retrieve(endpoint.nodeId))
+            assertEquals(
+                sessionKey,
+                sessionPublicKeystore.retrieve(firstPartyEndpoint.nodeId, endpoint.nodeId),
+            )
         }
 
     @Test
