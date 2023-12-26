@@ -152,7 +152,7 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
 
             verify(storage.publicThirdParty).delete(thirdPartyEndpoint.nodeId)
             assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
-            assertEquals(0, sessionPublicKeystore.keys.size)
+            assertEquals(0, sessionPublicKeystore.keys[firstPartyEndpoint.nodeId]!!.size)
             verify(channelManager).delete(firstPartyEndpoint, thirdPartyEndpoint)
         }
 }

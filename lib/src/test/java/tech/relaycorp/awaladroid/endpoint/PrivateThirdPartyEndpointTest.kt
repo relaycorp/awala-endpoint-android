@@ -115,7 +115,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                     listOf(thirdPartyEndpointCertificate),
                 )
             val paramsSerialized = serializeConnectionParams(delivAuth)
-            val endpoint = PrivateThirdPartyEndpoint.import(paramsSerialized)
+            val endpoint = PrivateThirdPartyEndpoint.import(paramsSerialized, firstPartyEndpoint)
 
             assertEquals(
                 firstPartyEndpoint.nodeId,
@@ -157,8 +157,10 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             val firstPartyCert = PDACertPath.PRIVATE_ENDPOINT
             val pdaPath = CertificationPath(firstPartyCert, emptyList())
             val paramsSerialized = serializeConnectionParams(pdaPath)
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+            firstPartyEndpoint.delete()
             try {
-                PrivateThirdPartyEndpoint.import(paramsSerialized)
+                PrivateThirdPartyEndpoint.import(paramsSerialized, firstPartyEndpoint)
             } catch (exception: UnknownFirstPartyEndpointException) {
                 assertEquals(
                     "First-party endpoint ${firstPartyCert.subjectId} is not registered",
@@ -198,7 +200,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 )
             val paramsSerialized = serializeConnectionParams(pdaPath)
             try {
-                PrivateThirdPartyEndpoint.import(paramsSerialized)
+                PrivateThirdPartyEndpoint.import(paramsSerialized, firstPartyEndpoint)
             } catch (exception: InvalidAuthorizationException) {
                 assertEquals("PDA path is invalid", exception.message)
                 assertTrue(exception.cause is CertificationPathException)
@@ -212,8 +214,9 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     @Test
     fun import_malformedParams() =
         runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
             try {
-                PrivateThirdPartyEndpoint.import("malformed".toByteArray())
+                PrivateThirdPartyEndpoint.import("malformed".toByteArray(), firstPartyEndpoint)
             } catch (exception: InvalidThirdPartyEndpoint) {
                 assertEquals("Malformed connection params", exception.message)
                 assertTrue(exception.cause is InvalidNodeConnectionParams)
@@ -226,7 +229,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
     @Test
     fun import_invalidPDAPath() =
         runTest {
-            createFirstPartyEndpoint()
+            val firstPartyEndpoint = createFirstPartyEndpoint()
             val pdaPath =
                 CertificationPath(
                     pda,
@@ -235,7 +238,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
                 )
             val paramsSerialized = serializeConnectionParams(pdaPath)
             try {
-                PrivateThirdPartyEndpoint.import(paramsSerialized)
+                PrivateThirdPartyEndpoint.import(paramsSerialized, firstPartyEndpoint)
             } catch (exception: InvalidAuthorizationException) {
                 assertEquals("PDA path is invalid", exception.message)
                 return@runTest
@@ -262,7 +265,7 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             val pdaPath = CertificationPath(expiredPDA, listOf(thirdPartyEndpointCertificate))
             val paramsSerialized = serializeConnectionParams(pdaPath)
             try {
-                PrivateThirdPartyEndpoint.import(paramsSerialized)
+                PrivateThirdPartyEndpoint.import(paramsSerialized, firstPartyEndpoint)
             } catch (exception: InvalidAuthorizationException) {
                 assertEquals("PDA path is invalid", exception.message)
                 assertTrue(exception.cause is CertificationPathException)
@@ -404,13 +407,13 @@ internal class PrivateThirdPartyEndpointTest : MockContextTestCase() {
             val endpoint = channel.thirdPartyEndpoint as PrivateThirdPartyEndpoint
             val firstPartyEndpoint = channel.firstPartyEndpoint
 
-            endpoint.delete()
+            endpoint.delete(firstPartyEndpoint)
 
             verify(storage.privateThirdParty)
                 .delete("${firstPartyEndpoint.nodeId}_${endpoint.nodeId}")
             assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
-            assertEquals(0, sessionPublicKeystore.keys.size)
-            verify(channelManager).delete(endpoint)
+            assertEquals(0, sessionPublicKeystore.keys[firstPartyEndpoint.nodeId]!!.size)
+            verify(channelManager).delete(firstPartyEndpoint, endpoint)
         }
 
     private fun serializeConnectionParams(deliveryAuth: CertificationPath) =
