@@ -80,7 +80,13 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
                     SessionKeyPair.generate().sessionKey,
                 )
 
-            val thirdPartyEndpoint = PublicThirdPartyEndpoint.import(connectionParams.serialize())
+            val firstPartyEndpoint = createFirstPartyEndpoint()
+
+            val thirdPartyEndpoint =
+                PublicThirdPartyEndpoint.import(
+                    connectionParams.serialize(),
+                    firstPartyEndpoint,
+                )
 
             assertEquals(connectionParams.internetAddress, thirdPartyEndpoint.internetAddress)
             assertEquals(connectionParams.identityKey, thirdPartyEndpoint.identityKey)
@@ -91,15 +97,17 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
                     connectionParams.identityKey,
                 ),
             )
-            sessionPublicKeystore.retrieve(thirdPartyEndpoint.nodeId)
+            sessionPublicKeystore.retrieve(firstPartyEndpoint.nodeId, thirdPartyEndpoint.nodeId)
         }
 
     @Test
     fun import_invalidConnectionParams() =
         runTest {
+            val firstPartyEndpoint = createFirstPartyEndpoint()
             try {
                 PublicThirdPartyEndpoint.import(
                     "malformed".toByteArray(),
+                    firstPartyEndpoint,
                 )
             } catch (exception: InvalidThirdPartyEndpoint) {
                 assertEquals("Connection params serialization is malformed", exception.message)
@@ -134,13 +142,17 @@ internal class PublicThirdPartyEndpointTest : MockContextTestCase() {
                 thirdPartyEndpoint.nodeId,
             )
             val peerSessionKey = SessionKeyPair.generate().sessionKey
-            sessionPublicKeystore.save(peerSessionKey, thirdPartyEndpoint.nodeId)
+            sessionPublicKeystore.save(
+                peerSessionKey,
+                firstPartyEndpoint.nodeId,
+                thirdPartyEndpoint.nodeId,
+            )
 
-            thirdPartyEndpoint.delete()
+            thirdPartyEndpoint.delete(firstPartyEndpoint)
 
             verify(storage.publicThirdParty).delete(thirdPartyEndpoint.nodeId)
             assertEquals(0, privateKeyStore.sessionKeys[firstPartyEndpoint.nodeId]!!.size)
             assertEquals(0, sessionPublicKeystore.keys.size)
-            verify(channelManager).delete(thirdPartyEndpoint)
+            verify(channelManager).delete(firstPartyEndpoint, thirdPartyEndpoint)
         }
 }

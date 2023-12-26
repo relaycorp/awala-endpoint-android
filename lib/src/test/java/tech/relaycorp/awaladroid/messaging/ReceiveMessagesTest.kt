@@ -218,7 +218,7 @@ internal class ReceiveMessagesTest : MockContextTestCase() {
             val collectParcelsCall = CollectParcelsCall(Result.success(flowOf(parcelCollection)))
             pdcClient = MockPDCClient(collectParcelsCall)
 
-            channel.thirdPartyEndpoint.delete()
+            channel.thirdPartyEndpoint.delete(channel.firstPartyEndpoint)
 
             val messages = subject.receive().toCollection(mutableListOf())
 

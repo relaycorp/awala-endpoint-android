@@ -28,11 +28,11 @@ public sealed class ThirdPartyEndpoint(
      * Delete the endpoint.
      */
     @Throws(PersistenceException::class)
-    public open suspend fun delete() {
+    public open suspend fun delete(linkedFirstPartyEndpoint: FirstPartyEndpoint) {
         val context = Awala.getContextOrThrow()
-        context.privateKeyStore.deleteSessionKeysForPeer(nodeId)
-        context.sessionPublicKeyStore.delete(nodeId)
-        context.channelManager.delete(this)
+        context.privateKeyStore.deleteBoundSessionKeys(linkedFirstPartyEndpoint.nodeId, nodeId)
+        context.sessionPublicKeyStore.delete(linkedFirstPartyEndpoint.nodeId, nodeId)
+        context.channelManager.delete(linkedFirstPartyEndpoint, this)
     }
 
     internal companion object {
@@ -62,10 +62,10 @@ public class PrivateThirdPartyEndpoint internal constructor(
     private val storageKey = "${firstPartyEndpointAddress}_$nodeId"
 
     @Throws(PersistenceException::class, SetupPendingException::class)
-    override suspend fun delete() {
+    override suspend fun delete(linkedFirstPartyEndpoint: FirstPartyEndpoint) {
         val context = Awala.getContextOrThrow()
         context.storage.privateThirdParty.delete(storageKey)
-        super.delete()
+        super.delete(linkedFirstPartyEndpoint)
     }
 
     @Throws(InvalidAuthorizationException::class)
@@ -135,6 +135,7 @@ public class PrivateThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             connectionParamsSerialized: ByteArray,
+            firstPartyEndpoint: FirstPartyEndpoint,
         ): PrivateThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
 
@@ -180,7 +181,11 @@ public class PrivateThirdPartyEndpoint internal constructor(
                 )
             context.storage.privateThirdParty.set(endpoint.storageKey, data)
 
-            context.sessionPublicKeyStore.save(params.sessionKey, endpoint.nodeId)
+            context.sessionPublicKeyStore.save(
+                params.sessionKey,
+                firstPartyEndpoint.nodeId,
+                endpoint.nodeId,
+            )
 
             return endpoint
         }
@@ -197,10 +202,10 @@ public class PublicThirdPartyEndpoint internal constructor(
     identityKey: PublicKey,
 ) : ThirdPartyEndpoint(identityKey, internetAddress) {
     @Throws(PersistenceException::class, SetupPendingException::class)
-    override suspend fun delete() {
+    override suspend fun delete(linkedFirstPartyEndpoint: FirstPartyEndpoint) {
         val context = Awala.getContextOrThrow()
         context.storage.publicThirdParty.delete(nodeId)
-        super.delete()
+        super.delete(linkedFirstPartyEndpoint)
     }
 
     public companion object {
@@ -227,6 +232,7 @@ public class PublicThirdPartyEndpoint internal constructor(
         )
         public suspend fun import(
             connectionParamsSerialized: ByteArray,
+            firstPartyEndpoint: FirstPartyEndpoint,
         ): PublicThirdPartyEndpoint {
             val context = Awala.getContextOrThrow()
             val connectionParams =
@@ -248,6 +254,7 @@ public class PublicThirdPartyEndpoint internal constructor(
             )
             context.sessionPublicKeyStore.save(
                 connectionParams.sessionKey,
+                firstPartyEndpoint.nodeId,
                 peerNodeId,
             )
             return PublicThirdPartyEndpoint(

@@ -54,7 +54,10 @@ internal class ChannelManager(
         }
     }
 
-    suspend fun delete(thirdPartyEndpoint: ThirdPartyEndpoint) {
+    suspend fun delete(
+        linkedFirstPartyEndpoint: FirstPartyEndpoint,
+        thirdPartyEndpoint: ThirdPartyEndpoint,
+    ) {
         withContext(coroutineContext) {
             sharedPreferences.all.forEach { (key, value) ->
                 // Skip malformed values
@@ -63,6 +66,10 @@ internal class ChannelManager(
                 }
                 val sanitizedValue: List<String> = value.filterIsInstance<String>()
                 if (value.size != sanitizedValue.size) {
+                    return@forEach
+                }
+
+                if (key != linkedFirstPartyEndpoint.nodeId) {
                     return@forEach
                 }
 

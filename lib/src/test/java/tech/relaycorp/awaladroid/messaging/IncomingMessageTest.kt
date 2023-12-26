@@ -279,6 +279,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
         thirdPartySessionPublicKeyStore.save(
             channel.firstPartySessionKeyPair.sessionKey,
             channel.firstPartyEndpoint.nodeId,
+            channel.thirdPartyEndpoint.nodeId,
         )
         return EndpointManager(
             thirdPartyPrivateKeyStore,
