@@ -171,6 +171,7 @@ internal abstract class MockContextTestCase {
 
         sessionPublicKeystore.save(
             sessionKey,
+            firstPartyEndpoint.nodeId,
             thirdPartyEndpoint.nodeId,
         )
         return thirdPartyEndpoint

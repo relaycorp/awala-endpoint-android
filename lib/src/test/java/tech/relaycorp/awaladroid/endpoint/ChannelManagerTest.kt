@@ -124,7 +124,7 @@ internal class ChannelManagerTest {
                 apply()
             }
 
-            manager.delete(thirdPartyEndpoint)
+            manager.delete(firstPartyEndpoint, thirdPartyEndpoint)
 
             assertEquals(
                 mutableSetOf(unrelatedThirdPartyEndpointAddress),
@@ -145,7 +145,7 @@ internal class ChannelManagerTest {
                 apply()
             }
 
-            manager.delete(thirdPartyEndpoint)
+            manager.delete(firstPartyEndpoint, thirdPartyEndpoint)
 
             assertEquals(
                 setOf(unrelatedThirdPartyEndpointAddress),
@@ -166,7 +166,7 @@ internal class ChannelManagerTest {
                 apply()
             }
 
-            manager.delete(thirdPartyEndpoint)
+            manager.delete(firstPartyEndpoint, thirdPartyEndpoint)
 
             assertEquals(
                 malformedValue,
@@ -187,7 +187,7 @@ internal class ChannelManagerTest {
                 apply()
             }
 
-            manager.delete(thirdPartyEndpoint)
+            manager.delete(firstPartyEndpoint, thirdPartyEndpoint)
 
             assertEquals(
                 malformedValue,

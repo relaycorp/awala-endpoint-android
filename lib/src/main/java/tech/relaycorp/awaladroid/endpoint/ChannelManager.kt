@@ -54,24 +54,29 @@ internal class ChannelManager(
         }
     }
 
-    suspend fun delete(thirdPartyEndpoint: ThirdPartyEndpoint) {
+    suspend fun delete(
+        linkedFirstPartyEndpoint: FirstPartyEndpoint,
+        thirdPartyEndpoint: ThirdPartyEndpoint,
+    ) {
+        val key = linkedFirstPartyEndpoint.nodeId
         withContext(coroutineContext) {
-            sharedPreferences.all.forEach { (key, value) ->
-                // Skip malformed values
-                if (value !is MutableSet<*>) {
-                    return@forEach
-                }
-                val sanitizedValue: List<String> = value.filterIsInstance<String>()
-                if (value.size != sanitizedValue.size) {
-                    return@forEach
-                }
+            val value =
+                try {
+                    sharedPreferences.getStringSet(key, null)
+                } catch (exc: ClassCastException) {
+                    // Skip malformed values
+                    return@withContext
+                } ?: return@withContext
+            val sanitizedValue: List<String> = value.filterIsInstance<String>()
+            if (value.size != sanitizedValue.size) {
+                return@withContext
+            }
 
-                if ((value).contains(thirdPartyEndpoint.nodeId)) {
-                    val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.nodeId }
-                    with(sharedPreferences.edit()) {
-                        putStringSet(key, newValue.toMutableSet())
-                        commit()
-                    }
+            if ((value).contains(thirdPartyEndpoint.nodeId)) {
+                val newValue = sanitizedValue.filter { it != thirdPartyEndpoint.nodeId }
+                with(sharedPreferences.edit()) {
+                    putStringSet(key, newValue.toMutableSet())
+                    commit()
                 }
             }
         }

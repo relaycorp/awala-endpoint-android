@@ -65,8 +65,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
                     payload =
                         thirdPartyEndpointManager.wrapMessagePayload(
                             serviceMessage,
-                            channel.firstPartyEndpoint.nodeId,
                             channel.thirdPartyEndpoint.nodeId,
+                            channel.firstPartyEndpoint.nodeId,
                         ),
                     senderCertificate = PDACertPath.PDA,
                 )
@@ -279,6 +279,7 @@ internal class IncomingMessageTest : MockContextTestCase() {
         thirdPartySessionPublicKeyStore.save(
             channel.firstPartySessionKeyPair.sessionKey,
             channel.firstPartyEndpoint.nodeId,
+            channel.thirdPartyEndpoint.nodeId,
         )
         return EndpointManager(
             thirdPartyPrivateKeyStore,
@@ -299,8 +300,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
         val pdaPathServiceMessage = makePDAPathMessage(plaintext)
         return thirdPartyEndpointManager.wrapMessagePayload(
             pdaPathServiceMessage,
-            channel.firstPartyEndpoint.nodeId,
             channel.thirdPartyEndpoint.nodeId,
+            channel.firstPartyEndpoint.nodeId,
         )
     }
 
@@ -310,7 +311,8 @@ internal class IncomingMessageTest : MockContextTestCase() {
     companion object {
         private val logCaptor = LogCaptor.forClass(IncomingMessage::class.java)
 
+        @JvmStatic
         @AfterClass
-        fun closeLogs() = logCaptor.close()
+        fun closeLogs(): Unit = logCaptor.close()
     }
 }
