@@ -59,7 +59,8 @@ public class GatewayClientImpl
          * Bind to the gateway to be able to communicate with it.
          */
         @Deprecated(
-            message = "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
+            message =
+                "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
             replaceWith = ReplaceWith("bindAutomatically()"),
         )
         @Throws(GatewayBindingException::class)
@@ -92,7 +93,8 @@ public class GatewayClientImpl
          * Make sure to call this when you no longer need to communicate with the gateway.
          */
         @Deprecated(
-            message = "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
+            message =
+                "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
             replaceWith = ReplaceWith(""),
         )
         public fun unbind() {
