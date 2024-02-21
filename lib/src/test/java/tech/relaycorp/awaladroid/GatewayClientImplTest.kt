@@ -2,12 +2,14 @@ package tech.relaycorp.awaladroid
 
 import android.os.Bundle
 import android.os.Message
+import androidx.lifecycle.DefaultLifecycleObserver
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import junit.framework.Assert.assertNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
@@ -19,6 +21,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -50,6 +54,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     private val serviceInteractor = mock<ServiceInteractor>()
     private val sendMessage = mock<SendMessage>()
     private val receiveMessages = mock<ReceiveMessages>()
+    private var lifecycleObserver: DefaultLifecycleObserver? = null
 
     override val gatewayClient =
         GatewayClientImpl(
@@ -58,6 +63,7 @@ internal class GatewayClientImplTest : MockContextTestCase() {
             { pdcClient },
             sendMessage,
             receiveMessages,
+            { lifecycleObserver = it },
         )
 
     // Binding
@@ -110,6 +116,91 @@ internal class GatewayClientImplTest : MockContextTestCase() {
                 .thenThrow(ServiceInteractor.BindFailedException(""))
 
             gatewayClient.bind()
+        }
+
+    @Test
+    fun bindAutomatically_bindsOnStart() =
+        coroutineScope.runTest {
+            var onBindSuccessfulCalled = false
+            var onUnbindCalled = false
+            var onBindFailureCalled = false
+
+            gatewayClient.bindAutomatically(
+                onBindSuccessful = { onBindSuccessfulCalled = true },
+                onUnbind = { onUnbindCalled = true },
+                onBindFailure = { onBindFailureCalled = true },
+            )
+
+            assertFalse(onBindSuccessfulCalled)
+
+            lifecycleObserver?.onStart(mock())
+            coroutineScope.testScheduler.advanceUntilIdle()
+
+            verify(serviceInteractor).bind(
+                Awala.GATEWAY_SYNC_ACTION,
+                Awala.GATEWAY_PACKAGE,
+                Awala.GATEWAY_SYNC_COMPONENT,
+            )
+            assertTrue(onBindSuccessfulCalled)
+            assertFalse(onUnbindCalled)
+            assertFalse(onBindFailureCalled)
+        }
+
+    @Test
+    fun bindAutomatically_unbindsOnStop() =
+        coroutineScope.runTest {
+            var onBindSuccessfulCalled = false
+            var onUnbindCalled = false
+            var onBindFailureCalled = false
+
+            gatewayClient.bindAutomatically(
+                onBindSuccessful = { onBindSuccessfulCalled = true },
+                onUnbind = { onUnbindCalled = true },
+                onBindFailure = { onBindFailureCalled = true },
+            )
+
+            assertFalse(onUnbindCalled)
+
+            lifecycleObserver?.onStart(mock())
+            coroutineScope.testScheduler.advanceUntilIdle()
+            lifecycleObserver?.onStop(mock())
+            coroutineScope.testScheduler.advanceUntilIdle()
+
+            verify(serviceInteractor).unbind()
+            assertTrue(onBindSuccessfulCalled)
+            assertTrue(onUnbindCalled)
+            assertFalse(onBindFailureCalled)
+        }
+
+    @Test
+    fun bindAutomatically_callsOnFailure() =
+        coroutineScope.runTest {
+            var onBindSuccessfulCalled = false
+            var onUnbindCalled = false
+            var onBindFailureArgument: GatewayBindingException? = null
+
+            whenever(serviceInteractor.bind(any(), any(), any()))
+                .thenThrow(ServiceInteractor.BindFailedException(""))
+
+            gatewayClient.bindAutomatically(
+                onBindSuccessful = { onBindSuccessfulCalled = true },
+                onUnbind = { onUnbindCalled = true },
+                onBindFailure = { onBindFailureArgument = it },
+            )
+
+            assertNull(onBindFailureArgument)
+
+            lifecycleObserver?.onStart(mock())
+            coroutineScope.testScheduler.advanceUntilIdle()
+
+            verify(serviceInteractor).bind(
+                Awala.GATEWAY_SYNC_ACTION,
+                Awala.GATEWAY_PACKAGE,
+                Awala.GATEWAY_SYNC_COMPONENT,
+            )
+            assertFalse(onBindSuccessfulCalled)
+            assertFalse(onUnbindCalled)
+            assertTrue(onBindFailureArgument is GatewayBindingException)
         }
 
     // Registration

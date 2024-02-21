@@ -1,10 +1,15 @@
 package tech.relaycorp.awaladroid
 
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tech.relaycorp.awaladroid.background.ServiceInteractor
 import tech.relaycorp.awaladroid.common.Logging.logger
@@ -41,6 +46,9 @@ public class GatewayClientImpl
             { PoWebClient.initLocal(port = Awala.POWEB_PORT) },
         private val sendMessage: SendMessage = SendMessage(),
         private val receiveMessages: ReceiveMessages = ReceiveMessages(),
+        private val addProcessLifecycleObserver: (DefaultLifecycleObserver) -> Unit = {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(it)
+        },
     ) {
         // Gateway
 
@@ -50,6 +58,10 @@ public class GatewayClientImpl
         /**
          * Bind to the gateway to be able to communicate with it.
          */
+        @Deprecated(
+            message = "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
+            replaceWith = ReplaceWith("bindAutomatically()"),
+        )
         @Throws(GatewayBindingException::class)
         public suspend fun bind() {
             withContext(coroutineContext) {
@@ -79,9 +91,50 @@ public class GatewayClientImpl
          *
          * Make sure to call this when you no longer need to communicate with the gateway.
          */
+        @Deprecated(
+            message = "Use bindAutomatically to bind/unbind when the app is in the foreground/background",
+            replaceWith = ReplaceWith(""),
+        )
         public fun unbind() {
             gwServiceInteractor?.unbind()
             gwServiceInteractor = null
+        }
+
+        /**
+         * The app will automatically bind when the application is in the foreground, and unbind when
+         * the app is moved to the background. Only call this method once.
+         *
+         * @param onBindSuccessful called on every successful bind to the gateway
+         * @param onUnbind         called on every unbind to the gateway
+         * @param onBindFailure    called if the binding failed, usually because the Gateway app is
+         *                           not installed on the device
+         */
+        public fun bindAutomatically(
+            onBindSuccessful: () -> Unit = {},
+            onUnbind: () -> Unit = {},
+            onBindFailure: (GatewayBindingException) -> Unit,
+        ) {
+            addProcessLifecycleObserver(
+                object : DefaultLifecycleObserver {
+                    override fun onStart(owner: LifecycleOwner) {
+                        CoroutineScope(coroutineContext).launch {
+                            try {
+                                @Suppress("deprecated")
+                                bind()
+                                onBindSuccessful()
+                            } catch (exp: GatewayBindingException) {
+                                onBindFailure(exp)
+                            }
+                        }
+                    }
+
+                    override fun onStop(owner: LifecycleOwner) {
+                        @Suppress("deprecated")
+                        unbind()
+                        onUnbind()
+                    }
+                },
+            )
         }
 
         // First-Party Endpoints
@@ -140,11 +193,13 @@ public class GatewayClientImpl
                         REGISTRATION_AUTHORIZATION -> {
                             cont.resume(replyMessage.data.getByteArray("auth")!!)
                         }
+
                         GATEWAY_NOT_REGISTERED -> {
                             cont.resumeWithException(
                                 GatewayUnregisteredException("Gateway not registered"),
                             )
                         }
+
                         else -> {
                             cont.resumeWithException(
                                 GatewayProtocolException(
