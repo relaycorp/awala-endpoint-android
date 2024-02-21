@@ -90,6 +90,7 @@ $dokka.location:tech.relaycorp.awaladroid/GatewayBindingException///PointingToDe
 $dokka.location:tech.relaycorp.awaladroid/GatewayBindingException/GatewayBindingException/#kotlin.String#kotlin.Throwable?/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-binding-exception/-gateway-binding-exception.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl///PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/index.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl/bind/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/bind.html
+$dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl/bindAutomatically/#kotlin.Function0[kotlin.Unit]#kotlin.Function0[kotlin.Unit]#kotlin.Function1[tech.relaycorp.awaladroid.GatewayBindingException,kotlin.Unit]/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/bind-automatically.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl/receiveMessages/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/receive-messages.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl/sendMessage/#tech.relaycorp.awaladroid.messaging.OutgoingMessage/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/send-message.html
 $dokka.location:tech.relaycorp.awaladroid/GatewayClientImpl/unbind/#/PointingToDeclaration/lib/tech.relaycorp.awaladroid/-gateway-client-impl/unbind.html
