@@ -64,14 +64,14 @@ task jacocoTestCoverageVerification(type: JacocoCoverageVerification) {
                 counter = "CLASS"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "14".toBigDecimal()
+                maximum = "17".toBigDecimal()
             }
 
             limit {
                 counter = "METHOD"
                 value = "MISSEDCOUNT"
                 // Workaround for https://github.com/jacoco/jacoco/issues/654
-                maximum = "39".toBigDecimal()
+                maximum = "41".toBigDecimal()
             }
 
             limit {

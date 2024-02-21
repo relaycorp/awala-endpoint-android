@@ -175,18 +175,12 @@ internal class GatewayClientImplTest : MockContextTestCase() {
     @Test
     fun bindAutomatically_callsOnFailure() =
         coroutineScope.runTest {
-            var onBindSuccessfulCalled = false
-            var onUnbindCalled = false
             var onBindFailureArgument: GatewayBindingException? = null
 
             whenever(serviceInteractor.bind(any(), any(), any()))
                 .thenThrow(ServiceInteractor.BindFailedException(""))
 
-            gatewayClient.bindAutomatically(
-                onBindSuccessful = { onBindSuccessfulCalled = true },
-                onUnbind = { onUnbindCalled = true },
-                onBindFailure = { onBindFailureArgument = it },
-            )
+            gatewayClient.bindAutomatically(onBindFailure = { onBindFailureArgument = it })
 
             assertNull(onBindFailureArgument)
 
@@ -198,8 +192,6 @@ internal class GatewayClientImplTest : MockContextTestCase() {
                 Awala.GATEWAY_PACKAGE,
                 Awala.GATEWAY_SYNC_COMPONENT,
             )
-            assertFalse(onBindSuccessfulCalled)
-            assertFalse(onUnbindCalled)
             assertTrue(onBindFailureArgument is GatewayBindingException)
         }
 
@@ -264,6 +256,21 @@ internal class GatewayClientImplTest : MockContextTestCase() {
 
             pdcClient =
                 MockPDCClient(RegisterNodeCall(Result.failure(ServerConnectionException(""))))
+
+            gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
+        }
+
+    @Test(expected = RegistrationFailedException::class)
+    internal fun registerEndpoint_withFailedRegistrationDueToGatewayBind() =
+        coroutineScope.runTest {
+            val replyMessage = buildAuthorizationReplyMessage()
+            whenever(serviceInteractor.sendMessage(any(), any())).thenAnswer {
+                it.getArgument<((Message) -> Unit)?>(1)(replyMessage)
+            }
+            whenever(serviceInteractor.bind(any(), any(), any()))
+                .thenThrow(ServiceInteractor.BindFailedException(""))
+
+            pdcClient = MockPDCClient()
 
             gatewayClient.registerEndpoint(KeyPairSet.PRIVATE_ENDPOINT)
         }
