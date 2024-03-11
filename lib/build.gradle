@@ -71,7 +71,7 @@ dependencies {
   // Awala
   implementation 'tech.relaycorp:awala:1.68.8'
   implementation 'tech.relaycorp:awala-keystore-file:1.6.42'
-  implementation 'tech.relaycorp:poweb:1.5.80'
+  implementation 'tech.relaycorp:poweb:1.5.86'
   testImplementation 'tech.relaycorp:awala-testing:1.5.27'
 
   // Security
