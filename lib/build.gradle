@@ -85,7 +85,7 @@ dependencies {
   testImplementation 'junit:junit:4.13.2'
   testImplementation 'androidx.test:core:1.5.0'
   testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinCoroutinesVersion"
-  testImplementation 'org.robolectric:robolectric:4.10.3'
+  testImplementation 'org.robolectric:robolectric:4.12'
   testImplementation 'org.mockito:mockito-inline:5.2.0'
   testImplementation 'com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0'
   testImplementation 'io.github.hakky54:logcaptor:2.9.2'
